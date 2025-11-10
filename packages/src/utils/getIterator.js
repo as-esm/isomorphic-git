@@ -1,4 +1,4 @@
-import { fromValue } from '../utils/fromValue.js'
+import { fromValue } from './fromValue.js'
 
 export function getIterator(iterable) {
   if (iterable[Symbol.asyncIterator]) {

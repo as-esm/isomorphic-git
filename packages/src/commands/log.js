@@ -1,13 +1,14 @@
 // @ts-check
 import '../typedefs.js'
 
-import { _readCommit } from '../commands/readCommit.js'
 import { NotFoundError } from '../errors/NotFoundError.js'
 import { GitRefManager } from '../managers/GitRefManager.js'
 import { GitShallowManager } from '../managers/GitShallowManager.js'
 import { compareAge } from '../utils/compareAge.js'
 import { resolveFileIdInTree } from '../utils/resolveFileIdInTree.js'
 import { resolveFilepath } from '../utils/resolveFilepath.js'
+
+import { _readCommit } from './readCommit.js'
 
 /**
  * Get commit descriptions from the git history

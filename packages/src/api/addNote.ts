@@ -2,7 +2,7 @@
 import '../typedefs.ts'
 import type { SignCallback } from '../typedefs.ts'
 
-import { _addNote } from '../commands/addNote.js'
+import { _addNote } from '../commands/addNote.ts'
 import { MissingNameError } from '../errors/MissingNameError.js'
 import { FileSystem } from '../models/FileSystem.js'
 import { assertParameter } from '../utils/assertParameter.js'

@@ -1,7 +1,6 @@
 // @ts-check
 import '../typedefs.js'
 
-import { _currentBranch } from '../commands/currentBranch.js'
 import { MissingParameterError } from '../errors/MissingParameterError.js'
 import { RemoteCapabilityError } from '../errors/RemoteCapabilityError.js'
 import { GitConfigManager } from '../managers/GitConfigManager.js'
@@ -22,6 +21,8 @@ import { pkg } from '../utils/pkg.js'
 import { splitLines } from '../utils/splitLines.js'
 import { parseUploadPackResponse } from '../wire/parseUploadPackResponse.js'
 import { writeUploadPackRequest } from '../wire/writeUploadPackRequest.js'
+
+import { _currentBranch } from './currentBranch.js'
 
 /**
  *

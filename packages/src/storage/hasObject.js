@@ -1,6 +1,6 @@
-import { hasObjectLoose } from '../storage/hasObjectLoose.js'
-import { hasObjectPacked } from '../storage/hasObjectPacked.js'
-import { _readObject as readObject } from '../storage/readObject.js'
+import { hasObjectLoose } from './hasObjectLoose.js'
+import { hasObjectPacked } from './hasObjectPacked.js'
+import { _readObject as readObject } from './readObject.js'
 
 export async function hasObject({
   fs,

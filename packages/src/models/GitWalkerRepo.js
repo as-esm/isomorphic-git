@@ -1,11 +1,12 @@
 import { NotFoundError } from '../errors/NotFoundError.js'
 import { ObjectTypeError } from '../errors/ObjectTypeError.js'
 import { GitRefManager } from '../managers/GitRefManager.js'
-import { GitTree } from '../models/GitTree.js'
 import { _readObject as readObject } from '../storage/readObject.js'
 import { join } from '../utils/join.js'
 import { normalizeMode } from '../utils/normalizeMode.js'
 import { resolveTree } from '../utils/resolveTree.js'
+
+import { GitTree } from './GitTree.js'
 
 export class GitWalkerRepo {
   constructor({ fs, gitdir, ref, cache }) {

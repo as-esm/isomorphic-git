@@ -19,7 +19,7 @@ export async function _expandOid({ fs, cache, gitdir, oid: short }) {
     getExternalRefDelta,
   }).then(packedOids =>
     results.then(results => {
-      // Objects can exist in a pack file as well as loose, 
+      // Objects can exist in a pack file as well as loose,
       // make sure we only get a list of unique oids.
       for (const packedOid of packedOids) {
         if (results.indexOf(packedOid) === -1) {

@@ -17,13 +17,7 @@ import { readObjectPacked } from './readObjectPacked.js'
  * @param {string} args.oid
  * @param {string} [args.format]
  */
-export async function _readObject({
-  fs,
-  cache,
-  gitdir,
-  oid,
-  format = 'content',
-}) {
+export function _readObject({ fs, cache, gitdir, oid, format = 'content' }) {
   // Curry the current read method so that the packfile un-deltification
   // process can acquire external ref-deltas.
   const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid })
@@ -60,8 +54,8 @@ export async function _readObject({
       return format === 'deflated'
         ? result
         : result.format === 'deflated'
-        ? // All loose objects are deflated but the hard-coded empty tree is `wrapped` 
-        // so we have to check if we need to inflate the object.
+        ? // All loose objects are deflated but the hard-coded empty tree is `wrapped`
+          // so we have to check if we need to inflate the object.
           inflate(result.object)
             .then(Buffer.from)
             .then(object => ({ format: 'wrapped', object }))

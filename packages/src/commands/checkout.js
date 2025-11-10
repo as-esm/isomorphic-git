@@ -1,10 +1,6 @@
 // @ts-check
 import '../typedefs.js'
 
-import { STAGE } from '../commands/STAGE.js'
-import { TREE } from '../commands/TREE.js'
-import { WORKDIR } from '../commands/WORKDIR.js'
-import { _walk } from '../commands/walk.js'
 import { CheckoutConflictError } from '../errors/CheckoutConflictError.js'
 import { CommitNotFetchedError } from '../errors/CommitNotFetchedError.js'
 import { InternalError } from '../errors/InternalError.js'
@@ -15,6 +11,11 @@ import { GitRefManager } from '../managers/GitRefManager.js'
 import { _readObject as readObject } from '../storage/readObject.js'
 import { flat } from '../utils/flat.js'
 import { worthWalking } from '../utils/worthWalking.js'
+
+import { STAGE } from './STAGE.js'
+import { TREE } from './TREE.js'
+import { WORKDIR } from './WORKDIR.js'
+import { _walk } from './walk.js'
 
 /**
  * @param {object} args

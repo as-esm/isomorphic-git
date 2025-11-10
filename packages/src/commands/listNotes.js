@@ -1,5 +1,5 @@
 // @ts-check
-import { _readTree } from '../commands/readTree.js'
+import { _readTree } from './readTree.js'
 import { NotFoundError } from '../errors/NotFoundError.js'
 import { GitRefManager } from '../managers/GitRefManager.js'
 

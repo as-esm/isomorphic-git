@@ -1,5 +1,5 @@
 // @ts-check
-import '../typedefs.js'
+import '../typedefs.ts'
 
 import { MissingNameError } from '../errors/MissingNameError.js'
 import { MissingParameterError } from '../errors/MissingParameterError.js'
