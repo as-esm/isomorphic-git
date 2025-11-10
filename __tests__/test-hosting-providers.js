@@ -1,7 +1,7 @@
 /* eslint-env node, browser, jasmine */
 import http from 'isomorphic-git/http'
 
-const { fetch, push } = require('isomorphic-git')
+const { fetch, push } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 
@@ -106,12 +106,12 @@ describe('Hosting Providers', () => {
   })
 
   describe('Bitbucket', () => {
-    // This App Password is for the test account 'isomorphic-git' user on Bitbucket,
+    // This App Password is for the test account '../src/index.ts' user on Bitbucket,
     // with "repositories.read" and "repositories.write" access. However the only repo the account has access to is
     // https://bitbucket.org/isomorphic-git/test.empty
     // It is stored reversed because the GitHub one is stored reversed and I like being consistent.
     const password = reverse('TqSWhF3xLxEEXKQtZTwn')
-    const username = 'isomorphic-git'
+    const username = '../src/index.ts'
     it('push', async () => {
       // Setup
       const { fs, gitdir } = await makeFixture('test-hosting-providers')

@@ -1,8 +1,8 @@
 /* eslint-env node, browser, jasmine */
 const path = require('path')
 
-const { packObjects, indexPack } = require('isomorphic-git')
-const { readObject, readObjectPacked } = require('isomorphic-git/internal-apis')
+const { packObjects, indexPack } = require('../src/index.ts')
+const { readObject, readObjectPacked } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

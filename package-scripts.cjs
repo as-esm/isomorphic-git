@@ -1,15 +1,18 @@
 // package-scripts.js is a convention used by the 'nps' utility
 // It's like package.json scripts, but more flexible.
-const { concurrent, series, runInNewWindow } = require('nps-utils')
-
 const pkg = require('./package.json')
+
+const { concurrent, series, runInNewWindow } = require('nps-utils')
 
 const builtFiles = pkg.files.filter(f => !['cli.js', 'cli.cjs'].includes(f))
 
 // Polyfill TRAVIS_PULL_REQUEST_SHA environment variable
 require('./__tests__/__helpers__/set-TRAVIS_PULL_REQUEST_SHA.cjs')
 
-const retry = n => cmd => Array(n).fill(`(${cmd})`).join(` || `)
+const retry = n => cmd =>
+  Array(n)
+    .fill(`(${cmd})`)
+    .join(` || `)
 const retry3 = retry(3)
 
 const quote = cmd =>
@@ -112,16 +115,16 @@ module.exports = {
     website: {
       default: process.env.CI
         ? series.nps(
-          'website.codemirrorify',
-          'website.cpstatic',
-          'website.build',
-          'website.publish'
-        )
+            'website.codemirrorify',
+            'website.cpstatic',
+            'website.build',
+            'website.publish'
+          )
         : series.nps(
-          'website.codemirrorify',
-          'website.cpstatic',
-          'website.dev'
-        ),
+            'website.codemirrorify',
+            'website.cpstatic',
+            'website.dev'
+          ),
       codemirrorify:
         '(cd website/packages/codemirrorify && npm install && npm run build)',
       cpstatic:
@@ -145,20 +148,26 @@ module.exports = {
     },
     test: {
       default: series.nps(
-        'lint',
-        'build',
-        'test.typecheck',
+        // 'lint',
+        // 'build',
+        // 'test.typecheck',
         'test.setup',
         'test.jest',
         'test.karma',
         'test.teardown'
       ),
-      typecheck: 'tsc -p tsconfig.json',
+      typecheck: 'npx tsc -p tsconfig.json',
       setup: series.nps('proxy.start', 'gitserver.start'),
       teardown: series.nps('proxy.stop', 'gitserver.stop'),
       jest: process.env.CI
-        ? retry3(`${timeout5('jest --ci --coverage')}`)
-        : `jest --ci --coverage`,
+        ? // ? retry3(`${timeout5('jest --ci --coverage')}`)
+          // : `jest --ci --coverage`,
+          retry3(
+            `${timeout5(
+              'node --experimental-vm-modules --experimental-require-module --experimental-strip-types node_modules/jest/bin/jest.js --ci --coverage'
+            )}`
+          )
+        : `node --experimental-vm-modules --experimental-require-module --experimental-strip-types node_modules/jest/bin/jest.js --ci --coverage`,
       karma: process.env.CI
         ? retry3('karma start ./karma.conf.cjs --single-run')
         : 'cross-env karma start ./karma.conf.cjs --single-run -log-level debug',

@@ -7,8 +7,8 @@ const {
   resolveRef,
   log,
   statusMatrix,
-} = require('isomorphic-git')
-const gitCommit = require('isomorphic-git').commit
+} = require('../src/index.ts')
+const gitCommit = require('../src/index.ts').commit
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

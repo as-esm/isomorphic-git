@@ -5,7 +5,7 @@ const {
   GitPackIndex,
   GitObject,
   shasum,
-} = require('isomorphic-git/internal-apis')
+} = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

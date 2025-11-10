@@ -1,6 +1,6 @@
 /* eslint-env node, browser, jasmine */
 
-const { hashBlob } = require('isomorphic-git')
+const { hashBlob } = require('../src/index.ts')
 
 const string = `#!/usr/bin/env node
 const minimisted = require('minimisted')

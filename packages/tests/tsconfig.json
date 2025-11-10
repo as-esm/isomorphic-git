@@ -1,0 +1,34 @@
+{
+  "include": ["__tests__"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./.cache/tsconfig.tsbuildinfo",
+    "strictNullChecks": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "maxNodeModuleJsDepth": 1,
+    "moduleResolution": "nodenext",
+    "target": "es2023",
+    "module": "nodenext",
+    "isolatedModules": true,
+    "lib": ["es2023", "dom"],
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "sourceMap": false,
+    "declaration": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    // "paths": {
+    //   "isomorphic-git": ["./index.d.ts"],
+    //   "isomorphic-git/internal-apis": ["./src/internal-apis.d.ts"],
+    //   "isomorphic-git/http": ["./http/node/index.d.ts"],
+    //   "isomorphic-git/managers": ["./managers/index.d.ts"],
+    //   "isomorphic-git/models": ["./models/index.d.ts"]
+    // }
+  }
+}

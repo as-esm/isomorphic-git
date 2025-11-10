@@ -1,5 +1,5 @@
 /* eslint-env node, browser, jasmine */
-const { findMergeBase } = require('isomorphic-git')
+const { findMergeBase } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

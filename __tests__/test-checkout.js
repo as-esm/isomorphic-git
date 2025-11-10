@@ -11,7 +11,7 @@ const {
   getConfig,
   fetch: gitFetch,
   setConfig,
-} = require('isomorphic-git')
+} = require('../src/index.ts')
 
 /* eslint-env node, browser, jasmine */
 

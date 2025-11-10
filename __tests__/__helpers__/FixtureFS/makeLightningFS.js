@@ -1,4 +1,4 @@
-const { FileSystem } = require('isomorphic-git/internal-apis')
+const { FileSystem } = require('../../../src/internal-apis.ts')
 
 // this is so it works with either Node local tests or Browser WAN tests
 const localhost =

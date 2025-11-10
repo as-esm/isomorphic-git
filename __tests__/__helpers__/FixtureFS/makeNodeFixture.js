@@ -1,6 +1,6 @@
 const path = require('path')
 
-const { FileSystem } = require('isomorphic-git/internal-apis')
+const { FileSystem } = require('../../../src/internal-apis.ts')
 
 async function makeNodeFixture(fixture) {
   const _fs = Object.assign({}, require('fs'))

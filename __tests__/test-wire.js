@@ -7,7 +7,7 @@ const {
   writeRefsAdResponse,
   writeUploadPackRequest,
   Errors,
-} = require('isomorphic-git/internal-apis')
+} = require('../src/index.ts')
 // const stream = require('stream')
 
 /*

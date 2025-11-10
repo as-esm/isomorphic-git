@@ -1,5 +1,5 @@
 /* eslint-env node, browser, jasmine */
-const { GitRefManager } = require('isomorphic-git/internal-apis')
+const { GitRefManager } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

@@ -1,7 +1,7 @@
 /* eslint-env node, browser, jasmine */
-import http from 'isomorphic-git/http'
+const http = require('isomorphic-git/http')
 
-const { clone, checkout, listFiles, commit } = require('isomorphic-git')
+const { clone, checkout, listFiles, commit } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

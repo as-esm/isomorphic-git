@@ -1,7 +1,7 @@
 /* eslint-env node, browser, jasmine */
 
-const { setConfig } = require('isomorphic-git')
-const { normalizeAuthorObject } = require('isomorphic-git/internal-apis')
+const { setConfig } = require('../src/index.ts')
+const { normalizeAuthorObject } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

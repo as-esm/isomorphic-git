@@ -1,5 +1,5 @@
 /* eslint-env node, browser, jasmine */
-const { GitPktLine } = require('isomorphic-git/internal-apis')
+const { GitPktLine } = require('../src/index.ts')
 
 describe('GitPktLine', () => {
   it('read stream - simple', async () => {

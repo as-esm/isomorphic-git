@@ -8,7 +8,7 @@ const {
   STAGE,
   status,
   getConfig,
-} = require('isomorphic-git')
+} = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 

@@ -1,4 +1,5 @@
-const { FileSystem } = require('isomorphic-git/internal-apis')
+const { FileSystem } = require('../../../src/internal-apis.ts')
+
 const pify = require('pify')
 
 let browserFS = null

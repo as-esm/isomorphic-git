@@ -8,7 +8,7 @@ const {
   currentBranch,
   resolveRef,
   getConfig,
-} = require('isomorphic-git')
+} = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 
@@ -23,7 +23,7 @@ describe('clone', () => {
   // Update: well, it's now slow enough on Edge that it's failing. Which is odd bc
   // it's the New Edge with is Chromium-based.
   ;(process.browser ? xit : it)('clone with noTags', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     await clone({
       fs,
       http,
@@ -54,7 +54,7 @@ describe('clone', () => {
     expect(err.code).toBe(Errors.NotFoundError.code)
   })
   it('clone with noCheckout', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     await clone({
       fs,
       http,
@@ -76,7 +76,7 @@ describe('clone', () => {
     expect(await fs.exists(`${dir}/package.json`)).toBe(false)
   })
   it('clone a tag', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     await clone({
       fs,
       http,
@@ -98,7 +98,7 @@ describe('clone', () => {
     expect(await fs.exists(`${dir}/package.json`)).toBe(true)
   })
   it('clone should not peel tag', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     await clone({
       fs,
       http,
@@ -110,7 +110,7 @@ describe('clone', () => {
     expect(oid.trim()).toBe('db34227a52a6490fc80a13da3916ea91d183fc3f')
   })
   it('clone with an unregistered protocol', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     const url = `foobar://github.com/isomorphic-git/isomorphic-git`
     let error = null
     try {
@@ -434,7 +434,7 @@ describe('clone', () => {
   })
 
   it('removes the gitdir when clone fails', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     const url = `foobar://github.com/isomorphic-git/isomorphic-git`
     try {
       await clone({
@@ -454,7 +454,7 @@ describe('clone', () => {
   })
 
   it('should set up the remote tracking branch by default', async () => {
-    const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+    const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
     await clone({
       fs,
       http,
@@ -503,7 +503,7 @@ describe('clone', () => {
 
   if (typeof process === 'object' && (process.versions || {}).node) {
     it('should allow agent to be used with built-in http plugin for Node.js', async () => {
-      const { fs, dir, gitdir } = await makeFixture('isomorphic-git')
+      const { fs, dir, gitdir } = await makeFixture('../src/index.ts')
       const connectionLog = []
       const { Agent } = require('https')
       const httpWithAgent = {

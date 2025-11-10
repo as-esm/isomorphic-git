@@ -1,5 +1,5 @@
 /* eslint-env node, browser, jasmine */
-const { listTags } = require('isomorphic-git')
+const { listTags } = require('../src/index.ts')
 
 const { makeFixture } = require('./__helpers__/FixtureFS.js')
 
