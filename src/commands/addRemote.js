@@ -5,12 +5,13 @@ import cleanGitRef from 'clean-git-ref'
 
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { GitConfigManager } from '../managers/GitConfigManager.js'
+import { ConfigAccess } from '../utils/configAccess.js'
 import validRef from '../utils/isValidRef.js'
+import { join } from '../utils/join.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.remote
  * @param {string} args.url
@@ -23,22 +24,26 @@ export async function _addRemote({ fs, gitdir, remote, url, force }) {
   if (!validRef(remote, true)) {
     throw new InvalidRefNameError(remote, cleanGitRef.clean(remote))
   }
-  const config = await GitConfigManager.get({ fs, gitdir })
+  
+  // Use ConfigAccess for config operations
+  const configAccess = new ConfigAccess(fs, gitdir)
+  
   if (!force) {
     // Check that setting it wouldn't overwrite.
-    const remoteNames = await config.getSubsections('remote')
+    const remoteNames = await configAccess.getSubsections('remote')
     if (remoteNames.includes(remote)) {
       // Throw an error if it would overwrite an existing remote,
       // but not if it's simply setting the same value again.
-      if (url !== (await config.get(`remote.${remote}.url`))) {
+      const existingUrl = await configAccess.getConfigValue(`remote.${remote}.url`)
+      if (url !== existingUrl) {
         throw new AlreadyExistsError('remote', remote)
       }
     }
   }
-  await config.set(`remote.${remote}.url`, url)
-  await config.set(
+  await configAccess.setConfigValue(`remote.${remote}.url`, url, 'local')
+  await configAccess.setConfigValue(
     `remote.${remote}.fetch`,
-    `+refs/heads/*:refs/remotes/${remote}/*`
+    `+refs/heads/*:refs/remotes/${remote}/*`,
+    'local'
   )
-  await GitConfigManager.save({ fs, gitdir, config })
 }

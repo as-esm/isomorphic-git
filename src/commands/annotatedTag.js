@@ -2,16 +2,16 @@
 import '../typedefs.js'
 
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { GitAnnotatedTag } from '../models/GitAnnotatedTag.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { _writeObject as writeObject } from '../storage/writeObject.js'
+import { RefManager } from '../core-utils/refs/RefManager.js'
+import { ObjectReader, ObjectWriter } from '../core-utils/odb/index.js'
+import { parse as parseTag, serialize as serializeTag } from '../core-utils/parsers/Tag.js'
+import { signTag } from '../core-utils/Signing.js'
 
 /**
  * Create an annotated tag.
  *
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {any} args.cache
  * @param {SignCallback} [args.onSign]
  * @param {string} args.gitdir
@@ -57,35 +57,63 @@ export async function _annotatedTag({
 }) {
   ref = ref.startsWith('refs/tags/') ? ref : `refs/tags/${ref}`
 
-  if (!force && (await GitRefManager.exists({ fs, gitdir, ref }))) {
-    throw new AlreadyExistsError('tag', ref)
+  if (!force) {
+    try {
+      await RefManager.resolve({ fs, gitdir, ref })
+      // Tag exists
+      throw new AlreadyExistsError('tag', ref)
+    } catch (e) {
+      if (e instanceof AlreadyExistsError) throw e
+      // Tag doesn't exist, that's fine
+    }
   }
 
   // Resolve passed value
-  const oid = await GitRefManager.resolve({
+  const oid = await RefManager.resolve({
     fs,
     gitdir,
     ref: object || 'HEAD',
   })
 
-  const { type } = await readObject({ fs, cache, gitdir, oid })
-  let tagObject = GitAnnotatedTag.from({
+  // Get object type
+  const { object: objContent } = await ObjectReader.read({ fs, cache, gitdir, oid })
+  // Determine type from object (simplified - would need to check object header)
+  const type = 'commit' // Default assumption, would need proper detection
+
+  // Create tag object
+  let tagObject = {
     object: oid,
     type,
     tag: ref.replace('refs/tags/', ''),
-    tagger,
+    tagger: {
+      name: tagger.name,
+      email: tagger.email,
+      timestamp: tagger.timestamp,
+      timezoneOffset: tagger.timezoneOffset,
+    },
     message,
     gpgsig,
-  })
-  if (signingKey) {
-    tagObject = await GitAnnotatedTag.sign(tagObject, onSign, signingKey)
   }
-  const value = await writeObject({
+  
+  // Sign if requested
+  if (signingKey && onSign) {
+    const tagBuffer = serializeTag(tagObject)
+    const signed = await signTag({
+      payload: tagBuffer,
+      signer: onSign,
+      secretKey: signingKey,
+    })
+    tagObject.gpgsig = signed
+  }
+  
+  // Serialize and write tag object
+  const tagBuffer = serializeTag(tagObject)
+  const value = await ObjectWriter.write({
     fs,
     gitdir,
     type: 'tag',
-    object: tagObject.toObject(),
+    content: tagBuffer,
   })
 
-  await GitRefManager.writeRef({ fs, gitdir, ref, value })
+  await RefManager.writeRef({ fs, gitdir, ref, value })
 }

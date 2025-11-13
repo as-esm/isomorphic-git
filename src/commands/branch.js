@@ -5,14 +5,15 @@ import cleanGitRef from 'clean-git-ref'
 
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
+import { RefManager } from '../core-utils/refs/RefManager.js'
+import { appendReflog } from '../core-utils/refs/ReflogManager.js'
 import validRef from '../utils/isValidRef.js'
 
 /**
  * Create a branch
  *
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref
  * @param {string} [args.object = 'HEAD']
@@ -41,28 +42,52 @@ export async function _branch({
   const fullref = `refs/heads/${ref}`
 
   if (!force) {
-    const exist = await GitRefManager.exists({ fs, gitdir, ref: fullref })
-    if (exist) {
+    try {
+      await RefManager.resolve({ fs, gitdir, ref: fullref })
+      // Branch exists
       throw new AlreadyExistsError('branch', ref, false)
+    } catch (e) {
+      if (e instanceof AlreadyExistsError) throw e
+      // Branch doesn't exist, that's fine
     }
   }
 
   // Get current HEAD tree oid
   let oid
   try {
-    oid = await GitRefManager.resolve({ fs, gitdir, ref: object || 'HEAD' })
+    oid = await RefManager.resolve({ fs, gitdir, ref: object || 'HEAD' })
   } catch (e) {
     // Probably an empty repo
   }
 
   // Create a new ref that points at the current commit
   if (oid) {
-    await GitRefManager.writeRef({ fs, gitdir, ref: fullref, value: oid })
+    const oldOid = '0000000000000000000000000000000000000000' // New branch
+    await RefManager.writeRef({ fs, gitdir, ref: fullref, value: oid })
+    
+    // Write reflog entry
+    const author = 'isomorphic-git <noreply@isomorphic-git.org>'
+    const timestamp = Math.floor(Date.now() / 1000)
+    const timezoneOffset = new Date().getTimezoneOffset()
+    const offsetStr = `${timezoneOffset > 0 ? '-' : '+'}${Math.abs(Math.floor(timezoneOffset / 60)).toString().padStart(2, '0')}${Math.abs(timezoneOffset % 60).toString().padStart(2, '0')}`
+    await appendReflog({
+      fs,
+      gitdir,
+      ref: fullref,
+      entry: {
+        oldOid,
+        newOid: oid,
+        author,
+        timestamp,
+        timezoneOffset: offsetStr,
+        message: `branch: Created from ${object || 'HEAD'}`,
+      },
+    })
   }
 
   if (checkout) {
     // Update HEAD
-    await GitRefManager.writeSymbolicRef({
+    await RefManager.writeSymbolicRef({
       fs,
       gitdir,
       ref: 'HEAD',

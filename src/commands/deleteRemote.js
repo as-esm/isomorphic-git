@@ -1,16 +1,25 @@
 // @ts-check
-import { GitConfigManager } from '../managers/GitConfigManager.js'
+import { parse as parseConfig, serialize as serializeConfig } from '../core-utils/ConfigParser.js'
+import { join } from '../utils/join.js'
 
 /**
  * @param {Object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.remote
  *
  * @returns {Promise<void>}
  */
 export async function _deleteRemote({ fs, gitdir, remote }) {
-  const config = await GitConfigManager.get({ fs, gitdir })
-  await config.deleteSection('remote', remote)
-  await GitConfigManager.save({ fs, gitdir, config })
+  let configBuffer = Buffer.alloc(0)
+  try {
+    configBuffer = await fs.read(join(gitdir, 'config'))
+  } catch (err) {
+    // Config doesn't exist
+    return
+  }
+  const config = parseConfig(configBuffer)
+  config.deleteSection('remote', remote)
+  const updatedConfig = serializeConfig(config)
+  await fs.write(join(gitdir, 'config'), updatedConfig)
 }

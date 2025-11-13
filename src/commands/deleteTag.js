@@ -5,7 +5,7 @@ import { GitRefManager } from '../managers/GitRefManager.js'
  * Delete a local tag ref
  *
  * @param {Object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref - The tag to delete
  *

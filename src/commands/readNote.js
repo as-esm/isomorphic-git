@@ -7,7 +7,7 @@ import { _readBlob } from './readBlob.js'
  * Read the contents of a note
  *
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} [args.ref] - The notes ref to look under

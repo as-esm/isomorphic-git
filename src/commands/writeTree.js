@@ -6,7 +6,7 @@ import { _writeObject as writeObject } from '../storage/writeObject.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {TreeObject} args.tree
  *

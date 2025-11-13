@@ -8,7 +8,7 @@ import { MissingParameterError } from '../errors/MissingParameterError.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {object} args.cache
  * @param {HttpClient} args.http
  * @param {ProgressCallback} [args.onProgress]

@@ -1,0 +1,58 @@
+import { readPackIndex } from './readPackIndex.js'
+import { join } from '../utils/join.js'
+import { normalizeFs } from '../utils/normalizeFs.js'
+import type { FsClient } from '../models/FileSystem.js'
+import type { GitPackIndex } from '../models/GitPackIndex.js'
+
+/**
+ * Generic packfile iterator that reduces redundancy across
+ * readObjectPacked, hasObjectPacked, and expandOidPacked
+ */
+export async function iteratePackfiles<T>({
+  fs,
+  cache,
+  gitdir,
+  getExternalRefDelta,
+  callback,
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  gitdir: string
+  getExternalRefDelta?: (oid: string) => Promise<{ type: string; object: Buffer }>
+  callback: (pack: { offsets: Map<string, number>; read?: (params: { oid: string }) => Promise<unknown>; pack?: Promise<Buffer | Uint8Array>; error?: string }, filename: string) => Promise<T | null>
+}): Promise<T | null> {
+  const normalizedFs = normalizeFs(fs)
+  let list = await normalizedFs.readdir(join(gitdir, 'objects/pack'))
+  if (!list) {
+    return null
+  }
+  list = list.filter(x => x.endsWith('.idx'))
+  
+  for (const filename of list) {
+    const indexFile = `${gitdir}/objects/pack/${filename}`
+    const p = await readPackIndex({
+      fs,
+      cache,
+      filename: indexFile,
+      getExternalRefDelta,
+    })
+    
+    if (!p) {
+      continue
+    }
+    
+    const packData = {
+      offsets: p.offsets,
+      read: p.read ? p.read.bind(p) : undefined,
+      pack: p.pack as Promise<Buffer | Uint8Array> | undefined,
+    }
+    
+    const result = await callback(packData, filename)
+    if (result !== null) {
+      return result
+    }
+  }
+  
+  return null
+}
+

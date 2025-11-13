@@ -1,0 +1,47 @@
+import { _writeCommit } from '../commands/writeCommit.js'
+import { normalizeFs } from '../utils/normalizeFs.js'
+import { assertParameter } from '../utils/assertParameter.js'
+import { join } from '../utils/join.js'
+import type { FsClient } from '../models/FileSystem.js'
+import type { CommitObject } from '../models/GitCommit.js'
+
+/**
+ * Write a commit object directly
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - a file system client
+ * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {CommitObject} args.commit - The object to write
+ *
+ * @returns {Promise<string>} Resolves successfully with the SHA-1 object id of the newly written object
+ * @see CommitObject
+ *
+ */
+export async function writeCommit({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  commit,
+}: {
+  fs: FsClient
+  dir?: string
+  gitdir?: string
+  commit: CommitObject
+}): Promise<string> {
+  try {
+    assertParameter('fs', fs)
+    assertParameter('gitdir', gitdir)
+    assertParameter('commit', commit)
+
+    return await _writeCommit({
+      fs: normalizeFs(fs),
+      gitdir,
+      commit,
+    })
+  } catch (err) {
+    ;(err as { caller?: string }).caller = 'git.writeCommit'
+    throw err
+  }
+}
+

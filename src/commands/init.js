@@ -1,15 +1,22 @@
 // @ts-check
+import '../typedefs.js'
+
 import { join } from '../utils/join.js'
+import { ConfigAccess } from '../utils/configAccess.js'
+import { RefManager } from '../core-utils/refs/RefManager.js'
+import { FilesystemBackend } from '../backends/index.js'
 
 /**
  * Initialize a new repository
  *
- * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
- * @param {string} [args.dir]
- * @param {string} [args.gitdir]
- * @param {boolean} [args.bare = false]
- * @param {string} [args.defaultBranch = 'master']
+ * @param {Object} args
+ * @param {FsClient} args.fs - a file system implementation
+ * @param {boolean} [args.bare = false] - Initialize a bare repository
+ * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir] - The [git directory](dir-vs-gitdir.md) path
+ * @param {string} [args.defaultBranch = 'master'] - The default branch name
+ * @param {GitBackend} [args.backend] - The git backend to use
+ *
  * @returns {Promise<void>}
  */
 export async function _init({
@@ -18,32 +25,30 @@ export async function _init({
   dir,
   gitdir = bare ? dir : join(dir, '.git'),
   defaultBranch = 'master',
+  backend,
 }) {
-  // Don't overwrite an existing config
-  if (await fs.exists(gitdir + '/config')) return
+  // Use backend if provided, otherwise create filesystem backend
+  const gitBackend = backend || new FilesystemBackend(fs, gitdir)
 
-  let folders = [
-    'hooks',
-    'info',
-    'objects/info',
-    'objects/pack',
-    'refs/heads',
-    'refs/tags',
-  ]
-  folders = folders.map(dir => gitdir + '/' + dir)
-  for (const folder of folders) {
-    await fs.mkdir(folder)
+  // Check if already initialized
+  if (await gitBackend.isInitialized()) {
+    return
   }
 
-  await fs.write(
-    gitdir + '/config',
-    '[core]\n' +
-      '\trepositoryformatversion = 0\n' +
-      '\tfilemode = false\n' +
-      `\tbare = ${bare}\n` +
-      (bare ? '' : '\tlogallrefupdates = true\n') +
-      '\tsymlinks = false\n' +
-      '\tignorecase = true\n'
-  )
-  await fs.write(gitdir + '/HEAD', `ref: refs/heads/${defaultBranch}\n`)
+  // Initialize backend structure
+  await gitBackend.initialize()
+
+  // Use ConfigAccess to set initial config values
+  const configAccess = new ConfigAccess(fs, gitdir)
+  await configAccess.setConfigValue('core.repositoryformatversion', '0', 'local')
+  await configAccess.setConfigValue('core.filemode', 'false', 'local')
+  await configAccess.setConfigValue('core.bare', bare.toString(), 'local')
+  if (!bare) {
+    await configAccess.setConfigValue('core.logallrefupdates', 'true', 'local')
+  }
+  await configAccess.setConfigValue('core.symlinks', 'false', 'local')
+  await configAccess.setConfigValue('core.ignorecase', 'true', 'local')
+
+  // Use RefManager to set HEAD (symbolic ref)
+  await gitBackend.writeHEAD(`ref: refs/heads/${defaultBranch}`)
 }

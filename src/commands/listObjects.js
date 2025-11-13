@@ -6,7 +6,7 @@ import { join } from '../utils/join.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} [args.dir]
  * @param {string} args.gitdir

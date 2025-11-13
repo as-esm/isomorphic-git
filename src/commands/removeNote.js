@@ -7,7 +7,7 @@ import { GitRefManager } from '../managers/GitRefManager.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {object} args.cache
  * @param {SignCallback} [args.onSign]
  * @param {string} [args.dir]

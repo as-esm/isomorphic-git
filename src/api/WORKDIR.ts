@@ -1,0 +1,12 @@
+import type { Walker } from '../models/Walker.js'
+
+/**
+ * Get a working directory `Walker`
+ *
+ * See [walk](./walk.md)
+ *
+ * @returns {Walker} Returns a working directory Walker
+ *
+ */
+export { WORKDIR } from '../commands/WORKDIR.js'
+

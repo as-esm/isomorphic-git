@@ -1,4 +1,17 @@
 /**
+ * @fileoverview HTTP-related type definitions
+ * These JSDoc types are kept for backward compatibility with JavaScript files.
+ * The source of truth is src/types.ts - these should match the TypeScript definitions.
+ * 
+ * @see {import('./types.js').GitProgressEvent}
+ * @see {import('./types.js').ProgressCallback}
+ * @see {import('./types.js').GitHttpRequest}
+ * @see {import('./types.js').GitHttpResponse}
+ * @see {import('./types.js').HttpFetch}
+ * @see {import('./types.js').HttpClient}
+ */
+
+/**
  * @typedef {Object} GitProgressEvent
  * @property {string} phase
  * @property {number} loaded

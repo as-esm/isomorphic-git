@@ -13,7 +13,7 @@ import { _pack } from './pack.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string[]} args.oids

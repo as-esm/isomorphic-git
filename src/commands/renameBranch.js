@@ -12,7 +12,7 @@ import '../typedefs.js'
  * Rename a branch
  *
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref - The name of the new branch
  * @param {string} args.oldref - The name of the old branch

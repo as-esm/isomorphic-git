@@ -8,7 +8,7 @@ import { unionOfIterators } from '../utils/unionOfIterators.js'
 
 /**
  * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {import('../types.js').FsClient} args.fs
  * @param {object} args.cache
  * @param {string} [args.dir]
  * @param {string} [args.gitdir=join(dir,'.git')]

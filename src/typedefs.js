@@ -1,4 +1,17 @@
+/**
+ * @fileoverview Type definitions for isomorphic-git
+ * These JSDoc types are kept for backward compatibility with JavaScript files.
+ * The source of truth is src/types.ts - these should match the TypeScript definitions.
+ * 
+ * When converting JavaScript files to TypeScript, import types directly from './types.js'
+ * instead of using these JSDoc typedefs.
+ */
+
 import './typedefs-http.js'
+
+// ============================================================================
+// GIT OBJECT TYPES
+// ============================================================================
 
 /**
  * A git commit object.
@@ -27,7 +40,7 @@ import './typedefs-http.js'
  * @property {string} mode the 6 digit hexadecimal mode
  * @property {string} path the name of the file or directory
  * @property {string} oid the SHA-1 object id of the blob or tree
- * @property {'commit'|'blob'|'tree'} type the type of object
+ * @property {'commit'|'blob'|'tree'|'tag'} type the type of object
  */
 
 /**
@@ -60,12 +73,41 @@ import './typedefs-http.js'
  */
 
 /**
+ * @typedef {Object} ReadBlobResult
+ * @property {string} oid - SHA-1 object id of this blob
+ * @property {Uint8Array} blob - the blob content
+ */
+
+/**
+ * @typedef {Object} ReadTreeResult
+ * @property {string} oid - SHA-1 object id of this tree
+ * @property {TreeObject} tree - the parsed tree object
+ */
+
+/**
+ * @typedef {Object} ReadTagResult
+ * @property {string} oid - SHA-1 object id of this tag
+ * @property {TagObject} tag - the parsed tag object
+ * @property {string} payload - PGP signing payload
+ */
+
+/**
  * @typedef {Object} ServerRef - This object has the following schema:
  * @property {string} ref - The name of the ref
  * @property {string} oid - The SHA-1 object id the ref points to
  * @property {string} [target] - The target ref pointed to by a symbolic ref
  * @property {string} [peeled] - If the oid is the SHA-1 object id of an annotated tag, this is the SHA-1 object id that the annotated tag points to
  */
+
+/**
+ * @typedef {Object} ClientRef
+ * @property {string} ref The name of the ref
+ * @property {string} oid The SHA-1 object id the ref points to
+ */
+
+// ============================================================================
+// FILESYSTEM TYPES
+// ============================================================================
 
 /**
  * @typedef Walker
@@ -133,6 +175,10 @@ import './typedefs-http.js'
 /**
  * @typedef {CallbackFsClient | PromiseFsClient} FsClient
  */
+
+// ============================================================================
+// CALLBACK TYPES
+// ============================================================================
 
 /**
  * @callback MessageCallback
@@ -221,6 +267,10 @@ import './typedefs-http.js'
  * @returns {Promise<any[]>}
  */
 
+// ============================================================================
+// STATUS AND PUSH TYPES
+// ============================================================================
+
 /**
  * @typedef {Object} RefUpdateStatus
  * @property {boolean} ok
@@ -257,9 +307,6 @@ import './typedefs-http.js'
 
 /**
  * @typedef {'equal' | 'modify' | 'add' | 'remove' | 'unknown'} StashChangeType - when compare WORDIR to HEAD, 'remove' could mean 'untracked'
- * @typedef {Object} ClientRef
- * @property {string} ref The name of the ref
- * @property {string} oid The SHA-1 object id the ref points to
  */
 
 /**
