@@ -1,0 +1,37 @@
+import { test } from 'node:test'
+import assert from 'node:assert'
+import * as path from 'path'
+import { findRoot } from 'isomorphic-git'
+import { makeFixture } from '../helpers/fixture.ts'
+
+// NOTE: Because ".git" is not allowed as a path name in git,
+// we can't actually store the ".git" folders in our fixture,
+// so we have to make those folders dynamically.
+test('findRoot', async (t) => {
+  await t.test('filepath has its own .git folder', async () => {
+    // Setup
+    const { fs, dir } = await makeFixture('test-findRoot')
+    await fs.mkdir(path.join(dir, 'foobar', '.git'))
+    await fs.mkdir(path.join(dir, 'foobar/bar', '.git'))
+    // Test
+    const root = await findRoot({
+      fs,
+      filepath: path.join(dir, 'foobar'),
+    })
+    assert.strictEqual(path.basename(root), 'foobar')
+  })
+
+  await t.test('filepath has ancestor with a .git folder', async () => {
+    // Setup
+    const { fs, dir } = await makeFixture('test-findRoot')
+    await fs.mkdir(path.join(dir, 'foobar', '.git'))
+    await fs.mkdir(path.join(dir, 'foobar/bar', '.git'))
+    // Test
+    const root = await findRoot({
+      fs,
+      filepath: path.join(dir, 'foobar/bar/baz/buzz'),
+    })
+    assert.strictEqual(path.basename(root), 'bar')
+  })
+})
+

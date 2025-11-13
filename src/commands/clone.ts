@@ -46,6 +46,7 @@ export async function _clone({
   headers,
   nonBlocking = false,
   batchSize = 100,
+  protocolVersion = 1,
 }: {
   fs: FsClient
   cache: Record<string, unknown>
@@ -72,6 +73,7 @@ export async function _clone({
   headers?: Record<string, string>
   nonBlocking?: boolean
   batchSize?: number
+  protocolVersion?: 1 | 2
 }): Promise<void> {
   try {
     // Check if this is a local file path (file:// URL or absolute path)
@@ -277,6 +279,7 @@ export async function _clone({
       singleBranch,
       headers,
       tags: !noTags,
+      protocolVersion,
     })
     
     if (fetchHead === null) return

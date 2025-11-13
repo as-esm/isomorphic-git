@@ -41,6 +41,7 @@ export async function clone({
   cache = {},
   nonBlocking = false,
   batchSize = 100,
+  protocolVersion = 1,
 }: {
   fs: FsClient
   http: HttpClient
@@ -67,6 +68,7 @@ export async function clone({
   cache?: Record<string, unknown>
   nonBlocking?: boolean
   batchSize?: number
+  protocolVersion?: 1 | 2
 }): Promise<void> {
   try {
     assertParameter('fs', fs)
@@ -106,6 +108,7 @@ export async function clone({
       headers,
       nonBlocking,
       batchSize,
+      protocolVersion,
     })
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.clone'

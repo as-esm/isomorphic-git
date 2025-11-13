@@ -58,6 +58,7 @@ export async function _fetch({
   headers = {},
   prune = false,
   pruneTags = false,
+  protocolVersion = 1,
 }: {
   fs: FsClient
   cache: Record<string, unknown>
@@ -82,6 +83,7 @@ export async function _fetch({
   headers?: Record<string, string>
   prune?: boolean
   pruneTags?: boolean
+  protocolVersion?: 1 | 2
 }): Promise<FetchResult> {
   const normalizedFs = normalizeFs(fs)
   const ref = _ref || (await _currentBranch({ fs, gitdir, test: true }))
@@ -110,7 +112,7 @@ export async function _fetch({
   }
 
   const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url })
-  console.log(`[Git Protocol] Starting fetch operation, requesting protocol version 1`)
+  console.log(`[Git Protocol] Starting fetch operation, requesting protocol version ${protocolVersion}`)
   const remoteHTTP = await GitRemoteHTTP.discover({
     http,
     onAuth,
@@ -120,7 +122,7 @@ export async function _fetch({
     service: 'git-upload-pack',
     url,
     headers,
-    protocolVersion: 1,
+    protocolVersion,
   })
   
   const auth = remoteHTTP.auth
