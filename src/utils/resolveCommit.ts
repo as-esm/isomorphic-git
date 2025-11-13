@@ -1,7 +1,7 @@
 import { resolveObject } from './resolveObject.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { GitCommit } from '../models/GitCommit.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { GitCommit } from "../models/GitCommit.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export type ResolveCommitResult = {
   commit: ReturnType<typeof GitCommit.from>

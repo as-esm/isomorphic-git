@@ -1,8 +1,8 @@
-import { ConfigAccess } from '../utils/configAccess.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { withErrorCaller } from '../utils/errorHandler.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { ConfigAccess } from "../utils/configAccess.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { withErrorCaller } from "../utils/errorHandler.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Read a multi-valued entry from the git config files.

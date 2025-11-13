@@ -1,9 +1,9 @@
-import { InternalError } from '../../errors/InternalError.js'
+import { InternalError } from "../../errors/InternalError.ts"
 import { toObjectPath } from '../GitPath.js'
 import { deflate, inflate } from '../Zlib.js'
 import { hashObject } from '../ShaHasher.js'
-import { GitObject } from '../../models/GitObject.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import { GitObject } from "../../models/GitObject.ts"
+import type { FsClient } from "../../models/FileSystem.ts"
 
 type ObjectFormat = 'deflated' | 'wrapped' | 'content'
 

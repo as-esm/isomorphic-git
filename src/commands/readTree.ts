@@ -1,7 +1,7 @@
-import { resolveFilepath } from '../utils/resolveFilepath.js'
-import { resolveTree } from '../utils/resolveTree.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadTreeResult } from '../models/GitTree.js'
+import { resolveFilepath } from "../utils/resolveFilepath.ts"
+import { resolveTree } from "../utils/resolveTree.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadTreeResult } from "../models/GitTree.ts"
 
 /**
  * @param {object} args

@@ -1,6 +1,6 @@
 import ignore from 'ignore'
 import { dirname, join } from '../GitPath.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 type AttributeRule = {
   pattern: string

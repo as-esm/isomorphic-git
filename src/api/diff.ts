@@ -1,17 +1,17 @@
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseBlob } from '../core-utils/parsers/Blob.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { parse as parseIndex } from '../core-utils/index/Index.js'
-import { resolveTree } from '../utils/resolveTree.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { hashObject } from '../utils/hashObject.js'
-import { normalizeStats } from '../utils/normalizeStats.js'
-import { normalizeMode } from '../utils/normalizeMode.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { TreeEntry } from '../models/GitTree.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseIndex } from "../core-utils/index/Index.ts"
+import { resolveTree } from "../utils/resolveTree.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { hashObject } from "../utils/hashObject.ts"
+import { normalizeStats } from "../utils/normalizeStats.ts"
+import { normalizeMode } from "../utils/normalizeMode.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { TreeEntry } from "../models/GitTree.ts"
 
 // ============================================================================
 // DIFF TYPES

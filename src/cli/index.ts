@@ -1,8 +1,8 @@
 import { ArgumentParser } from './ArgumentParser.js'
 import { CommandRouter } from './CommandRouter.js'
-import { Repository } from '../core-utils/Repository.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { HttpClient } from '../managers/GitRemoteHTTP.js'
+import { Repository } from "../core-utils/Repository.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { HttpClient } from "../managers/GitRemoteHTTP.ts"
 
 /**
  * Options for CLI

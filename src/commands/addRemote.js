@@ -5,9 +5,9 @@ import cleanGitRef from 'clean-git-ref'
 
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { ConfigAccess } from '../utils/configAccess.js'
-import validRef from '../utils/isValidRef.js'
-import { join } from '../utils/join.js'
+import { ConfigAccess } from "../utils/configAccess.ts"
+import validRef from "../utils/isValidRef.ts"
+import { join } from "../utils/join.ts"
 
 /**
  * @param {object} args

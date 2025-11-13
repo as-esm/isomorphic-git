@@ -1,5 +1,5 @@
-import { hashObject } from '../storage/hashObject.js'
-import { assertParameter } from '../utils/assertParameter.js'
+import { hashObject } from "../storage/hashObject.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
 
 /**
  * The object returned has the following schema:

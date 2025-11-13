@@ -1,16 +1,16 @@
 // @ts-check
 import '../typedefs.js'
 
-import { checkout } from '../api/checkout.js'
-import { readCommit } from '../api/readCommit.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { GitStashManager } from '../managers/GitStashManager.js'
+import { checkout } from '../api/checkout.ts'
+import { readCommit } from '../api/readCommit.ts'
+import { NotFoundError } from '../errors/NotFoundError.ts'
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { GitStashManager } from "../managers/GitStashManager.ts"
 import {
   writeTreeChanges,
   applyTreeChanges,
   acquireLock,
-} from '../utils/walkerToTreeEntryMap.js'
+} from "../utils/walkerToTreeEntryMap.ts"
 
 import { STAGE } from './STAGE.js'
 import { TREE } from './TREE.js'

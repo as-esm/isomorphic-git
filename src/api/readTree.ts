@@ -1,9 +1,9 @@
-import { _readTree } from '../commands/readTree.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadTreeResult } from '../models/GitTree.js'
+import { _readTree } from "../commands/readTree.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadTreeResult } from "../models/GitTree.ts"
 
 /**
  * Read a tree object directly

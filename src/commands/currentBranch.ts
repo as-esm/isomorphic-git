@@ -1,6 +1,6 @@
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { abbreviateRef } from '../utils/abbreviateRef.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { abbreviateRef } from "../utils/abbreviateRef.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Get the current branch name

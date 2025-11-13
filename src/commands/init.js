@@ -1,9 +1,9 @@
 // @ts-check
 import '../typedefs.js'
 
-import { join } from '../utils/join.js'
-import { ConfigAccess } from '../utils/configAccess.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
+import { join } from "../utils/join.ts"
+import { ConfigAccess } from "../utils/configAccess.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { FilesystemBackend } from '../backends/index.js'
 
 /**

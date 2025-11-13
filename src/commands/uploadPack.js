@@ -1,6 +1,6 @@
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { join } from '../utils/join.js'
-import { writeRefsAdResponse } from '../wire/writeRefsAdResponse.js'
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { join } from "../utils/join.ts"
+import { writeRefsAdResponse } from "../wire/writeRefsAdResponse.ts"
 
 export async function uploadPack({
   fs,

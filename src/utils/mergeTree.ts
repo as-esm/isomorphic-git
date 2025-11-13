@@ -1,20 +1,20 @@
-import { TREE } from '../commands/TREE.js'
-import { _walk } from '../commands/walk.js'
+import { TREE } from "../commands/TREE.js"
+import { _walk } from "../commands/walk.js"
 import { MergeConflictError } from '../errors/MergeConflictError.js'
 import { MergeNotSupportedError } from '../errors/MergeNotSupportedError.js'
-import { GitTree } from '../models/GitTree.js'
-import { _writeObject as writeObject } from '../storage/writeObject.js'
+import { GitTree } from "../models/GitTree.ts"
+import { _writeObject as writeObject } from "../storage/writeObject.ts"
 import { basename } from './basename.js'
 import { join } from './join.js'
 import { mergeFile } from './mergeFile.js'
 import { modified } from './modified.js'
 import { normalizeFs } from './normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { MergeDriverCallback, MergeDriverParams } from '../core-utils/algorithms/MergeManager.js'
-import type { ObjectType } from '../models/GitObject.js'
-import type { TreeEntry } from '../models/GitTree.js'
-import type { WalkerEntry } from '../models/Walker.js'
-import type { GitIndex } from '../models/GitIndex.js'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { MergeDriverCallback, MergeDriverParams } from "../core-utils/algorithms/MergeManager.ts"
+import type { ObjectType } from "../models/GitObject.ts"
+import type { TreeEntry } from "../models/GitTree.ts"
+import type { WalkerEntry } from "../models/Walker.ts"
+import type { GitIndex } from "../models/GitIndex.ts"
 
 /**
  * Create a merged tree

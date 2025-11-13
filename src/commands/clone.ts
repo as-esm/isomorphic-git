@@ -2,17 +2,17 @@ import { _addRemote } from './addRemote.js'
 import { _checkout } from './checkout.js'
 import { _fetch } from './fetch.js'
 import { _init } from './init.js'
-import { ConfigAccess } from '../utils/configAccess.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { ConfigAccess } from "../utils/configAccess.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
-import type { MessageCallback } from '../api/push.js'
-import type { PostCheckoutCallback } from '../api/checkout.js'
+} from "../managers/GitRemoteHTTP.ts"
+import type { MessageCallback } from '../api/push.ts'
+import type { PostCheckoutCallback } from '../api/checkout.ts'
 
 /**
  * Clones a repository from a remote URL

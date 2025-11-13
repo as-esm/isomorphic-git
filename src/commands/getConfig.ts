@@ -1,5 +1,5 @@
-import { getConfigValue } from '../utils/configAccess.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { getConfigValue } from "../utils/configAccess.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Gets a config value from the repository

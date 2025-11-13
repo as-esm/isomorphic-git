@@ -1,35 +1,35 @@
 import { _currentBranch } from './currentBranch.js'
-import { MissingParameterError } from '../errors/MissingParameterError.js'
-import { RemoteCapabilityError } from '../errors/RemoteCapabilityError.js'
-import { ConfigAccess } from '../utils/configAccess.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { ShallowManager } from '../core-utils/refs/ShallowManager.js'
-import { GitRemoteManager } from '../managers/GitRemoteManager.js'
-import { GitCommit } from '../models/GitCommit.js'
-import { GitPackIndex } from '../models/GitPackIndex.js'
-import { hasObject } from '../storage/hasObject.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { abbreviateRef } from '../utils/abbreviateRef.js'
-import { collect } from '../utils/collect.js'
-import { emptyPackfile } from '../utils/emptyPackfile.js'
-import { filterCapabilities } from '../utils/filterCapabilities.js'
-import { forAwait } from '../utils/forAwait.js'
-import { join } from '../utils/join.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { pkg } from '../utils/pkg.js'
-import { splitLines } from '../utils/splitLines.js'
-import { parseUploadPackResponse } from '../wire/parseUploadPackResponse.js'
-import { writeUploadPackRequest } from '../wire/writeUploadPackRequest.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { MissingParameterError } from "../errors/MissingParameterError.ts"
+import { RemoteCapabilityError } from "../errors/RemoteCapabilityError.ts"
+import { ConfigAccess } from "../utils/configAccess.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { ShallowManager } from "../core-utils/refs/ShallowManager.ts"
+import { GitRemoteManager } from "../managers/GitRemoteManager.ts"
+import { GitCommit } from "../models/GitCommit.ts"
+import { GitPackIndex } from "../models/GitPackIndex.ts"
+import { hasObject } from "../storage/hasObject.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import { abbreviateRef } from "../utils/abbreviateRef.ts"
+import { collect } from "../utils/collect.ts"
+import { emptyPackfile } from "../utils/emptyPackfile.ts"
+import { filterCapabilities } from "../utils/filterCapabilities.ts"
+import { forAwait } from "../utils/forAwait.ts"
+import { join } from "../utils/join.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { pkg } from "../utils/pkg.ts"
+import { splitLines } from "../utils/splitLines.ts"
+import { parseUploadPackResponse } from "../wire/parseUploadPackResponse.ts"
+import { writeUploadPackRequest } from "../wire/writeUploadPackRequest.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
-import type { MessageCallback } from '../api/push.js'
-import type { FetchResult } from '../api/fetch.js'
+} from "../managers/GitRemoteHTTP.ts"
+import type { MessageCallback } from '../api/push.ts'
+import type { FetchResult } from '../api/fetch.ts'
 
 /**
  * Fetches commits from a remote repository

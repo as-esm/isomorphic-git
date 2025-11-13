@@ -1,5 +1,5 @@
 import { compareStrings } from './compareStrings.js'
-import type { TreeEntry } from '../models/GitTree.js'
+import type { TreeEntry } from "../models/GitTree.ts"
 
 export const compareTreeEntryPath = (a: TreeEntry, b: TreeEntry): number => {
   // Git sorts tree entries as if there is a trailing slash on directory names.

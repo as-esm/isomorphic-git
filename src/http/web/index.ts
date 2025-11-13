@@ -1,7 +1,7 @@
 /* eslint-env browser */
-import { collect } from '../../utils/collect.js'
-import { fromStream } from '../../utils/fromStream.js'
-import type { GitHttpRequest, GitHttpResponse } from '../../managers/GitRemoteHTTP.js'
+import { collect } from "../../utils/collect.ts"
+import { fromStream } from "../../utils/fromStream.ts"
+import type { GitHttpRequest, GitHttpResponse } from "../../managers/GitRemoteHTTP.ts"
 
 /**
  * HttpClient for browser environment

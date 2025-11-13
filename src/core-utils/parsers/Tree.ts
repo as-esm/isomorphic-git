@@ -1,8 +1,8 @@
-import { InternalError } from '../../errors/InternalError.js'
-import { UnsafeFilepathError } from '../../errors/UnsafeFilepathError.js'
-import { comparePath } from '../../utils/comparePath.js'
-import { compareTreeEntryPath } from '../../utils/compareTreeEntryPath.js'
-import type { TreeEntry } from '../../types.js'
+import { InternalError } from "../../errors/InternalError.ts"
+import { UnsafeFilepathError } from "../../errors/UnsafeFilepathError.ts"
+import { comparePath } from "../../utils/comparePath.ts"
+import { compareTreeEntryPath } from "../../utils/compareTreeEntryPath.ts"
+import type { TreeEntry } from "../../models/GitTree.ts"
 
 const mode2type = (mode: string): 'tree' | 'blob' | 'commit' => {
   // prettier-ignore

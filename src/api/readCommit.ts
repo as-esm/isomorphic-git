@@ -1,9 +1,9 @@
-import { _readCommit } from '../commands/readCommit.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadCommitResult } from '../models/GitCommit.js'
+import { _readCommit } from "../commands/readCommit.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadCommitResult } from "../models/GitCommit.ts"
 
 /**
  * Read a commit object directly

@@ -2,10 +2,10 @@
 import { InvalidFilepathError } from '../errors/InvalidFilepathError.js'
 import { NotFoundError } from '../errors/NotFoundError.js'
 import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { GitTree } from '../models/GitTree.js'
-import { _readObject as readObject } from '../storage/readObject.js'
+import { GitTree } from "../models/GitTree.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
 import { resolveTree } from './resolveTree.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 export async function resolveFilepath({
   fs,

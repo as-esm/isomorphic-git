@@ -1,10 +1,10 @@
 import AsyncLock from 'async-lock'
 
 import { UnmergedPathsError } from '../errors/UnmergedPathsError.js'
-import { GitIndex } from '../models/GitIndex.js'
-import { compareStats } from '../utils/compareStats.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient, Stat } from '../models/FileSystem.js'
+import { GitIndex } from "../models/GitIndex.ts"
+import { compareStats } from "../utils/compareStats.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient, Stat } from "../models/FileSystem.ts"
 
 let lock: AsyncLock | null = null
 

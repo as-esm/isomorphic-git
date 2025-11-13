@@ -1,8 +1,8 @@
 // @ts-check
 import '../typedefs.js'
 
-import { GitCommit } from '../models/GitCommit.js'
-import { _writeObject as writeObject } from '../storage/writeObject.js'
+import { GitCommit } from "../models/GitCommit.ts"
+import { _writeObject as writeObject } from "../storage/writeObject.ts"
 
 /**
  * @param {object} args

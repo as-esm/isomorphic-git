@@ -1,8 +1,8 @@
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Remove a file from the git index (aka staging area)

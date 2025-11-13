@@ -1,17 +1,17 @@
-import { _pull } from '../commands/pull.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _pull } from "../commands/pull.js"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
+} from "../managers/GitRemoteHTTP.ts"
 import type { MessageCallback } from './push.js'
-import type { Author } from '../models/GitCommit.js'
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * Like `pull`, but hard-coded with `fastForward: true` so there is no need for an `author` parameter.

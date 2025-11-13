@@ -1,6 +1,6 @@
 // @ts-check
-import { parse as parseConfig, serialize as serializeConfig } from '../core-utils/ConfigParser.js'
-import { join } from '../utils/join.js'
+import { parse as parseConfig, serialize as serializeConfig } from "../core-utils/ConfigParser.ts"
+import { join } from "../utils/join.ts"
 
 /**
  * @param {Object} args

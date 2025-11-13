@@ -1,5 +1,5 @@
-import { InternalError } from '../../errors/InternalError.js'
-import { CheckoutConflictError } from '../../errors/CheckoutConflictError.js'
+import { InternalError } from "../../errors/InternalError.ts"
+import { CheckoutConflictError } from "../../errors/CheckoutConflictError.ts"
 import { ObjectReader } from '../odb/ObjectReader.js'
 import { parse as parseTree } from '../parsers/Tree.js'
 import { parse as parseCommit } from '../parsers/Commit.js'
@@ -7,8 +7,9 @@ import { SparseCheckoutManager } from './SparseCheckoutManager.js'
 import { join } from '../GitPath.js'
 import { RefManager } from '../refs/RefManager.js'
 import { parse as parseIndex, serialize as serializeIndex } from '../index/Index.js'
-import { normalizeStats } from '../../utils/normalizeStats.js'
-import type { FsClient, ProgressCallback } from '../../types.js'
+import { normalizeStats } from "../../utils/normalizeStats.ts"
+import type { FsClient } from "../../models/FileSystem.ts"
+import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
 
 type CheckoutOperation = ['create' | 'update' | 'delete' | 'delete-index' | 'mkdir' | 'conflict', string, ...unknown[]]
 

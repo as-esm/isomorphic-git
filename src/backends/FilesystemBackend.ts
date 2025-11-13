@@ -1,5 +1,5 @@
-import { join } from '../core-utils/GitPath.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { join } from "../core-utils/GitPath.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type { GitBackend } from './GitBackend.js'
 
 /**

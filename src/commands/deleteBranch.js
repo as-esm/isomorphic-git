@@ -1,10 +1,10 @@
 // @ts-check
-import { _currentBranch } from '../commands/currentBranch.js'
+import { _currentBranch } from "../commands/currentBranch.ts"
 import { NotFoundError } from '../errors/NotFoundError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { parse as parseConfig, serialize as serializeConfig } from '../core-utils/ConfigParser.js'
-import { abbreviateRef } from '../utils/abbreviateRef.js'
-import { join } from '../utils/join.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { parse as parseConfig, serialize as serializeConfig } from "../core-utils/ConfigParser.ts"
+import { abbreviateRef } from "../utils/abbreviateRef.ts"
+import { join } from "../utils/join.ts"
 
 /**
  * @param {Object} args

@@ -6,12 +6,12 @@ import {
   _stashClear,
   _stashPop,
   _stashCreate,
-} from '../commands/stash.js'
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+} from "../commands/stash.js"
+import { InvalidRefNameError } from "../errors/InvalidRefNameError.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 // ============================================================================
 // STASH TYPES

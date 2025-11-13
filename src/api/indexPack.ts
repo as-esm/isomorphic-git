@@ -1,9 +1,9 @@
-import { _indexPack } from '../commands/indexPack.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ProgressCallback } from '../managers/GitRemoteHTTP.js'
+import { _indexPack } from "../commands/indexPack.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
 
 /**
  * Create the .idx file for a given .pack file

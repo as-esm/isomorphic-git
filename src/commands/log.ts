@@ -1,10 +1,10 @@
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { ObjectReader } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { parse as parseTree } from '../core-utils/parsers/Tree.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadCommitResult } from '../models/GitCommit.js'
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadCommitResult } from "../models/GitCommit.ts"
 
 /**
  * Get commit descriptions from the git history

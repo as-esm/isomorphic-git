@@ -1,9 +1,9 @@
-import { InvalidOidError } from '../../errors/InvalidOidError.js'
-import { NotFoundError } from '../../errors/NotFoundError.js'
+import { InvalidOidError } from "../../errors/InvalidOidError.ts"
+import { NotFoundError } from "../../errors/NotFoundError.ts"
 import { parsePackedRefs } from './RefParser.js'
 import { join } from '../GitPath.js'
 import AsyncLock from 'async-lock'
-import type { FsClient } from '../../models/FileSystem.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 // @see https://git-scm.com/docs/git-rev-parse.html#_specifying_revisions
 const refpaths = (ref: string): string[] => [

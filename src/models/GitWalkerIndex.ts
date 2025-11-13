@@ -1,8 +1,8 @@
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { compareStrings } from '../utils/compareStrings.js'
-import { flatFileListToDirectoryStructure } from '../utils/flatFileListToDirectoryStructure.js'
-import { mode2type } from '../utils/mode2type.js'
-import { normalizeStats } from '../utils/normalizeStats.js'
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { compareStrings } from "../utils/compareStrings.ts"
+import { flatFileListToDirectoryStructure } from "../utils/flatFileListToDirectoryStructure.ts"
+import { mode2type } from "../utils/mode2type.ts"
+import { normalizeStats } from "../utils/normalizeStats.ts"
 import type { FsClient, Stat } from './FileSystem.js'
 
 type StageEntry = {

@@ -1,12 +1,12 @@
-import { SparseCheckoutManager } from '../core-utils/filesystem/SparseCheckoutManager.js'
-import { WorkdirManager } from '../core-utils/filesystem/WorkdirManager.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { ObjectReader } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { SparseCheckoutManager } from "../core-utils/filesystem/SparseCheckoutManager.ts"
+import { WorkdirManager } from "../core-utils/filesystem/WorkdirManager.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Manage sparse checkout patterns

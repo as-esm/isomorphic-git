@@ -1,9 +1,10 @@
 import { InternalError } from '../errors/InternalError.js'
-import { formatAuthor } from '../utils/formatAuthor.js'
-import { normalizeNewlines } from '../utils/normalizeNewlines.js'
-import { parseAuthor } from '../utils/parseAuthor.js'
+import { formatAuthor } from "../utils/formatAuthor.ts"
+import { normalizeNewlines } from "../utils/normalizeNewlines.ts"
+import { parseAuthor } from "../utils/parseAuthor.ts"
 import type { Author } from './GitCommit.js'
 import type { ObjectType } from './GitObject.js'
+import type { SignCallback } from "../core-utils/Signing.ts"
 
 // ============================================================================
 // GIT TAG TYPES

@@ -11,7 +11,7 @@ export type {
   PromiseFsClient,
   FsClient,
   Stat,
-} from './models/FileSystem.js'
+} from "./models/FileSystem.ts"
 
 // HTTP and Auth types
 export type {
@@ -25,16 +25,16 @@ export type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from './managers/GitRemoteHTTP.js'
+} from "./managers/GitRemoteHTTP.ts"
 
 // Git Object types
-export type { ObjectType } from './models/GitObject.js'
-export type { Author, CommitObject, ReadCommitResult } from './models/GitCommit.js'
-export type { TagObject, ReadTagResult } from './models/GitAnnotatedTag.js'
-export type { TreeEntry, TreeObject, ReadTreeResult } from './models/GitTree.js'
+export type { ObjectType } from "./models/GitObject.ts"
+export type { Author, CommitObject, ReadCommitResult } from "./models/GitCommit.ts"
+export type { TagObject, ReadTagResult } from "./models/GitAnnotatedTag.ts"
+export type { TreeEntry, TreeObject, ReadTreeResult } from "./models/GitTree.ts"
 
 // Ref types
-export type { ServerRef, ClientRef, RefUpdateStatus } from './managers/GitRefManager.js'
+export type { ServerRef, ClientRef, RefUpdateStatus } from "./managers/GitRefManager.ts"
 
 // Walker types
 export type {
@@ -44,23 +44,23 @@ export type {
   WalkerReduce,
   WalkerIterate,
   WalkerIterateCallback,
-} from './models/Walker.js'
+} from "./models/Walker.ts"
 
 // Signing types
-export type { SignParams, SignCallback } from './core-utils/Signing.js'
+export type { SignParams, SignCallback } from "./core-utils/Signing.ts"
 
 // Merge driver types
-export type { MergeDriverParams, MergeDriverCallback } from './core-utils/algorithms/MergeManager.js'
+export type { MergeDriverParams, MergeDriverCallback } from "./core-utils/algorithms/MergeManager.ts"
 
 // API operation result types
-export type { MessageCallback, PrePushParams, PrePushCallback, PushResult } from './api/push.js'
-export type { FetchResult } from './api/fetch.js'
-export type { MergeResult } from './api/merge.js'
-export type { CherryPickResult } from './api/cherryPick.js'
-export type { RebaseResult } from './api/rebase.js'
-export type { DiffEntry, DiffResult } from './api/diff.js'
-export type { ShowResult } from './api/show.js'
-export type { HeadStatus, WorkdirStatus, StageStatus, StatusRow } from './api/statusMatrix.js'
-export type { PostCheckoutParams, PostCheckoutCallback } from './api/checkout.js'
-export type { StashOp, StashChangeType } from './api/stash.js'
-export type { ReadBlobResult } from './api/readBlob.js'
+export type { MessageCallback, PrePushParams, PrePushCallback, PushResult } from './api/push.ts'
+export type { FetchResult } from './api/fetch.ts'
+export type { MergeResult } from './api/merge.ts'
+export type { CherryPickResult } from './api/cherryPick.ts'
+export type { RebaseResult } from './api/rebase.ts'
+export type { DiffEntry, DiffResult } from './api/diff.ts'
+export type { ShowResult } from './api/show.ts'
+export type { HeadStatus, WorkdirStatus, StageStatus, StatusRow } from './api/statusMatrix.ts'
+export type { PostCheckoutParams, PostCheckoutCallback } from './api/checkout.ts'
+export type { StashOp, StashChangeType } from './api/stash.ts'
+export type { ReadBlobResult } from './api/readBlob.ts'

@@ -1,4 +1,4 @@
-import { GitWalkSymbol } from '../utils/symbols.js'
+import { GitWalkSymbol } from "../utils/symbols.ts"
 import type { FsClient, Stat } from './FileSystem.js'
 
 // ============================================================================

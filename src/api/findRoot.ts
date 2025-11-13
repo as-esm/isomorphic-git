@@ -1,7 +1,7 @@
-import { _findRoot } from '../commands/findRoot.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _findRoot } from "../commands/findRoot.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Find the root git directory

@@ -1,8 +1,8 @@
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { _writeObject } from '../storage/writeObject.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { _writeObject } from "../storage/writeObject.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Write a blob object directly

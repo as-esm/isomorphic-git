@@ -1,6 +1,6 @@
 import { parse as parseConfig, serialize as serializeConfig, type ConfigObject } from './ConfigParser.js'
 import { join } from './GitPath.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 type ConfigValueWithScope = {
   value: unknown

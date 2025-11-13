@@ -1,7 +1,7 @@
 import { InternalError } from '../errors/InternalError.js'
 import { UnsafeFilepathError } from '../errors/UnsafeFilepathError.js'
-import { comparePath } from '../utils/comparePath.js'
-import { compareTreeEntryPath } from '../utils/compareTreeEntryPath.js'
+import { comparePath } from "../utils/comparePath.ts"
+import { compareTreeEntryPath } from "../utils/compareTreeEntryPath.ts"
 import type { ObjectType } from './GitObject.js'
 
 // ============================================================================

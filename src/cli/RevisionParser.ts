@@ -1,9 +1,9 @@
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { readReflog } from '../core-utils/refs/ReflogManager.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { readReflog } from "../core-utils/refs/ReflogManager.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { NotFoundError } from '../errors/NotFoundError.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 type ReflogEntry = {
   oldOid: string

@@ -1,7 +1,7 @@
 import { getConfigValue } from './configAccess.js'
 import { assignDefined } from './assignDefined.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { Author, CommitObject } from '../models/GitCommit.js'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { Author, CommitObject } from "../models/GitCommit.ts"
 
 /**
  * Unified identity normalization for author and committer

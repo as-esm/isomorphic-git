@@ -1,8 +1,8 @@
-import { GitObject } from '../../models/GitObject.js'
+import { GitObject } from "../../models/GitObject.ts"
 import { write as writeLoose } from './LooseObjectManager.js'
 import { deflate } from '../Zlib.js'
 import { shasum } from '../ShaHasher.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 type ObjectFormat = 'deflated' | 'wrapped' | 'content'
 

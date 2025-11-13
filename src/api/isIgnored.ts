@@ -1,8 +1,8 @@
-import { GitIgnoreManager } from '../managers/GitIgnoreManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Test whether a filepath should be ignored (because of .gitignore or .git/exclude)

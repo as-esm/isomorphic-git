@@ -1,13 +1,13 @@
 import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseTag } from '../core-utils/parsers/Tag.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { parse as parseTree } from '../core-utils/parsers/Tree.js'
-import { parse as parseBlob } from '../core-utils/parsers/Blob.js'
-import { GitTree } from '../models/GitTree.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { TagObject } from '../models/GitAnnotatedTag.js'
-import type { CommitObject } from '../models/GitCommit.js'
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseTag } from "../core-utils/parsers/Tag.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
+import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
+import { GitTree } from "../models/GitTree.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { TagObject } from "../models/GitAnnotatedTag.ts"
+import type { CommitObject } from "../models/GitCommit.ts"
 
 /**
  * Generic object resolver that handles tag peeling and type checking

@@ -3,31 +3,31 @@ import { _isDescendent } from './isDescendent.js'
 import { listCommitsAndTags } from './listCommitsAndTags.js'
 import { listObjects } from './listObjects.js'
 import { _pack } from './pack.js'
-import { GitPushError } from '../errors/GitPushError.js'
-import { MissingParameterError } from '../errors/MissingParameterError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { PushRejectedError } from '../errors/PushRejectedError.js'
-import { UserCanceledError } from '../errors/UserCanceledError.js'
-import { ConfigAccess } from '../utils/configAccess.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { findMergeBase } from '../core-utils/algorithms/CommitGraphWalker.js'
-import { GitRemoteManager } from '../managers/GitRemoteManager.js'
-import { GitSideBand } from '../models/GitSideBand.js'
-import { filterCapabilities } from '../utils/filterCapabilities.js'
-import { forAwait } from '../utils/forAwait.js'
-import { pkg } from '../utils/pkg.js'
-import { splitLines } from '../utils/splitLines.js'
-import { parseReceivePackResponse } from '../wire/parseReceivePackResponse.js'
-import { writeReceivePackRequest } from '../wire/writeReceivePackRequest.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitPushError } from "../errors/GitPushError.ts"
+import { MissingParameterError } from "../errors/MissingParameterError.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { PushRejectedError } from "../errors/PushRejectedError.ts"
+import { UserCanceledError } from "../errors/UserCanceledError.ts"
+import { ConfigAccess } from "../utils/configAccess.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { findMergeBase } from "../core-utils/algorithms/CommitGraphWalker.ts"
+import { GitRemoteManager } from "../managers/GitRemoteManager.ts"
+import { GitSideBand } from "../models/GitSideBand.ts"
+import { filterCapabilities } from "../utils/filterCapabilities.ts"
+import { forAwait } from "../utils/forAwait.ts"
+import { pkg } from "../utils/pkg.ts"
+import { splitLines } from "../utils/splitLines.ts"
+import { parseReceivePackResponse } from "../wire/parseReceivePackResponse.ts"
+import { writeReceivePackRequest } from "../wire/writeReceivePackRequest.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
-import type { MessageCallback, PrePushCallback, PushResult } from '../api/push.js'
+} from "../managers/GitRemoteHTTP.ts"
+import type { MessageCallback, PrePushCallback, PushResult } from '../api/push.ts'
 
 /**
  * Pushes commits to a remote repository

@@ -1,8 +1,8 @@
 import { _readTree } from './readTree.js'
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * List files in the index or a commit

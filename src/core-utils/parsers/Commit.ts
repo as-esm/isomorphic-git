@@ -1,9 +1,9 @@
-import { InternalError } from '../../errors/InternalError.js'
-import { formatAuthor } from '../../utils/formatAuthor.js'
-import { indent } from '../../utils/indent.js'
-import { normalizeNewlines } from '../../utils/normalizeNewlines.js'
-import { parseAuthor } from '../../utils/parseAuthor.js'
-import type { CommitObject, Author } from '../../models/GitCommit.js'
+import { InternalError } from "../../errors/InternalError.ts"
+import { formatAuthor } from "../../utils/formatAuthor.ts"
+import { indent } from "../../utils/indent.ts"
+import { normalizeNewlines } from "../../utils/normalizeNewlines.ts"
+import { parseAuthor } from "../../utils/parseAuthor.ts"
+import type { CommitObject, Author } from "../../models/GitCommit.ts"
 
 /**
  * Parses a commit buffer into a CommitObject

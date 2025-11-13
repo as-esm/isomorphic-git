@@ -1,9 +1,9 @@
 // @ts-check
-import { _commit } from '../commands/commit.js'
-import { _readTree } from '../commands/readTree.js'
-import { _writeTree } from '../commands/writeTree.js'
+import { _commit } from "../commands/commit.ts"
+import { _readTree } from "../commands/readTree.ts"
+import { _writeTree } from "../commands/writeTree.ts"
 import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
+import { GitRefManager } from "../managers/GitRefManager.ts"
 
 /**
  * @param {object} args

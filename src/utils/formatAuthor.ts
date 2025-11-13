@@ -1,4 +1,4 @@
-import type { Author } from '../types.js'
+import type { Author } from "../models/GitCommit.ts"
 
 export const formatAuthor = ({ name, email, timestamp, timezoneOffset }: Author): string => {
   const formattedOffset = formatTimezoneOffset(timezoneOffset)

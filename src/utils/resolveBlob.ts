@@ -1,6 +1,6 @@
 import { resolveObject } from './resolveObject.js'
-import { parse as parseBlob } from '../core-utils/parsers/Blob.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export type ResolveBlobResult = {
   oid: string

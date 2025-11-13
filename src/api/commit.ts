@@ -1,9 +1,9 @@
-import { _commit } from '../commands/commit.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { SignCallback } from '../core-utils/Signing.js'
-import type { Author } from '../models/GitCommit.js'
+import { _commit } from "../commands/commit.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * Create a new commit

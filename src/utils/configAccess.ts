@@ -1,5 +1,5 @@
-import { UnifiedConfigService } from '../core-utils/UnifiedConfigService.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { UnifiedConfigService } from "../core-utils/UnifiedConfigService.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Unified config access utility

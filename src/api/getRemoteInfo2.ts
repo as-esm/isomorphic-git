@@ -1,13 +1,13 @@
-import { GitRemoteManager } from '../managers/GitRemoteManager.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { formatInfoRefs } from '../utils/formatInfoRefs.js'
+import { GitRemoteManager } from "../managers/GitRemoteManager.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { formatInfoRefs } from "../utils/formatInfoRefs.ts"
 import type {
   HttpClient,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
-import type { ServerRef } from '../managers/GitRefManager.js'
+} from "../managers/GitRemoteHTTP.ts"
+import type { ServerRef } from "../managers/GitRefManager.ts"
 
 /**
  * This object has the following schema:

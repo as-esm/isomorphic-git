@@ -1,10 +1,10 @@
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { MissingParameterError } from '../errors/MissingParameterError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
+import { MissingParameterError } from "../errors/MissingParameterError.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Create a lightweight tag

@@ -1,13 +1,13 @@
-import { STAGE } from '../commands/STAGE.js'
-import { TREE } from '../commands/TREE.js'
-import { WORKDIR } from '../commands/WORKDIR.js'
-import { _walk } from '../commands/walk.js'
-import { GitIgnoreManager } from '../managers/GitIgnoreManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { worthWalking } from '../utils/worthWalking.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { STAGE } from "../commands/STAGE.js"
+import { TREE } from "../commands/TREE.js"
+import { WORKDIR } from "../commands/WORKDIR.js"
+import { _walk } from "../commands/walk.js"
+import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { worthWalking } from "../utils/worthWalking.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 // ============================================================================
 // STATUS TYPES

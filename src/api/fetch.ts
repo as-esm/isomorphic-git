@@ -1,14 +1,14 @@
-import { _fetch } from '../commands/fetch.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _fetch } from "../commands/fetch.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
+} from "../managers/GitRemoteHTTP.ts"
 
 // ============================================================================
 // FETCH TYPES

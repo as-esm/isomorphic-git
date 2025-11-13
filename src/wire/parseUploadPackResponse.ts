@@ -1,7 +1,7 @@
-import { InvalidOidError } from '../errors/InvalidOidError.js'
-import { GitSideBand } from '../models/GitSideBand.js'
-import { forAwait } from '../utils/forAwait.js'
-import type { FIFO } from '../utils/FIFO.js'
+import { InvalidOidError } from "../errors/InvalidOidError.ts"
+import { GitSideBand } from "../models/GitSideBand.ts"
+import { forAwait } from "../utils/forAwait.ts"
+import type { FIFO } from "../utils/FIFO.ts"
 
 export type ParseUploadPackResponseResult = {
   shallows: string[]

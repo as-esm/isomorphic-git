@@ -1,8 +1,8 @@
 import { readPackIndex } from './readPackIndex.js'
-import { join } from '../utils/join.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { GitPackIndex } from '../models/GitPackIndex.js'
+import { join } from "../utils/join.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { GitPackIndex } from "../models/GitPackIndex.ts"
 
 /**
  * Generic packfile iterator that reduces redundancy across

@@ -1,6 +1,6 @@
 // @ts-check
-import { collect } from '../utils/collect.js'
-import { join } from '../utils/join.js'
+import { collect } from "../utils/collect.ts"
+import { join } from "../utils/join.ts"
 
 import { _pack } from './pack.js'
 

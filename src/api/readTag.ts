@@ -1,9 +1,9 @@
-import { _readTag } from '../commands/readTag.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadTagResult } from '../models/GitAnnotatedTag.js'
+import { _readTag } from "../commands/readTag.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadTagResult } from "../models/GitAnnotatedTag.ts"
 
 /**
  * Read an annotated tag object directly

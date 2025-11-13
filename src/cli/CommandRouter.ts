@@ -1,5 +1,5 @@
 import { RevisionParser } from './RevisionParser.js'
-import { Repository } from '../core-utils/Repository.js'
+import { Repository } from "../core-utils/Repository.ts"
 
 /**
  * Routes commands to their handlers

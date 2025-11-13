@@ -1,5 +1,5 @@
-import { normalizeNewlines } from '../utils/normalizeNewlines.js'
-import { indent } from '../utils/indent.js'
+import { normalizeNewlines } from "../utils/normalizeNewlines.ts"
+import { indent } from "../utils/indent.ts"
 
 // ============================================================================
 // SIGNING TYPES

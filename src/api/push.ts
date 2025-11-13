@@ -1,16 +1,16 @@
-import { _push } from '../commands/push.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _push } from "../commands/push.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
-import type { ClientRef } from '../managers/GitRefManager.js'
-import type { RefUpdateStatus } from '../managers/GitRefManager.js'
+} from "../managers/GitRemoteHTTP.ts"
+import type { ClientRef } from "../managers/GitRefManager.ts"
+import type { RefUpdateStatus } from "../managers/GitRefManager.ts"
 
 // ============================================================================
 // PUSH TYPES

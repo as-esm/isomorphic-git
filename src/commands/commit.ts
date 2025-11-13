@@ -1,24 +1,24 @@
-import { MissingNameError } from '../errors/MissingNameError.js'
-import { MissingParameterError } from '../errors/MissingParameterError.js'
-import { NoCommitError } from '../errors/NoCommitError.js'
-import { parse as parseIndex, serialize as serializeIndex } from '../core-utils/index/Index.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { appendReflog } from '../core-utils/refs/ReflogManager.js'
-import { write as writeObject } from '../core-utils/odb/ObjectWriter.js'
-import { parse as parseCommit, serialize as serializeCommit } from '../core-utils/parsers/Commit.js'
-import { parse as parseTree, serialize as serializeTree } from '../core-utils/parsers/Tree.js'
-import { signCommit } from '../core-utils/Signing.js'
-import { formatAuthor } from '../utils/formatAuthor.js'
-import { flatFileListToDirectoryStructure } from '../utils/flatFileListToDirectoryStructure.js'
-import { normalizeAuthorObject } from '../utils/normalizeAuthorObject.js'
-import { normalizeCommitterObject } from '../utils/normalizeCommitterObject.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { Repository } from '../core-utils/Repository.js'
-import { join } from '../utils/join.js'
+import { MissingNameError } from "../errors/MissingNameError.ts"
+import { MissingParameterError } from "../errors/MissingParameterError.ts"
+import { NoCommitError } from "../errors/NoCommitError.ts"
+import { parse as parseIndex, serialize as serializeIndex } from "../core-utils/index/Index.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
+import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
+import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseTree, serialize as serializeTree } from "../core-utils/parsers/Tree.ts"
+import { signCommit } from "../core-utils/Signing.ts"
+import { formatAuthor } from "../utils/formatAuthor.ts"
+import { flatFileListToDirectoryStructure } from "../utils/flatFileListToDirectoryStructure.ts"
+import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
+import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { Repository } from "../core-utils/Repository.ts"
+import { join } from "../utils/join.ts"
 import AsyncLock from 'async-lock'
-import type { FsClient } from '../models/FileSystem.js'
-import type { CommitObject, Author } from '../models/GitCommit.js'
-import type { SignCallback } from '../core-utils/Signing.js'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { CommitObject, Author } from "../models/GitCommit.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
 
 let indexLock: AsyncLock | undefined
 

@@ -1,9 +1,9 @@
-import { _writeCommit } from '../commands/writeCommit.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { CommitObject } from '../models/GitCommit.js'
+import { _writeCommit } from "../commands/writeCommit.js"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { CommitObject } from "../models/GitCommit.ts"
 
 /**
  * Write a commit object directly

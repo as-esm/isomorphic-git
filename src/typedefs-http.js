@@ -1,7 +1,8 @@
 /**
  * @fileoverview HTTP-related type definitions
  * These JSDoc types are kept for backward compatibility with JavaScript files.
- * The source of truth is src/types.ts - these should match the TypeScript definitions.
+ * The source of truth is src/managers/GitRemoteHTTP.ts - these should match the TypeScript definitions.
+ * The types are re-exported from src/types.js for backward compatibility.
  * 
  * @see {import('./types.js').GitProgressEvent}
  * @see {import('./types.js').ProgressCallback}

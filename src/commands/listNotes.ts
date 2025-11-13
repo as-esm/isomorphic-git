@@ -1,7 +1,7 @@
 import { _readTree } from './readTree.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * List all the object notes

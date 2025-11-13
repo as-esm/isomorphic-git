@@ -1,8 +1,8 @@
-import { formatAuthor } from '../../utils/formatAuthor.js'
-import { normalizeNewlines } from '../../utils/normalizeNewlines.js'
-import { parseAuthor } from '../../utils/parseAuthor.js'
-import type { TagObject } from '../../models/GitAnnotatedTag.js'
-import type { Author } from '../../models/GitCommit.js'
+import { formatAuthor } from "../../utils/formatAuthor.ts"
+import { normalizeNewlines } from "../../utils/normalizeNewlines.ts"
+import { parseAuthor } from "../../utils/parseAuthor.ts"
+import type { TagObject } from "../../models/GitAnnotatedTag.ts"
+import type { Author } from "../../models/GitCommit.ts"
 
 /**
  * Parses a tag buffer into a TagObject

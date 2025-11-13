@@ -1,5 +1,5 @@
 import { normalizeStats } from './normalizeStats.js'
-import type { Stat } from '../models/FileSystem.js'
+import type { Stat } from "../models/FileSystem.ts"
 
 export const compareStats = (
   entry: Partial<Stat>,

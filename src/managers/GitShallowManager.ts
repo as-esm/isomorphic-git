@@ -1,8 +1,8 @@
 import AsyncLock from 'async-lock'
 
-import { join } from '../utils/join.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { join } from "../utils/join.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 let lock: AsyncLock | null = null
 

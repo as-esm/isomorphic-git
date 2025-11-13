@@ -1,5 +1,5 @@
 import { join } from '../GitPath.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 type ReflogEntry = {
   oldOid: string

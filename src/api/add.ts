@@ -1,14 +1,14 @@
-import { MultipleGitError } from '../errors/MultipleGitError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { checkIgnored as checkIgnoredFile } from '../core-utils/filesystem/IgnoreManager.js'
-import { parse as parseIndex, serialize as serializeIndex, type IndexObject } from '../core-utils/index/Index.js'
-import { write as writeObject } from '../core-utils/odb/ObjectWriter.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { posixifyPathBuffer } from '../utils/posixifyPathBuffer.js'
-import { normalizeStats } from '../utils/normalizeStats.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { MultipleGitError } from "../errors/MultipleGitError.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { checkIgnored as checkIgnoredFile } from "../core-utils/filesystem/IgnoreManager.ts"
+import { parse as parseIndex, serialize as serializeIndex, type IndexObject } from "../core-utils/index/Index.ts"
+import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { posixifyPathBuffer } from "../utils/posixifyPathBuffer.ts"
+import { normalizeStats } from "../utils/normalizeStats.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Add a file to the git index (aka staging area)

@@ -1,5 +1,5 @@
-import { GitPktLine } from '../models/GitPktLine.js'
-import { pkg } from '../utils/pkg.js'
+import { GitPktLine } from "../models/GitPktLine.ts"
+import { pkg } from "../utils/pkg.ts"
 
 export async function writeRefsAdResponse({
   capabilities,

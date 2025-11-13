@@ -1,6 +1,6 @@
 import { join } from './join.js'
 import { normalizeFs } from './normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Removes the directory at the specified filepath recursively. Used internally to replicate the behavior of

@@ -1,9 +1,11 @@
 import { InternalError } from '../errors/InternalError.js'
-import { formatAuthor } from '../utils/formatAuthor.js'
-import { indent } from '../utils/indent.js'
-import { normalizeNewlines } from '../utils/normalizeNewlines.js'
-import { outdent } from '../utils/outdent.js'
-import { parseAuthor } from '../utils/parseAuthor.js'
+import { formatAuthor } from "../utils/formatAuthor.ts"
+import { indent } from "../utils/indent.ts"
+import { normalizeNewlines } from "../utils/normalizeNewlines.ts"
+import { outdent } from "../utils/outdent.ts"
+import { parseAuthor } from "../utils/parseAuthor.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+
 // ============================================================================
 // GIT COMMIT TYPES
 // ============================================================================

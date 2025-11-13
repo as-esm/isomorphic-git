@@ -1,4 +1,4 @@
-import { GitPktLine } from '../models/GitPktLine.js'
+import { GitPktLine } from "../models/GitPktLine.ts"
 
 type ReadFunction = () => Promise<Buffer | null | true>
 

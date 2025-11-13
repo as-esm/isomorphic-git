@@ -1,5 +1,5 @@
 import { BaseError } from './BaseError.js'
-import type { PushResult } from '../api/push.js'
+import type { PushResult } from '../api/push.ts'
 
 export class GitPushError extends BaseError {
   static readonly code = 'GitPushError' as const

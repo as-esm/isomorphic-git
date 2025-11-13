@@ -3,7 +3,7 @@ import { NotFoundError } from '../errors/NotFoundError.js'
 import { expandOidLoose } from './expandOidLoose.js'
 import { expandOidPacked } from './expandOidPacked.js'
 import { _readObject as readObject } from './readObject.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 export async function _expandOid({
   fs,

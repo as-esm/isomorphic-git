@@ -1,9 +1,9 @@
-import { GitPackIndex } from '../models/GitPackIndex.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitPackIndex } from "../models/GitPackIndex.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 const PackfileCache = Symbol('PackfileCache')
 
-import { normalizeFs } from '../utils/normalizeFs.js'
+import { normalizeFs } from "../utils/normalizeFs.ts"
 
 async function loadPackIndex({
   fs,

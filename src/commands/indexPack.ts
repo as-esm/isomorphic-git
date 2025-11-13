@@ -1,8 +1,8 @@
-import { GitPackIndex } from '../models/GitPackIndex.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ProgressCallback } from '../managers/GitRemoteHTTP.js'
+import { GitPackIndex } from "../models/GitPackIndex.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
 
 /**
  * Index a pack file

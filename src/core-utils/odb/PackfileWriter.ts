@@ -1,8 +1,8 @@
 import Hash from 'sha.js/sha1.js'
-import { InternalError } from '../../errors/InternalError.js'
+import { InternalError } from "../../errors/InternalError.ts"
 import { deflate } from '../Zlib.js'
-import { padHex } from '../../utils/padHex.js'
-import type { ProgressCallback } from '../../managers/GitRemoteHTTP.js'
+import { padHex } from "../../utils/padHex.ts"
+import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
 
 /**
  * Object type encoding for packfiles

@@ -1,14 +1,14 @@
-import { _readCommit } from '../commands/readCommit.js'
-import { _writeCommit } from '../commands/writeCommit.js'
+import { _readCommit } from "../commands/readCommit.ts"
+import { _writeCommit } from "../commands/writeCommit.js"
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
 import { MissingNameError } from '../errors/MissingNameError.js'
-import { GitRefStash } from '../models/GitRefStash.js'
-import { join } from '../utils/join.js'
-import { normalizeAuthorObject } from '../utils/normalizeAuthorObject.js'
-import { acquireLock } from '../utils/walkerToTreeEntryMap.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { Author } from '../models/GitCommit.js'
+import { GitRefStash } from "../models/GitRefStash.ts"
+import { join } from "../utils/join.ts"
+import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
+import { acquireLock } from "../utils/walkerToTreeEntryMap.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 import { GitRefManager } from './GitRefManager.js'
 

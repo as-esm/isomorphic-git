@@ -1,7 +1,7 @@
-import { _init } from '../commands/init.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _init } from "../commands/init.js"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type { GitBackend } from '../backends/index.js'
 
 /**

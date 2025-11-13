@@ -1,8 +1,8 @@
 import { RefManager } from './RefManager.js'
 import { ObjectReader, ObjectWriter } from '../odb/index.js'
 import { parse as parseBlob } from '../parsers/Blob.js'
-import type { FsClient } from '../../models/FileSystem.js'
-import type { TreeEntry } from '../../models/GitTree.js'
+import type { FsClient } from "../../models/FileSystem.ts"
+import type { TreeEntry } from "../../models/GitTree.ts"
 
 /**
  * Gets the notes ref for a given namespace

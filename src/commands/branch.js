@@ -5,9 +5,9 @@ import cleanGitRef from 'clean-git-ref'
 
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { appendReflog } from '../core-utils/refs/ReflogManager.js'
-import validRef from '../utils/isValidRef.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
+import validRef from "../utils/isValidRef.ts"
 
 /**
  * Create a branch

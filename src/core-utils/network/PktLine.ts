@@ -1,5 +1,5 @@
-import { StreamReader } from '../../utils/StreamReader.js'
-import { padHex } from '../../utils/padHex.js'
+import { StreamReader } from "../../utils/StreamReader.ts"
+import { padHex } from "../../utils/padHex.ts"
 
 /**
  * pkt-line Format

@@ -1,7 +1,7 @@
-import { GitCommit } from '../../models/GitCommit.js'
+import { GitCommit } from "../../models/GitCommit.ts"
 import { read as readObject } from '../odb/ObjectReader.js'
-import type { FsClient } from '../../models/FileSystem.js'
-import type { CommitObject } from '../../models/GitCommit.js'
+import type { FsClient } from "../../models/FileSystem.ts"
+import type { CommitObject } from "../../models/GitCommit.ts"
 
 type ReadCommitFn = (oid: string) => Promise<CommitObject>
 

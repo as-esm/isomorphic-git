@@ -1,9 +1,9 @@
 // @ts-check
 
-import { _checkout } from '../commands/checkout.js'
-import { _currentBranch } from '../commands/currentBranch.js'
-import { _fetch } from '../commands/fetch.js'
-import { _merge } from '../commands/merge.js'
+import { _checkout } from "../commands/checkout.ts"
+import { _currentBranch } from "../commands/currentBranch.ts"
+import { _fetch } from "../commands/fetch.ts"
+import { _merge } from "../commands/merge.ts"
 import { MissingParameterError } from '../errors/MissingParameterError.js'
 
 /**

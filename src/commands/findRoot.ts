@@ -1,7 +1,7 @@
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { dirname } from '../utils/dirname.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { dirname } from "../utils/dirname.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Find the root git directory

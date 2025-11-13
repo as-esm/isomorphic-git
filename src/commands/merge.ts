@@ -1,22 +1,22 @@
 import { _commit } from './commit.js'
 import { _currentBranch } from './currentBranch.js'
-import { FastForwardError } from '../errors/FastForwardError.js'
-import { MergeConflictError } from '../errors/MergeConflictError.js'
-import { MergeNotSupportedError } from '../errors/MergeNotSupportedError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { findMergeBase } from '../core-utils/algorithms/CommitGraphWalker.js'
-import { mergeTrees } from '../core-utils/algorithms/MergeManager.js'
-import { parse as parseIndex, serialize as serializeIndex } from '../core-utils/index/Index.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { Repository } from '../core-utils/Repository.js'
-import { abbreviateRef } from '../utils/abbreviateRef.js'
-import { join } from '../utils/join.js'
+import { FastForwardError } from "../errors/FastForwardError.ts"
+import { MergeConflictError } from "../errors/MergeConflictError.ts"
+import { MergeNotSupportedError } from "../errors/MergeNotSupportedError.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { findMergeBase } from "../core-utils/algorithms/CommitGraphWalker.ts"
+import { mergeTrees } from "../core-utils/algorithms/MergeManager.ts"
+import { parse as parseIndex, serialize as serializeIndex } from "../core-utils/index/Index.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { Repository } from "../core-utils/Repository.ts"
+import { abbreviateRef } from "../utils/abbreviateRef.ts"
+import { join } from "../utils/join.ts"
 import AsyncLock from 'async-lock'
-import type { FsClient } from '../models/FileSystem.js'
-import type { Author, CommitObject } from '../models/GitCommit.js'
-import type { SignCallback } from '../core-utils/Signing.js'
-import type { MergeResult } from '../api/merge.js'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { Author, CommitObject } from "../models/GitCommit.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+import type { MergeResult } from '../api/merge.ts'
 
 let indexLock: AsyncLock | undefined
 

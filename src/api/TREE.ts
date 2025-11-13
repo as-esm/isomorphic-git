@@ -1,4 +1,4 @@
-import type { Walker } from '../models/Walker.js'
+import type { Walker } from "../models/Walker.ts"
 
 /**
  * Get a git commit `Walker`
@@ -11,4 +11,4 @@ import type { Walker } from '../models/Walker.js'
  * @returns {Walker} Returns a git commit Walker
  *
  */
-export { TREE } from '../commands/TREE.js'
+export { TREE } from "../commands/TREE.js"

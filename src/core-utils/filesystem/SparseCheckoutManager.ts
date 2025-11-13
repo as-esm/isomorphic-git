@@ -1,7 +1,7 @@
 import ignore from 'ignore'
 import { join } from '../GitPath.js'
-import { ConfigAccess } from '../../utils/configAccess.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import { ConfigAccess } from "../../utils/configAccess.ts"
+import type { FsClient } from "../../models/FileSystem.ts"
 
 /**
  * Loads sparse checkout patterns from .git/info/sparse-checkout

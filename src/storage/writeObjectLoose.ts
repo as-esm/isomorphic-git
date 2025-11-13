@@ -1,6 +1,6 @@
 import { InternalError } from '../errors/InternalError.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export async function writeObjectLoose({
   fs,

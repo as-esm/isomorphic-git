@@ -1,10 +1,10 @@
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { write as writeObject } from '../core-utils/odb/ObjectWriter.js'
-import { parse as parseCommit, serialize as serializeCommit } from '../core-utils/parsers/Commit.js'
-import { mergeTrees } from '../core-utils/algorithms/MergeManager.js'
-import { findMergeBase } from '../core-utils/algorithms/CommitGraphWalker.js'
-import { topologicalSort } from '../core-utils/algorithms/CommitGraphWalker.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
+import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
+import { mergeTrees } from "../core-utils/algorithms/MergeManager.ts"
+import { findMergeBase } from "../core-utils/algorithms/CommitGraphWalker.ts"
+import { topologicalSort } from "../core-utils/algorithms/CommitGraphWalker.ts"
 import {
   isRebaseInProgress,
   initRebase,
@@ -13,12 +13,12 @@ import {
   readRebaseHead,
   completeRebase,
   abortRebase,
-} from '../core-utils/algorithms/SequencerManager.js'
-import { StateManager } from '../core-utils/StateManager.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { CommitObject } from '../models/GitCommit.js'
+} from "../core-utils/algorithms/SequencerManager.ts"
+import { StateManager } from "../core-utils/StateManager.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { CommitObject } from "../models/GitCommit.ts"
 
 // ============================================================================
 // REBASE TYPES

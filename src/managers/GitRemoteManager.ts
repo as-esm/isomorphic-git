@@ -1,6 +1,6 @@
 import { UnknownTransportError } from '../errors/UnknownTransportError.js'
 import { UrlParseError } from '../errors/UrlParseError.js'
-import { translateSSHtoHTTP } from '../utils/translateSSHtoHTTP.js'
+import { translateSSHtoHTTP } from "../utils/translateSSHtoHTTP.ts"
 
 import { GitRemoteHTTP } from './GitRemoteHTTP.js'
 

@@ -1,10 +1,11 @@
 import { HttpError } from '../errors/HttpError.js'
 import { SmartHttpError } from '../errors/SmartHttpError.js'
 import { UserCanceledError } from '../errors/UserCanceledError.js'
-import { calculateBasicAuthHeader } from '../utils/calculateBasicAuthHeader.js'
-import { collect } from '../utils/collect.js'
-import { extractAuthFromUrl } from '../utils/extractAuthFromUrl.js'
-import { parseRefsAdResponse } from '../wire/parseRefsAdResponse.js'
+import { calculateBasicAuthHeader } from "../utils/calculateBasicAuthHeader.ts"
+import { collect } from "../utils/collect.ts"
+import { extractAuthFromUrl } from "../utils/extractAuthFromUrl.ts"
+import { parseRefsAdResponse } from "../wire/parseRefsAdResponse.ts"
+import { fromValue } from "../utils/fromValue.ts"
 
 // ============================================================================
 // HTTP CLIENT TYPES
@@ -243,6 +244,9 @@ export class GitRemoteHTTP {
       res.headers &&
       res.headers['content-type'] === `application/x-${service}-advertisement`
     ) {
+      if (!res.body) {
+        throw new HttpError(res.statusCode, res.statusMessage, 'No response body')
+      }
       const remoteHTTP = await parseRefsAdResponse(res.body, { service }) as any
       remoteHTTP.auth = auth
       return remoteHTTP
@@ -254,7 +258,7 @@ export class GitRemoteHTTP {
       // For backwards compatibility, try to parse it anyway.
       // TODO: maybe just throw instead of trying?
       try {
-        const remoteHTTP = await parseRefsAdResponse([data], { service }) as any
+        const remoteHTTP = await parseRefsAdResponse(fromValue(new Uint8Array(data)) as AsyncIterableIterator<Uint8Array>, { service }) as any
         remoteHTTP.auth = auth
         return remoteHTTP
       } catch (e) {

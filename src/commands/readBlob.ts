@@ -1,7 +1,7 @@
-import { resolveBlob } from '../utils/resolveBlob.js'
-import { resolveFilepath } from '../utils/resolveFilepath.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadBlobResult } from '../api/readBlob.js'
+import { resolveBlob } from "../utils/resolveBlob.ts"
+import { resolveFilepath } from "../utils/resolveFilepath.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadBlobResult } from '../api/readBlob.ts'
 
 /**
  * @param {object} args

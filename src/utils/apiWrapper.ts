@@ -1,7 +1,7 @@
 import { assertParameter } from './assertParameter.js'
 import { join } from './join.js'
 import { withErrorCaller } from './errorHandler.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Creates a standardized API wrapper function for commands

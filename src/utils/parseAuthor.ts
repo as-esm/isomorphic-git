@@ -1,4 +1,4 @@
-import type { Author } from '../types.js'
+import type { Author } from "../models/GitCommit.ts"
 
 export const parseAuthor = (author: string): Author => {
   const match = author.match(/^(.*) <(.*)> (.*) (.*)$/)

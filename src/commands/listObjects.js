@@ -1,8 +1,8 @@
-import { GitAnnotatedTag } from '../models/GitAnnotatedTag.js'
-import { GitCommit } from '../models/GitCommit.js'
-import { GitTree } from '../models/GitTree.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { join } from '../utils/join.js'
+import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
+import { GitCommit } from "../models/GitCommit.ts"
+import { GitTree } from "../models/GitTree.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import { join } from "../utils/join.ts"
 
 /**
  * @param {object} args

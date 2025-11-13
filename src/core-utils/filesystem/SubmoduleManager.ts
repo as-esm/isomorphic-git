@@ -1,6 +1,6 @@
 import { join } from '../GitPath.js'
 import { parse as parseConfig, serialize as serializeConfig } from '../ConfigParser.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 type SubmoduleInfo = {
   path: string

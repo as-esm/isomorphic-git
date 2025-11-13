@@ -1,9 +1,9 @@
 import get from 'simple-get'
 
-import { asyncIteratorToStream } from '../../utils/asyncIteratorToStream.js'
-import { collect } from '../../utils/collect.js'
-import { fromNodeStream } from '../../utils/fromNodeStream.js'
-import type { GitHttpRequest, GitHttpResponse } from '../../managers/GitRemoteHTTP.js'
+import { asyncIteratorToStream } from "../../utils/asyncIteratorToStream.ts"
+import { collect } from "../../utils/collect.ts"
+import { fromNodeStream } from "../../utils/fromNodeStream.ts"
+import type { GitHttpRequest, GitHttpResponse } from "../../managers/GitRemoteHTTP.ts"
 
 /**
  * HttpClient for Node.js environment

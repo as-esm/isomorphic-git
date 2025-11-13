@@ -1,11 +1,11 @@
-import { InternalError } from '../../errors/InternalError.js'
-import { NotFoundError } from '../../errors/NotFoundError.js'
-import { GitObject } from '../../models/GitObject.js'
+import { InternalError } from "../../errors/InternalError.ts"
+import { NotFoundError } from "../../errors/NotFoundError.ts"
+import { GitObject } from "../../models/GitObject.ts"
 import { read as readLoose } from './LooseObjectManager.js'
 import { read as readPacked } from './PackfileReader.js'
 import { shasum } from '../ShaHasher.js'
 import { inflate } from '../Zlib.js'
-import type { FsClient } from '../../models/FileSystem.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 type ReadResult = {
   type: string

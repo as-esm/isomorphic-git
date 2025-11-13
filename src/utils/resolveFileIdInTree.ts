@@ -1,9 +1,9 @@
 // @ts-check
-import { GitTree } from '../models/GitTree.js'
-import { _readObject as readObject } from '../storage/readObject.js'
+import { GitTree } from "../models/GitTree.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
 import { join } from './join.js'
 import { resolveTree } from './resolveTree.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 // the empty file content object id
 const EMPTY_OID = 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'

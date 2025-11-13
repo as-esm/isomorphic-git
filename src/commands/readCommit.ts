@@ -1,6 +1,6 @@
-import { resolveCommit } from '../utils/resolveCommit.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadCommitResult } from '../models/GitCommit.js'
+import { resolveCommit } from "../utils/resolveCommit.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadCommitResult } from "../models/GitCommit.ts"
 
 /**
  * @param {object} args

@@ -1,7 +1,7 @@
 import { resolveObject } from './resolveObject.js'
-import { parse as parseTree } from '../core-utils/parsers/Tree.js'
-import { GitTree } from '../models/GitTree.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
+import { GitTree } from "../models/GitTree.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export type ResolveTreeResult = {
   tree: ReturnType<typeof GitTree.from>

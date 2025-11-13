@@ -1,9 +1,9 @@
 import pify from 'pify'
 
-import { compareStrings } from '../utils/compareStrings.js'
-import { dirname } from '../utils/dirname.js'
-import { rmRecursive } from '../utils/rmRecursive.js'
-import { isPromiseLike } from '../utils/types.js'
+import { compareStrings } from "../utils/compareStrings.ts"
+import { dirname } from "../utils/dirname.ts"
+import { rmRecursive } from "../utils/rmRecursive.ts"
+import { isPromiseLike } from "../utils/types.ts"
 
 // ============================================================================
 // FILESYSTEM CLIENT TYPES

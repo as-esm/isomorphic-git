@@ -1,13 +1,13 @@
-import { _addNote } from '../commands/addNote.js'
-import { MissingNameError } from '../errors/MissingNameError.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { normalizeAuthorObject } from '../utils/normalizeAuthorObject.js'
-import { normalizeCommitterObject } from '../utils/normalizeCommitterObject.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { SignCallback } from '../core-utils/Signing.js'
-import type { Author } from '../models/GitCommit.js'
+import { _addNote } from "../commands/addNote.ts"
+import { MissingNameError } from "../errors/MissingNameError.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
+import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * Add or update an object note

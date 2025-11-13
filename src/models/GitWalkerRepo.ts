@@ -1,11 +1,11 @@
 import { NotFoundError } from '../errors/NotFoundError.js'
 import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
+import { GitRefManager } from "../managers/GitRefManager.ts"
 import { GitTree } from './GitTree.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { join } from '../utils/join.js'
-import { normalizeMode } from '../utils/normalizeMode.js'
-import { resolveTree } from '../utils/resolveTree.js'
+import { _readObject as readObject } from "../storage/readObject.ts"
+import { join } from "../utils/join.ts"
+import { normalizeMode } from "../utils/normalizeMode.ts"
+import { resolveTree } from "../utils/resolveTree.ts"
 import type { FsClient, Stat } from './FileSystem.js'
 import type { TreeEntry } from './GitTree.js'
 

@@ -1,10 +1,10 @@
 import Hash from 'sha.js/sha1.js'
 
-import { types } from '../commands/types.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { deflate } from '../utils/deflate.js'
-import { join } from '../utils/join.js'
-import { padHex } from '../utils/padHex.js'
+import { types } from "../commands/types.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import { deflate } from "../utils/deflate.ts"
+import { join } from "../utils/join.ts"
+import { padHex } from "../utils/padHex.ts"
 
 /**
  * @param {object} args

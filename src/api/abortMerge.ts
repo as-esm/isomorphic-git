@@ -1,14 +1,14 @@
-import { STAGE } from '../commands/STAGE.js'
-import { TREE } from '../commands/TREE.js'
-import { WORKDIR } from '../commands/WORKDIR.js'
-import { _walk } from '../commands/walk.js'
-import { IndexResetError } from '../errors/IndexResetError.js'
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { modified } from '../utils/modified.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { STAGE } from "../commands/STAGE.js"
+import { TREE } from "../commands/TREE.js"
+import { WORKDIR } from "../commands/WORKDIR.js"
+import { _walk } from "../commands/walk.js"
+import { IndexResetError } from '../errors/IndexResetError.ts'
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { modified } from "../utils/modified.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Abort a merge in progress.

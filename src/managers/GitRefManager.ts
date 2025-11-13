@@ -4,13 +4,13 @@ import AsyncLock from 'async-lock'
 import { InvalidOidError } from '../errors/InvalidOidError.js'
 import { NoRefspecError } from '../errors/NoRefspecError.js'
 import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitPackedRefs } from '../models/GitPackedRefs.js'
-import { GitRefSpecSet } from '../models/GitRefSpecSet.js'
-import { compareRefNames } from '../utils/compareRefNames.js'
-import { join } from '../utils/join.js'
-import { ConfigAccess } from '../utils/configAccess.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitPackedRefs } from "../models/GitPackedRefs.ts"
+import { GitRefSpecSet } from "../models/GitRefSpecSet.ts"
+import { compareRefNames } from "../utils/compareRefNames.ts"
+import { join } from "../utils/join.ts"
+import { ConfigAccess } from "../utils/configAccess.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 // ============================================================================
 // REF TYPES

@@ -1,8 +1,8 @@
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { _expandOid } from '../storage/expandOid.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { _expandOid } from "../storage/expandOid.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Expand and resolve a short oid into a full oid

@@ -1,9 +1,9 @@
-import { _walk } from '../commands/walk.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { Walker, WalkerEntry, WalkerMap, WalkerReduce, WalkerIterate } from '../models/Walker.js'
+import { _walk } from "../commands/walk.js"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { Walker, WalkerEntry, WalkerMap, WalkerReduce, WalkerIterate } from "../models/Walker.ts"
 
 /**
  * A powerful recursive tree-walking utility.

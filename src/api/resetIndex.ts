@@ -1,11 +1,11 @@
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { hashObject } from '../utils/hashObject.js'
-import { join } from '../utils/join.js'
-import { resolveFilepath } from '../utils/resolveFilepath.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { hashObject } from "../utils/hashObject.ts"
+import { join } from "../utils/join.ts"
+import { resolveFilepath } from "../utils/resolveFilepath.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Reset a file in the git index (aka staging area)

@@ -1,5 +1,5 @@
-import { FileSystem } from '../models/FileSystem.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { FileSystem } from "../models/FileSystem.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Normalizes an FsClient to a FileSystem instance.

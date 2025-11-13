@@ -1,14 +1,14 @@
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { read as readObject } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { parse as parseTree } from '../core-utils/parsers/Tree.js'
-import { parse as parseTag } from '../core-utils/parsers/Tag.js'
-import { parse as parseBlob } from '../core-utils/parsers/Blob.js'
-import { resolveFilepath } from '../utils/resolveFilepath.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { Repository } from '../core-utils/Repository.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
+import { parse as parseTag } from "../core-utils/parsers/Tag.ts"
+import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
+import { resolveFilepath } from "../utils/resolveFilepath.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { Repository } from "../core-utils/Repository.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 // ============================================================================
 // SHOW TYPES

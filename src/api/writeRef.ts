@@ -1,13 +1,13 @@
 import cleanGitRef from 'clean-git-ref'
 
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import validRef from '../utils/isValidRef.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
+import { InvalidRefNameError } from "../errors/InvalidRefNameError.ts"
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import validRef from "../utils/isValidRef.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Write a ref which refers to the specified SHA-1 object id, or a symbolic ref which refers to the specified ref.

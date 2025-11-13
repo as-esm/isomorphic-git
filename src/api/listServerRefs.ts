@@ -1,15 +1,15 @@
-import { GitRemoteHTTP } from '../managers/GitRemoteHTTP.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { formatInfoRefs } from '../utils/formatInfoRefs.js'
-import { parseListRefsResponse } from '../wire/parseListRefsResponse.js'
-import { writeListRefsRequest } from '../wire/writeListRefsRequest.js'
+import { GitRemoteHTTP } from "../managers/GitRemoteHTTP.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { formatInfoRefs } from "../utils/formatInfoRefs.ts"
+import { parseListRefsResponse } from "../wire/parseListRefsResponse.ts"
+import { writeListRefsRequest } from "../wire/writeListRefsRequest.ts"
 import type {
   HttpClient,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
-import type { ServerRef } from '../managers/GitRefManager.js'
+} from "../managers/GitRemoteHTTP.ts"
+import type { ServerRef } from "../managers/GitRefManager.ts"
 
 /**
  * Fetch a list of refs (branches, tags, etc) from a server.

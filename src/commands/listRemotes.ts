@@ -1,6 +1,6 @@
 // @ts-check
-import { ConfigAccess } from '../utils/configAccess.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { ConfigAccess } from "../utils/configAccess.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 
 /**

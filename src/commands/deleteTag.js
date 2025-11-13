@@ -1,5 +1,5 @@
 // @ts-check
-import { GitRefManager } from '../managers/GitRefManager.js'
+import { GitRefManager } from "../managers/GitRefManager.ts"
 
 /**
  * Delete a local tag ref

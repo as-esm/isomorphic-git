@@ -1,9 +1,9 @@
-import { _writeTree } from '../commands/writeTree.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { TreeObject } from '../models/GitTree.js'
+import { _writeTree } from "../commands/writeTree.js"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { TreeObject } from "../models/GitTree.ts"
 
 /**
  * Write a tree object directly

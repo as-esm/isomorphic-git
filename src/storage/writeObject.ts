@@ -1,8 +1,8 @@
-import { GitObject } from '../models/GitObject.js'
+import { GitObject } from "../models/GitObject.ts"
 import { writeObjectLoose } from './writeObjectLoose.js'
-import { deflate } from '../utils/deflate.js'
-import { shasum } from '../utils/shasum.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { deflate } from "../utils/deflate.ts"
+import { shasum } from "../utils/shasum.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export async function _writeObject({
   fs,

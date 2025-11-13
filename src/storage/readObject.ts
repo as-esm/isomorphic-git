@@ -1,11 +1,11 @@
 import { InternalError } from '../errors/InternalError.js'
 import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitObject } from '../models/GitObject.js'
+import { GitObject } from "../models/GitObject.ts"
 import { readObjectLoose } from './readObjectLoose.js'
 import { readObjectPacked, type ReadObjectPackedResult } from './readObjectPacked.js'
-import { inflate } from '../utils/inflate.js'
-import { shasum } from '../utils/shasum.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { inflate } from "../utils/inflate.ts"
+import { shasum } from "../utils/shasum.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export type ReadObjectResult = {
   object: Buffer

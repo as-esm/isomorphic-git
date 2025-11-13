@@ -1,11 +1,11 @@
-import { InvalidFilepathError } from '../errors/InvalidFilepathError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { _writeObject } from '../storage/writeObject.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { InvalidFilepathError } from "../errors/InvalidFilepathError.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { _writeObject } from "../storage/writeObject.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Register file contents in the working tree or object database to the git index (aka staging area).

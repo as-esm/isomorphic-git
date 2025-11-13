@@ -1,6 +1,6 @@
-import { GitConfig } from '../models/GitConfig.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitConfig } from "../models/GitConfig.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Manages access to the Git configuration file, providing methods to read and save configurations.

@@ -1,11 +1,11 @@
 // @ts-check
 import cleanGitRef from 'clean-git-ref'
 
-import { _currentBranch } from '../commands/currentBranch.js'
+import { _currentBranch } from "../commands/currentBranch.ts"
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import validRef from '../utils/isValidRef.js'
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import validRef from "../utils/isValidRef.ts"
 import '../typedefs.js'
 
 /**

@@ -1,4 +1,4 @@
-import type { Walker } from '../models/Walker.js'
+import type { Walker } from "../models/Walker.ts"
 
 /**
  * Get a git index Walker
@@ -8,5 +8,5 @@ import type { Walker } from '../models/Walker.js'
  * @returns {Walker} Returns a git index `Walker`
  *
  */
-export { STAGE } from '../commands/STAGE.js'
+export { STAGE } from "../commands/STAGE.js"
 

@@ -1,10 +1,11 @@
 /**
  * @fileoverview Type definitions for isomorphic-git
  * These JSDoc types are kept for backward compatibility with JavaScript files.
- * The source of truth is src/types.ts - these should match the TypeScript definitions.
+ * The source of truth is the decentralized type definitions in src/models/, src/managers/, src/api/, etc.
+ * The types are re-exported from src/types.ts for backward compatibility.
  * 
  * When converting JavaScript files to TypeScript, import types directly from './types.js'
- * instead of using these JSDoc typedefs.
+ * (which re-exports from decentralized locations) instead of using these JSDoc typedefs.
  */
 
 import './typedefs-http.js'

@@ -1,6 +1,6 @@
-import { GitCommit } from '../models/GitCommit.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { GitCommit } from "../models/GitCommit.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Find the merge base of multiple commits

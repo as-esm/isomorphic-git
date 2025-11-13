@@ -1,10 +1,10 @@
-import { ConfigAccess } from '../utils/configAccess.js'
-import { GitIndexManager } from '../managers/GitIndexManager.js'
-import { compareStats } from '../utils/compareStats.js'
-import { join } from '../utils/join.js'
-import { normalizeStats } from '../utils/normalizeStats.js'
-import { shasum } from '../utils/shasum.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
+import { ConfigAccess } from "../utils/configAccess.ts"
+import { GitIndexManager } from "../managers/GitIndexManager.ts"
+import { compareStats } from "../utils/compareStats.ts"
+import { join } from "../utils/join.ts"
+import { normalizeStats } from "../utils/normalizeStats.ts"
+import { shasum } from "../utils/shasum.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient, Stat } from './FileSystem.js'
 import type { WalkerEntry } from './Walker.js'
 

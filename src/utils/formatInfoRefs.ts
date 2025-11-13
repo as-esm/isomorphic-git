@@ -1,4 +1,4 @@
-import type { ServerRef } from '../managers/GitRefManager.js'
+import type { ServerRef } from "../managers/GitRefManager.ts"
 
 type RemoteRefs = {
   refs: Map<string, string>

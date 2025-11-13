@@ -5,7 +5,7 @@
  * to store Git repository data.
  */
 
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 import { FilesystemBackend, SQLiteBackend, createBackend } from './index.js'
 
 // ============================================================================

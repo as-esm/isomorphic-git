@@ -1,6 +1,6 @@
-import { EmptyServerResponseError } from '../errors/EmptyServerResponseError.js'
-import { ParseError } from '../errors/ParseError.js'
-import { GitPktLine } from '../models/GitPktLine.js'
+import { EmptyServerResponseError } from "../errors/EmptyServerResponseError.ts"
+import { ParseError } from "../errors/ParseError.ts"
+import { GitPktLine } from "../models/GitPktLine.ts"
 import { parseCapabilitiesV2 } from './parseCapabilitiesV2.js'
 
 type ReadFunction = () => Promise<Buffer | null | true>

@@ -1,14 +1,14 @@
-import { _clone } from '../commands/clone.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _clone } from "../commands/clone.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
+} from "../managers/GitRemoteHTTP.ts"
 import type { MessageCallback } from './push.js'
 import type { PostCheckoutCallback } from './checkout.js'
 

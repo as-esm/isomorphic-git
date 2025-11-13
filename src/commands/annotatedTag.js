@@ -2,10 +2,10 @@
 import '../typedefs.js'
 
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { ObjectReader, ObjectWriter } from '../core-utils/odb/index.js'
-import { parse as parseTag, serialize as serializeTag } from '../core-utils/parsers/Tag.js'
-import { signTag } from '../core-utils/Signing.js'
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { ObjectReader, ObjectWriter } from "../core-utils/odb/index.ts"
+import { parse as parseTag, serialize as serializeTag } from "../core-utils/parsers/Tag.ts"
+import { signTag } from "../core-utils/Signing.ts"
 
 /**
  * Create an annotated tag.

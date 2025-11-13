@@ -1,13 +1,13 @@
 import crc32 from 'crc-32'
 
 import { InternalError } from '../errors/InternalError.js'
-import { GitObject } from '../models/GitObject.js'
-import { BufferCursor } from '../utils/BufferCursor.js'
-import { applyDelta } from '../utils/applyDelta.js'
-import { listpack } from '../utils/git-list-pack.js'
-import { inflate } from '../utils/inflate.js'
-import { shasum } from '../utils/shasum.js'
-import type { ProgressCallback } from '../managers/GitRemoteHTTP.js'
+import { GitObject } from "../models/GitObject.ts"
+import { BufferCursor } from "../utils/BufferCursor.ts"
+import { applyDelta } from "../utils/applyDelta.ts"
+import { listpack } from "../utils/git-list-pack.ts"
+import { inflate } from "../utils/inflate.ts"
+import { shasum } from "../utils/shasum.ts"
+import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
 
 function decodeVarInt(reader: BufferCursor): number {
   const bytes: number[] = []

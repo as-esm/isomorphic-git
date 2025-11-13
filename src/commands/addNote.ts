@@ -1,13 +1,13 @@
 import { _commit } from './commit.js'
 import { _readTree } from './readTree.js'
 import { _writeTree } from './writeTree.js'
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { _writeObject as writeObject } from '../storage/writeObject.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { SignCallback } from '../core-utils/Signing.js'
-import type { Author } from '../models/GitCommit.js'
+import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { _writeObject as writeObject } from "../storage/writeObject.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * Add a note to a commit

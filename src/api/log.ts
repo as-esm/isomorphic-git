@@ -1,9 +1,9 @@
-import { _log } from '../commands/log.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadCommitResult } from '../models/GitCommit.js'
+import { _log } from "../commands/log.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadCommitResult } from "../models/GitCommit.ts"
 
 /**
  * Get commit descriptions from the git history

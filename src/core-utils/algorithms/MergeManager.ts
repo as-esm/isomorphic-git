@@ -2,8 +2,8 @@ import diff3Merge from 'diff3'
 import { parse as parseTree, serialize as serializeTree } from '../parsers/Tree.js'
 import { read as readObject } from '../odb/ObjectReader.js'
 import { write as writeObject } from '../odb/ObjectWriter.js'
-import type { FsClient } from '../../models/FileSystem.js'
-import type { TreeEntry } from '../../models/GitTree.js'
+import type { FsClient } from "../../models/FileSystem.ts"
+import type { TreeEntry } from "../../models/GitTree.ts"
 
 // ============================================================================
 // MERGE DRIVER TYPES

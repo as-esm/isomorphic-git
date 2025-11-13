@@ -1,10 +1,10 @@
-import { MaxDepthError } from '../errors/MaxDepthError.js'
-import { MissingParameterError } from '../errors/MissingParameterError.js'
-import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { GitShallowManager } from '../managers/GitShallowManager.js'
-import { GitCommit } from '../models/GitCommit.js'
-import { _readObject } from '../storage/readObject.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { MaxDepthError } from "../errors/MaxDepthError.ts"
+import { MissingParameterError } from "../errors/MissingParameterError.ts"
+import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
+import { GitShallowManager } from "../managers/GitShallowManager.ts"
+import { GitCommit } from "../models/GitCommit.ts"
+import { _readObject } from "../storage/readObject.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Check if a commit is a descendent of another commit

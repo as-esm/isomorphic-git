@@ -1,7 +1,7 @@
 import { getConfigValue } from './configAccess.js'
 import { assignDefined } from './assignDefined.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { Author, CommitObject } from '../models/GitCommit.js'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { Author, CommitObject } from "../models/GitCommit.ts"
 
 /**
  * Return committer object by using properties with this priority:

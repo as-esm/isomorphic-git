@@ -1,10 +1,10 @@
 import { NotFoundError } from '../errors/NotFoundError.js'
-import { _findRoot } from '../commands/findRoot.js'
+import { _findRoot } from "../commands/findRoot.ts"
 import { join } from './GitPath.js'
 import { UnifiedConfigService } from './UnifiedConfigService.js'
 import { StateManager } from './StateManager.js'
 import { RefManager } from './refs/RefManager.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 type ObjectReaderWrapper = {
   read: (params: {

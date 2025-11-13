@@ -1,7 +1,7 @@
-import { SubmoduleManager } from '../core-utils/filesystem/SubmoduleManager.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { SubmoduleManager } from "../core-utils/filesystem/SubmoduleManager.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Submodule management API

@@ -1,16 +1,16 @@
-import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { GitAnnotatedTag } from '../models/GitAnnotatedTag.js'
-import { GitCommit } from '../models/GitCommit.js'
-import { GitTree } from '../models/GitTree.js'
-import { _readObject } from '../storage/readObject.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { resolveFilepath } from '../utils/resolveFilepath.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { CommitObject } from '../models/GitCommit.js'
-import type { TreeObject } from '../models/GitTree.js'
-import type { TagObject } from '../models/GitAnnotatedTag.js'
+import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
+import { GitCommit } from "../models/GitCommit.ts"
+import { GitTree } from "../models/GitTree.ts"
+import { _readObject } from "../storage/readObject.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { resolveFilepath } from "../utils/resolveFilepath.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { CommitObject } from "../models/GitCommit.ts"
+import type { TreeObject } from "../models/GitTree.ts"
+import type { TagObject } from "../models/GitAnnotatedTag.ts"
 
 /**
  * Deflated object result

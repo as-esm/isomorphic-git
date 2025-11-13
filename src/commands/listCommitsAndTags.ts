@@ -1,11 +1,11 @@
-import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { GitRefManager } from '../managers/GitRefManager.js'
-import { GitShallowManager } from '../managers/GitShallowManager.js'
-import { GitAnnotatedTag } from '../models/GitAnnotatedTag.js'
-import { GitCommit } from '../models/GitCommit.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
+import { GitRefManager } from "../managers/GitRefManager.ts"
+import { GitShallowManager } from "../managers/GitShallowManager.ts"
+import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
+import { GitCommit } from "../models/GitCommit.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * @param {object} args

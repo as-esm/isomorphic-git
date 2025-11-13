@@ -1,10 +1,10 @@
 import ignore from 'ignore'
 
-import { basename } from '../utils/basename.js'
-import { dirname } from '../utils/dirname.js'
-import { join } from '../utils/join.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { basename } from "../utils/basename.ts"
+import { dirname } from "../utils/dirname.ts"
+import { join } from "../utils/join.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 // I'm putting this in a Manager because I reckon it could benefit
 // from a LOT of caching.

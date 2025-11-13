@@ -1,8 +1,8 @@
-import { ObjectTypeError } from '../errors/ObjectTypeError.js'
-import { GitAnnotatedTag } from '../models/GitAnnotatedTag.js'
-import { _readObject as readObject } from '../storage/readObject.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ReadTagResult } from '../models/GitAnnotatedTag.js'
+import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
+import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
+import { _readObject as readObject } from "../storage/readObject.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ReadTagResult } from "../models/GitAnnotatedTag.ts"
 
 /**
  * @param {object} args

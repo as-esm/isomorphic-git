@@ -1,6 +1,6 @@
 import { join } from './GitPath.js'
 import { isRebaseInProgress } from './algorithms/SequencerManager.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 type OperationState = {
   merge: { head: string; mode: string | null; message: string | null } | null

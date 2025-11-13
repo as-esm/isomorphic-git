@@ -1,17 +1,17 @@
-import { CheckoutConflictError } from '../errors/CheckoutConflictError.js'
-import { CommitNotFetchedError } from '../errors/CommitNotFetchedError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { RefManager } from '../core-utils/refs/RefManager.js'
-import { WorkdirManager } from '../core-utils/filesystem/WorkdirManager.js'
-import { SparseCheckoutManager } from '../core-utils/filesystem/SparseCheckoutManager.js'
-import { ObjectReader } from '../core-utils/odb/ObjectReader.js'
-import { parse as parseCommit } from '../core-utils/parsers/Commit.js'
-import { parse as parseIndex, serialize as serializeIndex } from '../core-utils/index/Index.js'
-import { parse as parseConfig, serialize as serializeConfig } from '../core-utils/ConfigParser.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
-import type { ProgressCallback } from '../managers/GitRemoteHTTP.js'
-import type { PostCheckoutCallback } from '../api/checkout.js'
+import { CheckoutConflictError } from "../errors/CheckoutConflictError.ts"
+import { CommitNotFetchedError } from "../errors/CommitNotFetchedError.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { WorkdirManager } from "../core-utils/filesystem/WorkdirManager.ts"
+import { SparseCheckoutManager } from "../core-utils/filesystem/SparseCheckoutManager.ts"
+import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseIndex, serialize as serializeIndex } from "../core-utils/index/Index.ts"
+import { parse as parseConfig, serialize as serializeConfig } from "../core-utils/ConfigParser.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
+import type { PostCheckoutCallback } from '../api/checkout.ts'
 
 /**
  * Checkout a branch or commit

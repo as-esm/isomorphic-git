@@ -1,10 +1,10 @@
-import { InternalError } from '../../errors/InternalError.js'
-import { BufferCursor } from '../../utils/BufferCursor.js'
-import { shasum } from '../../utils/shasum.js'
+import { InternalError } from "../../errors/InternalError.ts"
+import { BufferCursor } from "../../utils/BufferCursor.ts"
+import { shasum } from "../../utils/shasum.ts"
 import { join } from '../GitPath.js'
-import { GitPackIndex } from '../../models/GitPackIndex.js'
-import type { FsClient } from '../../models/FileSystem.js'
-import type { ProgressCallback } from '../../managers/GitRemoteHTTP.js'
+import { GitPackIndex } from "../../models/GitPackIndex.ts"
+import type { FsClient } from "../../models/FileSystem.ts"
+import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
 
 // MIDX chunk IDs
 const CHUNK_ID_PACKNAMES = 0x504e414d // 'PNAM'

@@ -1,20 +1,20 @@
-import { _pull } from '../commands/pull.js'
-import { MissingNameError } from '../errors/MissingNameError.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import { normalizeAuthorObject } from '../utils/normalizeAuthorObject.js'
-import { normalizeCommitterObject } from '../utils/normalizeCommitterObject.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { _pull } from "../commands/pull.js"
+import { MissingNameError } from "../errors/MissingNameError.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
+import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
   ProgressCallback,
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from '../managers/GitRemoteHTTP.js'
+} from "../managers/GitRemoteHTTP.ts"
 import type { MessageCallback } from './push.js'
-import type { Author } from '../models/GitCommit.js'
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * Fetch and merge commits from a remote repository

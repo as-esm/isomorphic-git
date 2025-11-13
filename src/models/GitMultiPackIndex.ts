@@ -1,6 +1,6 @@
 import { InternalError } from '../errors/InternalError.js'
-import { BufferCursor } from '../utils/BufferCursor.js'
-import { shasum } from '../utils/shasum.js'
+import { BufferCursor } from "../utils/BufferCursor.ts"
+import { shasum } from "../utils/shasum.ts"
 
 // MIDX chunk IDs
 const CHUNK_ID_PACKNAMES = 0x504e414d // 'PNAM'

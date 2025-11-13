@@ -1,8 +1,8 @@
 import ignore from 'ignore'
-import { basename } from '../../utils/basename.js'
-import { dirname } from '../../utils/dirname.js'
+import { basename } from "../../utils/basename.ts"
+import { dirname } from "../../utils/dirname.ts"
 import { join } from '../GitPath.js'
-import type { FsClient } from '../../types.js'
+import type { FsClient } from "../../models/FileSystem.ts"
 
 /**
  * Loads gitignore rules from a file

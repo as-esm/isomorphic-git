@@ -1,7 +1,7 @@
 import { hasObjectLoose } from './hasObjectLoose.js'
 import { hasObjectPacked } from './hasObjectPacked.js'
 import { _readObject as readObject } from './readObject.js'
-import type { FsClient } from '../models/FileSystem.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 export async function hasObject({
   fs,

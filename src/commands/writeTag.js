@@ -1,8 +1,8 @@
 // @ts-check
 import '../typedefs.js'
 
-import { GitAnnotatedTag } from '../models/GitAnnotatedTag.js'
-import { _writeObject as writeObject } from '../storage/writeObject.js'
+import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
+import { _writeObject as writeObject } from "../storage/writeObject.ts"
 
 /**
  * @param {object} args

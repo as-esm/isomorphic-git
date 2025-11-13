@@ -1,9 +1,9 @@
-import { IgnoreManager } from '../core-utils/filesystem/IgnoreManager.js'
-import { WorkdirManager } from '../core-utils/filesystem/WorkdirManager.js'
-import { normalizeFs } from '../utils/normalizeFs.js'
-import { assertParameter } from '../utils/assertParameter.js'
-import { join } from '../utils/join.js'
-import type { FsClient } from '../models/FileSystem.js'
+import { IgnoreManager } from "../core-utils/filesystem/IgnoreManager.ts"
+import { WorkdirManager } from "../core-utils/filesystem/WorkdirManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Tell whether a file has been changed
