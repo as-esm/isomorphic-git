@@ -1,4 +1,4 @@
-import { normalizeMode } from './normalizeMode.js'
+import { normalizeMode } from './normalizeMode.ts'
 import type { Stat } from "../models/FileSystem.ts"
 
 const MAX_UINT32 = 2 ** 32

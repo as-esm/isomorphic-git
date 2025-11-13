@@ -21,7 +21,7 @@ entire packfile without multiplexing.
 */
 import { FIFO } from "../utils/FIFO.ts"
 
-import { GitPktLine } from './GitPktLine.js'
+import { GitPktLine } from './GitPktLine.ts'
 
 export class GitSideBand {
   static demux(input: AsyncIterableIterator<Uint8Array>): {

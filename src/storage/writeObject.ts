@@ -1,5 +1,5 @@
 import { GitObject } from "../models/GitObject.ts"
-import { writeObjectLoose } from './writeObjectLoose.js'
+import { writeObjectLoose } from './writeObjectLoose.ts'
 import { deflate } from "../utils/deflate.ts"
 import { shasum } from "../utils/shasum.ts"
 import type { FsClient } from "../models/FileSystem.ts"

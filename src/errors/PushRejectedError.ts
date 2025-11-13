@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class PushRejectedError extends BaseError {
   static readonly code = 'PushRejectedError' as const

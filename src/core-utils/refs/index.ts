@@ -1,6 +1,6 @@
-export * from './RefParser.js'
-export * from './RefManager.js'
-export * from './ReflogManager.js'
-export * from './NotesManager.js'
-export * from './ShallowManager.js'
+export * from './RefParser.ts'
+export * from './RefManager.ts'
+export * from './ReflogManager.ts'
+export * from './NotesManager.ts'
+export * from './ShallowManager.ts'
 

@@ -1,4 +1,4 @@
-import { normalizeStats } from './normalizeStats.js'
+import { normalizeStats } from './normalizeStats.ts'
 import type { Stat } from "../models/FileSystem.ts"
 
 export const compareStats = (

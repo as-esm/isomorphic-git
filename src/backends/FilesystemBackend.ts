@@ -1,6 +1,6 @@
 import { join } from "../core-utils/GitPath.ts"
 import type { FsClient } from "../models/FileSystem.ts"
-import type { GitBackend } from './GitBackend.js'
+import type { GitBackend } from './GitBackend.ts'
 
 /**
  * FilesystemBackend - Filesystem-based implementation of GitBackend
@@ -9,10 +9,16 @@ import type { GitBackend } from './GitBackend.js'
  * compatible with standard Git repositories.
  */
 export class FilesystemBackend implements GitBackend {
+  private readonly fs: FsClient
+  private readonly gitdir: string
+
   constructor(
-    private readonly fs: FsClient,
-    private readonly gitdir: string
-  ) {}
+    fs: FsClient,
+    gitdir: string
+  ) {
+    this.fs = fs
+    this.gitdir = gitdir
+  }
 
   getType(): string {
     return 'filesystem'

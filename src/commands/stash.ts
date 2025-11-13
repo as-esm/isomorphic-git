@@ -1,6 +1,3 @@
-// @ts-check
-import '../typedefs.js'
-
 import { checkout } from '../api/checkout.ts'
 import { readCommit } from '../api/readCommit.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
@@ -12,16 +9,17 @@ import {
   acquireLock,
 } from "../utils/walkerToTreeEntryMap.ts"
 
-import { STAGE } from './STAGE.js'
-import { TREE } from './TREE.js'
-import { _currentBranch } from './currentBranch.js'
-import { _readCommit } from './readCommit.js'
+import { STAGE } from './STAGE.ts'
+import { TREE } from './TREE.ts'
+import { _currentBranch } from './currentBranch.ts'
+import { _readCommit } from './readCommit.ts'
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Common logic for creating a stash commit
  * @private
  */
-async function _createStashCommit({ fs, dir, gitdir, message = '' }) {
+async function _createStashCommit({ fs, dir, gitdir, message = '' }: { fs: FsClient; dir?: string; gitdir: string; message?: string }) {
   const stashMgr = new GitStashManager({ fs, dir, gitdir })
 
   await stashMgr.getAuthor() // ensure there is an author
@@ -41,8 +39,8 @@ async function _createStashCommit({ fs, dir, gitdir, message = '' }) {
   const headCommitObj = await readCommit({ fs, dir, gitdir, oid: headCommit })
   const headMsg = headCommitObj.commit.message
 
-  const stashCommitParents = [headCommit]
-  let stashCommitTree = null
+  const stashCommitParents: string[] = [headCommit]
+  let stashCommitTree: string | null = null
   let workDirCompareBase = TREE({ ref: 'HEAD' })
 
   const indexTree = await writeTreeChanges({
@@ -100,7 +98,7 @@ async function _createStashCommit({ fs, dir, gitdir, message = '' }) {
   return { stashCommit, stashMsg, branch, stashMgr }
 }
 
-export async function _stashPush({ fs, dir, gitdir, message = '' }) {
+export async function _stashPush({ fs, dir, gitdir, message = '' }: { fs: FsClient; dir?: string; gitdir: string; message?: string }): Promise<string> {
   const { stashCommit, stashMsg, branch, stashMgr } = await _createStashCommit({
     fs,
     dir,
@@ -130,7 +128,7 @@ export async function _stashPush({ fs, dir, gitdir, message = '' }) {
   return stashCommit
 }
 
-export async function _stashCreate({ fs, dir, gitdir, message = '' }) {
+export async function _stashCreate({ fs, dir, gitdir, message = '' }: { fs: FsClient; dir?: string; gitdir: string; message?: string }): Promise<string> {
   const { stashCommit } = await _createStashCommit({
     fs,
     dir,
@@ -142,7 +140,7 @@ export async function _stashCreate({ fs, dir, gitdir, message = '' }) {
   return stashCommit
 }
 
-export async function _stashApply({ fs, dir, gitdir, refIdx = 0 }) {
+export async function _stashApply({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number }): Promise<void> {
   const stashMgr = new GitStashManager({ fs, dir, gitdir })
 
   // get the stash commit object
@@ -175,7 +173,7 @@ export async function _stashApply({ fs, dir, gitdir, refIdx = 0 }) {
   }
 }
 
-export async function _stashDrop({ fs, dir, gitdir, refIdx = 0 }) {
+export async function _stashDrop({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number }): Promise<void> {
   const stashMgr = new GitStashManager({ fs, dir, gitdir })
   const stashCommit = await stashMgr.readStashCommit(refIdx)
   if (!stashCommit.commit) {
@@ -216,12 +214,12 @@ export async function _stashDrop({ fs, dir, gitdir, refIdx = 0 }) {
   })
 }
 
-export async function _stashList({ fs, dir, gitdir }) {
+export async function _stashList({ fs, dir, gitdir }: { fs: FsClient; dir?: string; gitdir: string }): Promise<unknown[]> {
   const stashMgr = new GitStashManager({ fs, dir, gitdir })
   return stashMgr.readStashReflogs({ parsed: true })
 }
 
-export async function _stashClear({ fs, dir, gitdir }) {
+export async function _stashClear({ fs, dir, gitdir }: { fs: FsClient; dir?: string; gitdir: string }): Promise<void> {
   const stashMgr = new GitStashManager({ fs, dir, gitdir })
   const stashRefPath = [stashMgr.refStashPath, stashMgr.refLogsStashPath]
 
@@ -236,7 +234,8 @@ export async function _stashClear({ fs, dir, gitdir }) {
   })
 }
 
-export async function _stashPop({ fs, dir, gitdir, refIdx = 0 }) {
+export async function _stashPop({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number }): Promise<void> {
   await _stashApply({ fs, dir, gitdir, refIdx })
   await _stashDrop({ fs, dir, gitdir, refIdx })
 }
+

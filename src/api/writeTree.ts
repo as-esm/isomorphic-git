@@ -1,4 +1,4 @@
-import { _writeTree } from "../commands/writeTree.js"
+import { _writeTree } from '../commands/writeTree.ts'
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"

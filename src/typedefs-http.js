@@ -4,12 +4,12 @@
  * The source of truth is src/managers/GitRemoteHTTP.ts - these should match the TypeScript definitions.
  * The types are re-exported from src/types.js for backward compatibility.
  * 
- * @see {import('./types.js').GitProgressEvent}
- * @see {import('./types.js').ProgressCallback}
- * @see {import('./types.js').GitHttpRequest}
- * @see {import('./types.js').GitHttpResponse}
- * @see {import('./types.js').HttpFetch}
- * @see {import('./types.js').HttpClient}
+ * @see {import('./types.ts').GitProgressEvent}
+ * @see {import('./types.ts').ProgressCallback}
+ * @see {import('./types.ts').GitHttpRequest}
+ * @see {import('./types.ts').GitHttpResponse}
+ * @see {import('./types.ts').HttpFetch}
+ * @see {import('./types.ts').HttpClient}
  */
 
 /**

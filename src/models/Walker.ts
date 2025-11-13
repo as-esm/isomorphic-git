@@ -1,5 +1,5 @@
 import { GitWalkSymbol } from "../utils/symbols.ts"
-import type { FsClient, Stat } from './FileSystem.js'
+import type { FsClient, Stat } from './FileSystem.ts'
 
 // ============================================================================
 // WALKER TYPES

@@ -1,5 +1,5 @@
 import { GitObject } from "../models/GitObject.ts"
-import { shasum } from './shasum.js'
+import { shasum } from './shasum.ts'
 
 export const hashObject = async ({
   gitdir,

@@ -1,8 +1,8 @@
-import { _currentBranch } from './currentBranch.js'
-import { _isDescendent } from './isDescendent.js'
-import { listCommitsAndTags } from './listCommitsAndTags.js'
-import { listObjects } from './listObjects.js'
-import { _pack } from './pack.js'
+import { _currentBranch } from './currentBranch.ts'
+import { _isDescendent } from './isDescendent.ts'
+import { listCommitsAndTags } from './listCommitsAndTags.ts'
+import { listObjects } from './listObjects.ts'
+import { _pack } from './pack.ts'
 import { GitPushError } from "../errors/GitPushError.ts"
 import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"

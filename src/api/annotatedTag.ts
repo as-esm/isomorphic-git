@@ -1,4 +1,4 @@
-import { _annotatedTag } from "../commands/annotatedTag.js"
+import { _annotatedTag } from '../commands/annotatedTag.ts'
 import { MissingNameError } from "../errors/MissingNameError.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"

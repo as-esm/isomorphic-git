@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class MissingParameterError extends BaseError {
   static readonly code = 'MissingParameterError' as const

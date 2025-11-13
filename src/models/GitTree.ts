@@ -1,8 +1,8 @@
-import { InternalError } from '../errors/InternalError.js'
-import { UnsafeFilepathError } from '../errors/UnsafeFilepathError.js'
+import { InternalError } from '../errors/InternalError.ts'
+import { UnsafeFilepathError } from '../errors/UnsafeFilepathError.ts'
 import { comparePath } from "../utils/comparePath.ts"
 import { compareTreeEntryPath } from "../utils/compareTreeEntryPath.ts"
-import type { ObjectType } from './GitObject.js'
+import type { ObjectType } from './GitObject.ts'
 
 // ============================================================================
 // GIT TREE TYPES

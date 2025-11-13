@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class MergeConflictError extends BaseError {
   static readonly code = 'MergeConflictError' as const

@@ -1,5 +1,5 @@
-import { FIFO } from './FIFO.js'
-import { forAwait } from './forAwait.js'
+import { FIFO } from './FIFO.ts'
+import { forAwait } from './forAwait.ts'
 
 // Note: progress messages are designed to be written directly to the terminal,
 // so they are often sent with just a carriage return to overwrite the last line of output.

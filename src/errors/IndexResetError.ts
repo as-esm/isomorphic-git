@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class IndexResetError extends BaseError {
   static readonly code = 'IndexResetError' as const

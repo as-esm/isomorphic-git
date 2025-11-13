@@ -1,9 +1,9 @@
 // This is a convenience wrapper for reading and writing files in the 'refs' directory.
 import AsyncLock from 'async-lock'
 
-import { InvalidOidError } from '../errors/InvalidOidError.js'
-import { NoRefspecError } from '../errors/NoRefspecError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
+import { InvalidOidError } from '../errors/InvalidOidError.ts'
+import { NoRefspecError } from '../errors/NoRefspecError.ts'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import { GitPackedRefs } from "../models/GitPackedRefs.ts"
 import { GitRefSpecSet } from "../models/GitRefSpecSet.ts"
 import { compareRefNames } from "../utils/compareRefNames.ts"

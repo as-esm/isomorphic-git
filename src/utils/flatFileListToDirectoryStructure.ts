@@ -1,5 +1,5 @@
-import { basename } from './basename.js'
-import { dirname } from './dirname.js'
+import { basename } from './basename.ts'
+import { dirname } from './dirname.ts'
 
 type Node = {
   type: string

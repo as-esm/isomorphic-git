@@ -1,7 +1,7 @@
-export * from './LooseObjectManager.js'
-export * from './PackfileReader.js'
-export * from './DeltaResolver.js'
-export * from './ObjectReader.js'
-export * from './ObjectWriter.js'
-export * from './MultiPackIndexWriter.js'
+export * from './LooseObjectManager.ts'
+export * from './PackfileReader.ts'
+export * from './DeltaResolver.ts'
+export * from './ObjectReader.ts'
+export * from './ObjectWriter.ts'
+export * from './MultiPackIndexWriter.ts'
 

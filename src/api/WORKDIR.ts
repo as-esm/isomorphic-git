@@ -8,5 +8,5 @@ import type { Walker } from "../models/Walker.ts"
  * @returns {Walker} Returns a working directory Walker
  *
  */
-export { WORKDIR } from "../commands/WORKDIR.js"
+export { WORKDIR } from '../commands/WORKDIR.ts'
 

@@ -3,8 +3,8 @@
 // (I tried to make it API identical, but that ended up being 2x slower than this version.)
 import pako from 'pako'
 
-import { InternalError } from '../errors/InternalError.js'
-import { StreamReader } from './StreamReader.js'
+import { InternalError } from '../errors/InternalError.ts'
+import { StreamReader } from './StreamReader.ts'
 
 type PackData = {
   data: Uint8Array

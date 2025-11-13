@@ -1,6 +1,6 @@
-import { _commit } from './commit.js'
-import { _readTree } from './readTree.js'
-import { _writeTree } from './writeTree.js'
+import { _commit } from './commit.ts'
+import { _readTree } from './readTree.ts'
+import { _writeTree } from './writeTree.ts'
 import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { GitRefManager } from "../managers/GitRefManager.ts"

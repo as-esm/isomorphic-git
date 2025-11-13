@@ -1,4 +1,4 @@
-import { _currentBranch } from './currentBranch.js'
+import { _currentBranch } from './currentBranch.ts'
 import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { RemoteCapabilityError } from "../errors/RemoteCapabilityError.ts"
 import { ConfigAccess } from "../utils/configAccess.ts"

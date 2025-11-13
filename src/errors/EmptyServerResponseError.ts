@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class EmptyServerResponseError extends BaseError {
   static readonly code = 'EmptyServerResponseError' as const

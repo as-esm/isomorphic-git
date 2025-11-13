@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 import type { PushResult } from '../api/push.ts'
 
 export class GitPushError extends BaseError {

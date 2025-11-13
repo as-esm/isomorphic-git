@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class NotFoundError extends BaseError {
   static readonly code = 'NotFoundError' as const

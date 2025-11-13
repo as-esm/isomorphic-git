@@ -1,4 +1,4 @@
-import { InternalError } from '../errors/InternalError.js'
+import { InternalError } from '../errors/InternalError.ts'
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 

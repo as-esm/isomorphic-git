@@ -1,4 +1,4 @@
-import { readPackIndex } from './readPackIndex.js'
+import { readPackIndex } from './readPackIndex.ts'
 import { join } from "../utils/join.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient } from "../models/FileSystem.ts"

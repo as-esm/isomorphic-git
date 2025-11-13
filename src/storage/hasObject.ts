@@ -1,6 +1,6 @@
-import { hasObjectLoose } from './hasObjectLoose.js'
-import { hasObjectPacked } from './hasObjectPacked.js'
-import { _readObject as readObject } from './readObject.js'
+import { hasObjectLoose } from './hasObjectLoose.ts'
+import { hasObjectPacked } from './hasObjectPacked.ts'
+import { _readObject as readObject } from './readObject.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 export async function hasObject({

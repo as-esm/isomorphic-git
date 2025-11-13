@@ -2,7 +2,7 @@
 // TYPE RE-EXPORTS FOR BACKWARD COMPATIBILITY
 // ============================================================================
 // This file re-exports types from their new decentralized locations.
-// During the migration, all imports from '../types.js' will continue to work.
+// During the migration, all imports from '../types.ts' will continue to work.
 // After migration is complete, this file can be removed or kept minimal.
 
 // Filesystem types

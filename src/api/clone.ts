@@ -9,8 +9,8 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { MessageCallback } from './push.js'
-import type { PostCheckoutCallback } from './checkout.js'
+import type { MessageCallback } from './push.ts'
+import type { PostCheckoutCallback } from './checkout.ts'
 
 /**
  * Clone a repository

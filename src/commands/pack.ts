@@ -5,10 +5,12 @@ import { _readObject as readObject } from "../storage/readObject.ts"
 import { deflate } from "../utils/deflate.ts"
 import { join } from "../utils/join.ts"
 import { padHex } from "../utils/padHex.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { ObjectType } from "../models/GitObject.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
@@ -20,15 +22,21 @@ export async function _pack({
   dir,
   gitdir = join(dir, '.git'),
   oids,
-}) {
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  dir?: string
+  gitdir?: string
+  oids: string[]
+}): Promise<Buffer[]> {
   const hash = new Hash()
-  const outputStream = []
-  function write(chunk, enc) {
-    const buff = Buffer.from(chunk, enc)
+  const outputStream: Buffer[] = []
+  function write(chunk: string | Buffer, enc?: string): void {
+    const buff = Buffer.from(chunk, enc as any)
     outputStream.push(buff)
     hash.update(buff)
   }
-  async function writeObject({ stype, object }) {
+  async function writeObject({ stype, object }: { stype: ObjectType; object: Buffer | Uint8Array }): Promise<void> {
     // Object type is encoded in bits 654
     const type = types[stype]
     // The length encoding gets complicated.
@@ -67,3 +75,4 @@ export async function _pack({
   outputStream.push(digest)
   return outputStream
 }
+

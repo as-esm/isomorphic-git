@@ -1,6 +1,6 @@
-import { RefManager } from './RefManager.js'
-import { ObjectReader, ObjectWriter } from '../odb/index.js'
-import { parse as parseBlob } from '../parsers/Blob.js'
+import { RefManager } from './RefManager.ts'
+import { ObjectReader, ObjectWriter } from '../odb/index.ts'
+import { parse as parseBlob } from '../parsers/Blob.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { TreeEntry } from "../../models/GitTree.ts"
 
@@ -39,7 +39,7 @@ export const readNote = async ({
 
     // Read the notes tree
     const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: notesTreeOid })
-    const { parse: parseTree } = await import('../parsers/Tree.js')
+    const { parse: parseTree } = await import('../parsers/Tree.ts')
     const treeEntries = parseTree(treeObject as Buffer)
 
     // Find the fanout1 entry
@@ -89,7 +89,7 @@ export const writeNote = async ({
   const noteBuffer = Buffer.isBuffer(note) ? note : Buffer.from(note, 'utf8')
 
   // Write the note blob
-  const noteOid = await ObjectWriter.write({ fs, gitdir, type: 'blob', content: noteBuffer })
+  const noteOid = await ObjectWriter.write({ fs, gitdir, type: 'blob', object: noteBuffer })
 
   // Notes are stored in a fanout structure: first 2 hex chars / next 2 hex chars / rest
   const fanout1 = oid.slice(0, 2)
@@ -102,14 +102,14 @@ export const writeNote = async ({
     notesTreeOid = await RefManager.resolve({ fs, gitdir, ref: notesRef })
   } catch {
     // Notes ref doesn't exist, create empty tree
-    const { serialize: serializeTree } = await import('../parsers/Tree.js')
+    const { serialize: serializeTree } = await import('../parsers/Tree.ts')
     const emptyTree = serializeTree([])
-    notesTreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', content: emptyTree })
+    notesTreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', object: emptyTree })
   }
 
   // Read the notes tree
   const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: notesTreeOid })
-  const { parse: parseTree, serialize: serializeTree } = await import('../parsers/Tree.js')
+  const { parse: parseTree, serialize: serializeTree } = await import('../parsers/Tree.ts')
   let treeEntries = parseTree(treeObject as Buffer)
 
   // Find or create fanout1 entry
@@ -119,7 +119,7 @@ export const writeNote = async ({
   if (!fanout1Entry) {
     // Create new fanout1 tree
     const emptyTree = serializeTree([])
-    fanout2TreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', content: emptyTree })
+    fanout2TreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', object: emptyTree })
     fanout1Entry = { path: fanout1, oid: fanout2TreeOid, mode: '040000', type: 'tree' }
     treeEntries.push(fanout1Entry)
   } else {
@@ -143,14 +143,14 @@ export const writeNote = async ({
 
   // Write the fanout2 tree
   const fanout2Tree = serializeTree(fanout2Entries)
-  fanout2TreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', content: fanout2Tree })
+  fanout2TreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', object: fanout2Tree })
 
   // Update fanout1 entry
   fanout1Entry.oid = fanout2TreeOid
 
   // Write the notes tree
   const notesTree = serializeTree(treeEntries)
-  notesTreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', content: notesTree })
+  notesTreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', object: notesTree })
 
   // Update the notes ref
   await RefManager.writeRef({ fs, gitdir, ref: notesRef, value: notesTreeOid })
@@ -185,7 +185,7 @@ export const removeNote = async ({
 
     // Read the notes tree
     const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: notesTreeOid })
-    const { parse: parseTree, serialize: serializeTree } = await import('../parsers/Tree.js')
+    const { parse: parseTree, serialize: serializeTree } = await import('../parsers/Tree.ts')
     const treeEntries = parseTree(treeObject as Buffer)
 
     const fanout1Entry = treeEntries.find(e => e.path === fanout1)
@@ -214,7 +214,7 @@ export const removeNote = async ({
     } else {
       // Write the fanout2 tree
       const fanout2Tree = serializeTree(fanout2Entries)
-      const fanout2TreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', content: fanout2Tree })
+      const fanout2TreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', object: fanout2Tree })
 
       // Update fanout1 entry
       fanout1Entry.oid = fanout2TreeOid
@@ -222,7 +222,7 @@ export const removeNote = async ({
 
     // Write the notes tree
     const notesTree = serializeTree(treeEntries)
-    const newNotesTreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', content: notesTree })
+    const newNotesTreeOid = await ObjectWriter.write({ fs, gitdir, type: 'tree', object: notesTree })
 
     // Update the notes ref
     await RefManager.writeRef({ fs, gitdir, ref: notesRef, value: newNotesTreeOid })

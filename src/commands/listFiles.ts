@@ -1,4 +1,4 @@
-import { _readTree } from './readTree.js'
+import { _readTree } from './readTree.ts'
 import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { GitRefManager } from "../managers/GitRefManager.ts"
 import { join } from "../utils/join.ts"

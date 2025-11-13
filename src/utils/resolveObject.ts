@@ -1,4 +1,4 @@
-import { ObjectTypeError } from '../errors/ObjectTypeError.js'
+import { ObjectTypeError } from '../errors/ObjectTypeError.ts'
 import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
 import { parse as parseTag } from "../core-utils/parsers/Tag.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"

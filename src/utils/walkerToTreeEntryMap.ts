@@ -1,20 +1,20 @@
 import AsyncLock from 'async-lock'
 
-import { STAGE } from "../commands/STAGE.js"
-import { TREE } from "../commands/TREE.js"
-import { WORKDIR } from "../commands/WORKDIR.js"
-import { _walk } from "../commands/walk.js"
-import { _writeTree } from "../commands/writeTree.js"
-import { InternalError } from '../errors/InternalError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
+import { STAGE } from '../commands/STAGE.ts'
+import { TREE } from '../commands/TREE.ts'
+import { WORKDIR } from '../commands/WORKDIR.ts'
+import { _walk } from '../commands/walk.ts'
+import { _writeTree } from '../commands/writeTree.ts'
+import { InternalError } from '../errors/InternalError.ts'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
 import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { _readObject } from "../storage/readObject.ts"
 import { readObjectLoose } from "../storage/readObjectLoose.ts"
 import { _writeObject } from "../storage/writeObject.ts"
-import { join } from './join.js'
-import { posixifyPathBuffer } from './posixifyPathBuffer.js'
-import { normalizeFs } from './normalizeFs.js'
+import { join } from './join.ts'
+import { posixifyPathBuffer } from './posixifyPathBuffer.ts'
+import { normalizeFs } from './normalizeFs.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 import type { ObjectType } from "../models/GitObject.ts"
 import type { TreeEntry } from "../models/GitTree.ts"

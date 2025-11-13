@@ -1,5 +1,5 @@
-import { _commit } from './commit.js'
-import { _currentBranch } from './currentBranch.js'
+import { _commit } from './commit.ts'
+import { _currentBranch } from './currentBranch.ts'
 import { FastForwardError } from "../errors/FastForwardError.ts"
 import { MergeConflictError } from "../errors/MergeConflictError.ts"
 import { MergeNotSupportedError } from "../errors/MergeNotSupportedError.ts"

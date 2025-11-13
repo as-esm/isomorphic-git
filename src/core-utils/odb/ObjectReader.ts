@@ -1,10 +1,10 @@
 import { InternalError } from "../../errors/InternalError.ts"
 import { NotFoundError } from "../../errors/NotFoundError.ts"
 import { GitObject } from "../../models/GitObject.ts"
-import { read as readLoose } from './LooseObjectManager.js'
-import { read as readPacked } from './PackfileReader.js'
-import { shasum } from '../ShaHasher.js'
-import { inflate } from '../Zlib.js'
+import { read as readLoose } from './LooseObjectManager.ts'
+import { read as readPacked } from './PackfileReader.ts'
+import { shasum } from '../ShaHasher.ts'
+import { inflate } from '../Zlib.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 type ReadResult = {
@@ -100,4 +100,11 @@ export const read = async ({
   }
 
   throw new InternalError(`invalid requested format "${format}"`)
+}
+
+/**
+ * Namespace export for ObjectReader
+ */
+export const ObjectReader = {
+  read,
 }

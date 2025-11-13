@@ -1,6 +1,6 @@
 import Hash from 'sha.js/sha1.js'
 import { InternalError } from "../../errors/InternalError.ts"
-import { deflate } from '../Zlib.js'
+import { deflate } from '../Zlib.ts'
 import { padHex } from "../../utils/padHex.ts"
 import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
 

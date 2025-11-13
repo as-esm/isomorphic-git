@@ -1,7 +1,7 @@
 import { InvalidOidError } from "../../errors/InvalidOidError.ts"
 import { NotFoundError } from "../../errors/NotFoundError.ts"
-import { parsePackedRefs } from './RefParser.js'
-import { join } from '../GitPath.js'
+import { parsePackedRefs } from './RefParser.ts'
+import { join } from '../GitPath.ts'
 import AsyncLock from 'async-lock'
 import type { FsClient } from "../../models/FileSystem.ts"
 
@@ -446,4 +446,4 @@ export class RefManager {
 }
 
 // Import serializePackedRefs for use in deleteRefs
-import { serializePackedRefs } from './RefParser.js'
+import { serializePackedRefs } from './RefParser.ts'

@@ -1,5 +1,5 @@
-import { InternalError } from '../errors/InternalError.js'
-import { iteratePackfiles } from './packfileIterator.js'
+import { InternalError } from '../errors/InternalError.ts'
+import { iteratePackfiles } from './packfileIterator.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 export type ReadObjectPackedResult = {
@@ -38,7 +38,7 @@ export async function readObjectPacked({
         if (!p.read) {
           return null
         }
-        const { normalizeFs } = await import('../utils/normalizeFs.js')
+        const { normalizeFs } = await import('../utils/normalizeFs.ts')
         const normalizedFs = normalizeFs(fs)
         if (!p.pack) {
           const indexFile = `${gitdir}/objects/pack/${filename}`

@@ -1,8 +1,8 @@
-import { _init } from "../commands/init.js"
+import { _init } from '../commands/init.ts'
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
-import type { GitBackend } from '../backends/index.js'
+import type { GitBackend } from '../backends/index.ts'
 
 /**
  * Initialize a new repository

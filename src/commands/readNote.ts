@@ -1,13 +1,13 @@
-// @ts-check
 import { GitRefManager } from "../managers/GitRefManager.ts"
 
-import { _readBlob } from './readBlob.js'
+import { _readBlob } from './readBlob.ts'
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Read the contents of a note
  *
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} [args.ref] - The notes ref to look under
@@ -22,7 +22,13 @@ export async function _readNote({
   gitdir,
   ref = 'refs/notes/commits',
   oid,
-}) {
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  gitdir: string
+  ref?: string
+  oid: string
+}): Promise<Uint8Array> {
   const parent = await GitRefManager.resolve({ gitdir, fs, ref })
   const { blob } = await _readBlob({
     fs,
@@ -34,3 +40,4 @@ export async function _readNote({
 
   return blob
 }
+

@@ -1,13 +1,13 @@
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { ObjectTypeError } from '../errors/ObjectTypeError.js'
+import { NotFoundError } from '../errors/NotFoundError.ts'
+import { ObjectTypeError } from '../errors/ObjectTypeError.ts'
 import { GitRefManager } from "../managers/GitRefManager.ts"
-import { GitTree } from './GitTree.js'
+import { GitTree } from './GitTree.ts'
 import { _readObject as readObject } from "../storage/readObject.ts"
 import { join } from "../utils/join.ts"
 import { normalizeMode } from "../utils/normalizeMode.ts"
 import { resolveTree } from "../utils/resolveTree.ts"
-import type { FsClient, Stat } from './FileSystem.js'
-import type { TreeEntry } from './GitTree.js'
+import type { FsClient, Stat } from './FileSystem.ts'
+import type { TreeEntry } from './GitTree.ts'
 
 type TreeEntryEntry = {
   _fullpath: string

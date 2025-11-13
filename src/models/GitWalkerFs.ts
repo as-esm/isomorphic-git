@@ -5,10 +5,10 @@ import { join } from "../utils/join.ts"
 import { normalizeStats } from "../utils/normalizeStats.ts"
 import { shasum } from "../utils/shasum.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
-import type { FsClient, Stat } from './FileSystem.js'
-import type { WalkerEntry } from './Walker.js'
+import type { FsClient, Stat } from './FileSystem.ts'
+import type { WalkerEntry } from './Walker.ts'
 
-import { GitObject } from './GitObject.js'
+import { GitObject } from './GitObject.ts'
 
 type WorkdirEntry = {
   _fullpath: string

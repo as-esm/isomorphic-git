@@ -10,7 +10,7 @@ import type { ReadCommitResult } from "../models/GitCommit.ts"
  * Get commit descriptions from the git history
  *
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string=} args.filepath optional get the commit for the filepath only

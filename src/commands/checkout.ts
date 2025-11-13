@@ -81,7 +81,7 @@ export async function _checkout({
       } catch (err) {
         // Config doesn't exist yet
       }
-      const { ConfigAccess } = await import('../utils/configAccess.js')
+      const { ConfigAccess } = await import('../utils/configAccess.ts')
       const configAccess = new ConfigAccess(fs, gitdir)
       await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
       await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')

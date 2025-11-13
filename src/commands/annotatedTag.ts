@@ -1,17 +1,18 @@
-// @ts-check
-import '../typedefs.js'
-
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
+import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { ObjectReader, ObjectWriter } from "../core-utils/odb/index.ts"
+import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
 import { parse as parseTag, serialize as serializeTag } from "../core-utils/parsers/Tag.ts"
 import { signTag } from "../core-utils/Signing.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * Create an annotated tag.
  *
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {SignCallback} [args.onSign]
  * @param {string} args.gitdir
@@ -54,7 +55,19 @@ export async function _annotatedTag({
   object,
   signingKey,
   force = false,
-}) {
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  onSign?: SignCallback
+  gitdir: string
+  ref: string
+  tagger: Author
+  message?: string
+  gpgsig?: string
+  object?: string
+  signingKey?: string
+  force?: boolean
+}): Promise<void> {
   ref = ref.startsWith('refs/tags/') ? ref : `refs/tags/${ref}`
 
   if (!force) {
@@ -76,7 +89,7 @@ export async function _annotatedTag({
   })
 
   // Get object type
-  const { object: objContent } = await ObjectReader.read({ fs, cache, gitdir, oid })
+  const { object: objContent } = await readObject({ fs, cache, gitdir, oid })
   // Determine type from object (simplified - would need to check object header)
   const type = 'commit' // Default assumption, would need proper detection
 
@@ -108,12 +121,13 @@ export async function _annotatedTag({
   
   // Serialize and write tag object
   const tagBuffer = serializeTag(tagObject)
-  const value = await ObjectWriter.write({
+  const value = await writeObject({
     fs,
     gitdir,
     type: 'tag',
-    content: tagBuffer,
+    object: tagBuffer,
   })
 
   await RefManager.writeRef({ fs, gitdir, ref, value })
 }
+

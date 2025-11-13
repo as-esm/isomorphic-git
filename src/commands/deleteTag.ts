@@ -1,11 +1,11 @@
-// @ts-check
 import { GitRefManager } from "../managers/GitRefManager.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Delete a local tag ref
  *
  * @param {Object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref - The tag to delete
  *
@@ -16,7 +16,8 @@ import { GitRefManager } from "../managers/GitRefManager.ts"
  * console.log('done')
  *
  */
-export async function _deleteTag({ fs, gitdir, ref }) {
+export async function _deleteTag({ fs, gitdir, ref }: { fs: FsClient; gitdir: string; ref: string }): Promise<void> {
   ref = ref.startsWith('refs/tags/') ? ref : `refs/tags/${ref}`
   await GitRefManager.deleteRef({ fs, gitdir, ref })
 }
+

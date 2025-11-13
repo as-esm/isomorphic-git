@@ -1,13 +1,19 @@
 import { GitRefManager } from "../managers/GitRefManager.ts"
 import { join } from "../utils/join.ts"
 import { writeRefsAdResponse } from "../wire/writeRefsAdResponse.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 export async function uploadPack({
   fs,
   dir,
   gitdir = join(dir, '.git'),
   advertiseRefs = false,
-}) {
+}: {
+  fs: FsClient
+  dir?: string
+  gitdir?: string
+  advertiseRefs?: boolean
+}): Promise<Buffer | undefined> {
   try {
     if (advertiseRefs) {
       // Send a refs advertisement
@@ -27,12 +33,12 @@ export async function uploadPack({
         filepath: 'refs',
       })
       keys = keys.map(ref => `refs/${ref}`)
-      const refs = {}
+      const refs: Record<string, string> = {}
       keys.unshift('HEAD') // HEAD must be the first in the list
       for (const key of keys) {
         refs[key] = await GitRefManager.resolve({ fs, gitdir, ref: key })
       }
-      const symrefs = {}
+      const symrefs: Record<string, string> = {}
       symrefs.HEAD = await GitRefManager.resolve({
         fs,
         gitdir,
@@ -45,8 +51,9 @@ export async function uploadPack({
         symrefs,
       })
     }
-  } catch (err) {
+  } catch (err: any) {
     err.caller = 'git.uploadPack'
     throw err
   }
 }
+

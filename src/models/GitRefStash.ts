@@ -1,4 +1,4 @@
-import type { Author } from './GitCommit.js'
+import type { Author } from './GitCommit.ts'
 
 export class GitRefStash {
   // constructor removed

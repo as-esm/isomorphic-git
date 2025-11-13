@@ -1,8 +1,8 @@
-import { AmbiguousError } from '../errors/AmbiguousError.js'
-import { NotFoundError } from '../errors/NotFoundError.js'
-import { expandOidLoose } from './expandOidLoose.js'
-import { expandOidPacked } from './expandOidPacked.js'
-import { _readObject as readObject } from './readObject.js'
+import { AmbiguousError } from '../errors/AmbiguousError.ts'
+import { NotFoundError } from '../errors/NotFoundError.ts'
+import { expandOidLoose } from './expandOidLoose.ts'
+import { expandOidPacked } from './expandOidPacked.ts'
+import { _readObject as readObject } from './readObject.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 export async function _expandOid({

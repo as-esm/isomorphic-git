@@ -1,9 +1,9 @@
-export { GitConfigManager } from './GitConfigManager.js'
-export { GitIgnoreManager } from './GitIgnoreManager.js'
-export { GitIndexManager } from './GitIndexManager.js'
-export { GitRefManager } from './GitRefManager.js'
-export type { ServerRef, ClientRef, RefUpdateStatus } from './GitRefManager.js'
-export { GitRemoteHTTP } from './GitRemoteHTTP.js'
+export { GitConfigManager } from './GitConfigManager.ts'
+export { GitIgnoreManager } from './GitIgnoreManager.ts'
+export { GitIndexManager } from './GitIndexManager.ts'
+export { GitRefManager } from './GitRefManager.ts'
+export type { ServerRef, ClientRef, RefUpdateStatus } from './GitRefManager.ts'
+export { GitRemoteHTTP } from './GitRemoteHTTP.ts'
 export type {
   GitProgressEvent,
   ProgressCallback,
@@ -15,8 +15,8 @@ export type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from './GitRemoteHTTP.js'
-export { GitRemoteManager } from './GitRemoteManager.js'
-export { GitShallowManager } from './GitShallowManager.js'
-export { GitStashManager } from './GitStashManager.js'
+} from './GitRemoteHTTP.ts'
+export { GitRemoteManager } from './GitRemoteManager.ts'
+export { GitShallowManager } from './GitShallowManager.ts'
+export { GitStashManager } from './GitStashManager.ts'
 

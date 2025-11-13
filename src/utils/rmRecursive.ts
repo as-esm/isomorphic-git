@@ -1,5 +1,5 @@
-import { join } from './join.js'
-import { normalizeFs } from './normalizeFs.js'
+import { join } from './join.ts'
+import { normalizeFs } from './normalizeFs.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 /**
@@ -7,7 +7,7 @@ import type { FsClient } from "../models/FileSystem.ts"
  * fs.promises.rm({ recursive: true, force: true }) from Node.js 14 and above when not available. If the provided
  * filepath resolves to a file, it will be removed.
  *
- * @param {import('../types.js').FsClient} fs
+ * @param {import('../types.ts').FsClient} fs
  * @param {string} filepath - The file or directory to remove.
  */
 export async function rmRecursive(fs: FsClient, filepath: string): Promise<void> {

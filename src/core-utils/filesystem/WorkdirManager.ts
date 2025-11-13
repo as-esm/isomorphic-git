@@ -1,12 +1,12 @@
 import { InternalError } from "../../errors/InternalError.ts"
 import { CheckoutConflictError } from "../../errors/CheckoutConflictError.ts"
-import { ObjectReader } from '../odb/ObjectReader.js'
-import { parse as parseTree } from '../parsers/Tree.js'
-import { parse as parseCommit } from '../parsers/Commit.js'
-import { SparseCheckoutManager } from './SparseCheckoutManager.js'
-import { join } from '../GitPath.js'
-import { RefManager } from '../refs/RefManager.js'
-import { parse as parseIndex, serialize as serializeIndex } from '../index/Index.js'
+import { ObjectReader } from '../odb/ObjectReader.ts'
+import { parse as parseTree } from '../parsers/Tree.ts'
+import { parse as parseCommit } from '../parsers/Commit.ts'
+import { SparseCheckoutManager } from './SparseCheckoutManager.ts'
+import { join } from '../GitPath.ts'
+import { RefManager } from '../refs/RefManager.ts'
+import { parse as parseIndex, serialize as serializeIndex } from '../index/Index.ts'
 import { normalizeStats } from "../../utils/normalizeStats.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
@@ -133,7 +133,7 @@ export const analyzeCheckout = async ({
               // Check if workdir has uncommitted changes
               try {
                 const workdirContent = await fs.read(workdirPath)
-                const { hashObject } = await import('../ShaHasher.js')
+                const { hashObject } = await import('../ShaHasher.ts')
                 const workdirOid = await hashObject({
                   type: 'blob',
                   content: workdirContent as Buffer | Uint8Array,
@@ -345,7 +345,7 @@ export const getFileStatus = async ({
     await fs.lstat(workdirPath)
     workdirExists = true
     const content = await fs.read(workdirPath)
-    const { hashObject } = await import('../ShaHasher.js')
+    const { hashObject } = await import('../ShaHasher.ts')
     workdirOid = await hashObject({ type: 'blob', content: content as Buffer | Uint8Array })
   } catch {
     // File doesn't exist
@@ -406,5 +406,15 @@ export const checkout = async ({
 }): Promise<void> => {
   const operations = await analyzeCheckout({ fs, dir, gitdir, treeOid, filepaths, force, sparsePatterns, cache })
   await executeCheckout({ fs, dir, gitdir, operations, cache, onProgress })
+}
+
+/**
+ * Namespace export for WorkdirManager
+ */
+export const WorkdirManager = {
+  analyzeCheckout,
+  executeCheckout,
+  getFileStatus,
+  checkout,
 }
 

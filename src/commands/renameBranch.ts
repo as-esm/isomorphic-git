@@ -1,18 +1,17 @@
-// @ts-check
 import cleanGitRef from 'clean-git-ref'
 
 import { _currentBranch } from "../commands/currentBranch.ts"
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
+import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
+import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
 import { GitRefManager } from "../managers/GitRefManager.ts"
 import validRef from "../utils/isValidRef.ts"
-import '../typedefs.js'
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Rename a branch
  *
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref - The name of the new branch
  * @param {string} args.oldref - The name of the old branch
@@ -26,7 +25,13 @@ export async function _renameBranch({
   oldref,
   ref,
   checkout = false,
-}) {
+}: {
+  fs: FsClient
+  gitdir: string
+  oldref: string
+  ref: string
+  checkout?: boolean
+}): Promise<void> {
   if (!validRef(ref, true)) {
     throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
   }
@@ -71,3 +76,4 @@ export async function _renameBranch({
     })
   }
 }
+

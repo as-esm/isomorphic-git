@@ -1,4 +1,4 @@
-import { forAwait } from './forAwait.js'
+import { forAwait } from './forAwait.ts'
 
 export const collect = async (
   iterable: AsyncIterable<Uint8Array | Buffer> | Iterable<Uint8Array | Buffer>

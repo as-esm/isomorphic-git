@@ -1,5 +1,5 @@
-import { InternalError } from '../errors/InternalError.js'
-import { iteratePackfiles } from './packfileIterator.js'
+import { InternalError } from '../errors/InternalError.ts'
+import { iteratePackfiles } from './packfileIterator.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 export async function hasObjectPacked({

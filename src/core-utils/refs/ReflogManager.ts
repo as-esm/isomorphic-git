@@ -1,4 +1,4 @@
-import { join } from '../GitPath.js'
+import { join } from '../GitPath.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 type ReflogEntry = {

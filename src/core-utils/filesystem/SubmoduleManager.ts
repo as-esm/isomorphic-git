@@ -1,5 +1,5 @@
-import { join } from '../GitPath.js'
-import { parse as parseConfig, serialize as serializeConfig } from '../ConfigParser.js'
+import { join } from '../GitPath.ts'
+import { parse as parseConfig, serialize as serializeConfig } from '../ConfigParser.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 type SubmoduleInfo = {

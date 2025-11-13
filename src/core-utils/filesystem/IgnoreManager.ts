@@ -1,7 +1,7 @@
 import ignore from 'ignore'
 import { basename } from "../../utils/basename.ts"
 import { dirname } from "../../utils/dirname.ts"
-import { join } from '../GitPath.js'
+import { join } from '../GitPath.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 /**

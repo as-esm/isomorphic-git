@@ -1,3 +1,3 @@
-export * from './PktLine.js'
-export * from './SmartProtocolManager.js'
+export * from './PktLine.ts'
+export * from './SmartProtocolManager.ts'
 

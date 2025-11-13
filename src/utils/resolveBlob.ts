@@ -1,4 +1,4 @@
-import { resolveObject } from './resolveObject.js'
+import { resolveObject } from './resolveObject.ts'
 import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 

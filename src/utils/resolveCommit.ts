@@ -1,4 +1,4 @@
-import { resolveObject } from './resolveObject.js'
+import { resolveObject } from './resolveObject.ts'
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import type { FsClient } from "../models/FileSystem.ts"

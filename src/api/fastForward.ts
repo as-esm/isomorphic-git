@@ -1,4 +1,4 @@
-import { _pull } from "../commands/pull.js"
+import { _pull } from '../commands/pull.ts'
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -10,7 +10,7 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { MessageCallback } from './push.js'
+import type { MessageCallback } from './push.ts'
 import type { Author } from "../models/GitCommit.ts"
 
 /**

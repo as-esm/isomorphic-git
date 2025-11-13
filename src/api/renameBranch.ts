@@ -1,4 +1,4 @@
-import { _renameBranch } from "../commands/renameBranch.js"
+import { _renameBranch } from '../commands/renameBranch.ts'
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"

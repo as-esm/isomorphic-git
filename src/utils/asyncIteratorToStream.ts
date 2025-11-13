@@ -1,4 +1,4 @@
-import { forAwait } from './forAwait.js'
+import { forAwait } from './forAwait.ts'
 
 export function asyncIteratorToStream<T>(iter: AsyncIterable<T> | Iterable<T>): any {
   const { PassThrough } = require('readable-stream')

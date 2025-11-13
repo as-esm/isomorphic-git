@@ -1,6 +1,6 @@
-import { HttpError } from '../errors/HttpError.js'
-import { SmartHttpError } from '../errors/SmartHttpError.js'
-import { UserCanceledError } from '../errors/UserCanceledError.js'
+import { HttpError } from '../errors/HttpError.ts'
+import { SmartHttpError } from '../errors/SmartHttpError.ts'
+import { UserCanceledError } from '../errors/UserCanceledError.ts'
 import { calculateBasicAuthHeader } from "../utils/calculateBasicAuthHeader.ts"
 import { collect } from "../utils/collect.ts"
 import { extractAuthFromUrl } from "../utils/extractAuthFromUrl.ts"

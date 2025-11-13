@@ -4,7 +4,7 @@
  * The source of truth is the decentralized type definitions in src/models/, src/managers/, src/api/, etc.
  * The types are re-exported from src/types.ts for backward compatibility.
  * 
- * When converting JavaScript files to TypeScript, import types directly from './types.js'
+ * When converting JavaScript files to TypeScript, import types directly from './types.ts'
  * (which re-exports from decentralized locations) instead of using these JSDoc typedefs.
  */
 

@@ -1,6 +1,6 @@
-import { assertParameter } from './assertParameter.js'
-import { join } from './join.js'
-import { withErrorCaller } from './errorHandler.js'
+import { assertParameter } from './assertParameter.ts'
+import { join } from './join.ts'
+import { withErrorCaller } from './errorHandler.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 /**

@@ -6,7 +6,7 @@
  */
 
 import type { FsClient } from "../models/FileSystem.ts"
-import { FilesystemBackend, SQLiteBackend, createBackend } from './index.js'
+import { FilesystemBackend, SQLiteBackend, createBackend } from './index.ts'
 
 // ============================================================================
 // Example 1: Using FilesystemBackend

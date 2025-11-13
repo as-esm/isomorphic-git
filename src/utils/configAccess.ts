@@ -8,13 +8,22 @@ import type { FsClient } from "../models/FileSystem.ts"
  */
 export class ConfigAccess {
   private _service: UnifiedConfigService | null = null
+  private readonly fs: FsClient
+  private readonly gitdir: string
+  private readonly systemConfigPath?: string
+  private readonly globalConfigPath?: string
 
   constructor(
-    private readonly fs: FsClient,
-    private readonly gitdir: string,
-    private readonly systemConfigPath?: string,
-    private readonly globalConfigPath?: string
-  ) {}
+    fs: FsClient,
+    gitdir: string,
+    systemConfigPath?: string,
+    globalConfigPath?: string
+  ) {
+    this.fs = fs
+    this.gitdir = gitdir
+    this.systemConfigPath = systemConfigPath
+    this.globalConfigPath = globalConfigPath
+  }
 
   /**
    * Gets the UnifiedConfigService instance, loading configs if needed

@@ -2,7 +2,7 @@ import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { readReflog } from "../core-utils/refs/ReflogManager.ts"
 import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
-import { NotFoundError } from '../errors/NotFoundError.js'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 type ReflogEntry = {
@@ -19,13 +19,20 @@ type ReflogEntry = {
  * Supports: HEAD, HEAD~3, HEAD^, master@{2}, etc.
  */
 export class RevisionParser {
+  private readonly fs: FsClient
+  private readonly gitdir: string
+  private readonly cache: Record<string, unknown>
   private _revisionParser: RevisionParser | null = null
 
   constructor(
-    private readonly fs: FsClient,
-    private readonly gitdir: string,
-    private readonly cache: Record<string, unknown> = {}
-  ) {}
+    fs: FsClient,
+    gitdir: string,
+    cache: Record<string, unknown> = {}
+  ) {
+    this.fs = fs
+    this.gitdir = gitdir
+    this.cache = cache
+  }
 
   /**
    * Resolves a revision to an OID

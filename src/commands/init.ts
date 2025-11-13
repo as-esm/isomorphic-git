@@ -1,10 +1,9 @@
-// @ts-check
-import '../typedefs.js'
-
 import { join } from "../utils/join.ts"
 import { ConfigAccess } from "../utils/configAccess.ts"
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { FilesystemBackend } from '../backends/index.js'
+import { FilesystemBackend } from '../backends/index.ts'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { GitBackend } from '../backends/index.ts'
 
 /**
  * Initialize a new repository
@@ -26,7 +25,14 @@ export async function _init({
   gitdir = bare ? dir : join(dir, '.git'),
   defaultBranch = 'master',
   backend,
-}) {
+}: {
+  fs: FsClient
+  bare?: boolean
+  dir?: string
+  gitdir?: string
+  defaultBranch?: string
+  backend?: GitBackend
+}): Promise<void> {
   // Use backend if provided, otherwise create filesystem backend
   const gitBackend = backend || new FilesystemBackend(fs, gitdir)
 
@@ -52,3 +58,4 @@ export async function _init({
   // Use RefManager to set HEAD (symbolic ref)
   await gitBackend.writeHEAD(`ref: refs/heads/${defaultBranch}`)
 }
+

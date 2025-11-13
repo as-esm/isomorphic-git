@@ -1,5 +1,5 @@
-import { join } from './GitPath.js'
-import { isRebaseInProgress } from './algorithms/SequencerManager.js'
+import { join } from './GitPath.ts'
+import { isRebaseInProgress } from './algorithms/SequencerManager.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 type OperationState = {
@@ -13,10 +13,16 @@ type OperationState = {
  * Manages repository state files for ongoing operations
  */
 export class StateManager {
+  private readonly fs: FsClient
+  private readonly gitdir: string
+
   constructor(
-    private readonly fs: FsClient,
-    private readonly gitdir: string
-  ) {}
+    fs: FsClient,
+    gitdir: string
+  ) {
+    this.fs = fs
+    this.gitdir = gitdir
+  }
 
   /**
    * Reads MERGE_HEAD OID

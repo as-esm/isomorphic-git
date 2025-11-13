@@ -1,7 +1,7 @@
 import diff3Merge from 'diff3'
-import { parse as parseTree, serialize as serializeTree } from '../parsers/Tree.js'
-import { read as readObject } from '../odb/ObjectReader.js'
-import { write as writeObject } from '../odb/ObjectWriter.js'
+import { parse as parseTree, serialize as serializeTree } from '../parsers/Tree.ts'
+import { read as readObject } from '../odb/ObjectReader.ts'
+import { write as writeObject } from '../odb/ObjectWriter.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { TreeEntry } from "../../models/GitTree.ts"
 

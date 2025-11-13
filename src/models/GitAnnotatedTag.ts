@@ -1,9 +1,9 @@
-import { InternalError } from '../errors/InternalError.js'
+import { InternalError } from '../errors/InternalError.ts'
 import { formatAuthor } from "../utils/formatAuthor.ts"
 import { normalizeNewlines } from "../utils/normalizeNewlines.ts"
 import { parseAuthor } from "../utils/parseAuthor.ts"
-import type { Author } from './GitCommit.js'
-import type { ObjectType } from './GitObject.js'
+import type { Author } from './GitCommit.ts'
+import type { ObjectType } from './GitObject.ts'
 import type { SignCallback } from "../core-utils/Signing.ts"
 
 // ============================================================================

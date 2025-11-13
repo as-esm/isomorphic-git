@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class InvalidFilepathError extends BaseError {
   static readonly code = 'InvalidFilepathError' as const

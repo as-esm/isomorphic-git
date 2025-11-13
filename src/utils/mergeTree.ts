@@ -1,14 +1,14 @@
-import { TREE } from "../commands/TREE.js"
-import { _walk } from "../commands/walk.js"
-import { MergeConflictError } from '../errors/MergeConflictError.js'
-import { MergeNotSupportedError } from '../errors/MergeNotSupportedError.js'
+import { TREE } from '../commands/TREE.ts'
+import { _walk } from '../commands/walk.ts'
+import { MergeConflictError } from '../errors/MergeConflictError.ts'
+import { MergeNotSupportedError } from '../errors/MergeNotSupportedError.ts'
 import { GitTree } from "../models/GitTree.ts"
 import { _writeObject as writeObject } from "../storage/writeObject.ts"
-import { basename } from './basename.js'
-import { join } from './join.js'
-import { mergeFile } from './mergeFile.js'
-import { modified } from './modified.js'
-import { normalizeFs } from './normalizeFs.js'
+import { basename } from './basename.ts'
+import { join } from './join.ts'
+import { mergeFile } from './mergeFile.ts'
+import { modified } from './modified.ts'
+import { normalizeFs } from './normalizeFs.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 import type { MergeDriverCallback, MergeDriverParams } from "../core-utils/algorithms/MergeManager.ts"
 import type { ObjectType } from "../models/GitObject.ts"
@@ -20,7 +20,7 @@ import type { GitIndex } from "../models/GitIndex.ts"
  * Create a merged tree
  *
  * @param {Object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {object} args.cache
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
@@ -362,7 +362,7 @@ export async function mergeTree({
 /**
  *
  * @param {Object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.path
  * @param {WalkerEntry} args.ours

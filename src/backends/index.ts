@@ -1,6 +1,6 @@
-export type { GitBackend } from './GitBackend.js'
-export { FilesystemBackend } from './FilesystemBackend.js'
-export { SQLiteBackend } from './SQLiteBackend.js'
+export type { GitBackend } from './GitBackend.ts'
+export { FilesystemBackend } from './FilesystemBackend.ts'
+export { SQLiteBackend } from './SQLiteBackend.ts'
 
 /**
  * Creates a GitBackend instance based on the provided options

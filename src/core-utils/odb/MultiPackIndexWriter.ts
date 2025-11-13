@@ -1,7 +1,7 @@
 import { InternalError } from "../../errors/InternalError.ts"
 import { BufferCursor } from "../../utils/BufferCursor.ts"
 import { shasum } from "../../utils/shasum.ts"
-import { join } from '../GitPath.js'
+import { join } from '../GitPath.ts'
 import { GitPackIndex } from "../../models/GitPackIndex.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"

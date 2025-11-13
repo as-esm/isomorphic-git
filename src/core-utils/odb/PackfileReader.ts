@@ -1,6 +1,6 @@
 import { GitPackIndex } from "../../models/GitPackIndex.ts"
 import { GitMultiPackIndex } from "../../models/GitMultiPackIndex.ts"
-import { join } from '../GitPath.js'
+import { join } from '../GitPath.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
 

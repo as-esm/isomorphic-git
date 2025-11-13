@@ -1,4 +1,4 @@
-import { _readTree } from './readTree.js'
+import { _readTree } from './readTree.ts'
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { GitRefManager } from "../managers/GitRefManager.ts"
 import type { FsClient } from "../models/FileSystem.ts"

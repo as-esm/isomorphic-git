@@ -1,4 +1,4 @@
-import { InternalError } from '../errors/InternalError.js'
+import { InternalError } from '../errors/InternalError.ts'
 import { BufferCursor } from "../utils/BufferCursor.ts"
 import { shasum } from "../utils/shasum.ts"
 

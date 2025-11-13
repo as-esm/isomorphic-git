@@ -1,17 +1,14 @@
-// @ts-check
-import '../typedefs.js'
-
 import cleanGitRef from 'clean-git-ref'
 
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
+import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
+import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
 import { ConfigAccess } from "../utils/configAccess.ts"
 import validRef from "../utils/isValidRef.ts"
-import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.remote
  * @param {string} args.url
@@ -20,7 +17,7 @@ import { join } from "../utils/join.ts"
  * @returns {Promise<void>}
  *
  */
-export async function _addRemote({ fs, gitdir, remote, url, force }) {
+export async function _addRemote({ fs, gitdir, remote, url, force }: { fs: FsClient; gitdir: string; remote: string; url: string; force?: boolean }): Promise<void> {
   if (!validRef(remote, true)) {
     throw new InvalidRefNameError(remote, cleanGitRef.clean(remote))
   }
@@ -47,3 +44,4 @@ export async function _addRemote({ fs, gitdir, remote, url, force }) {
     'local'
   )
 }
+

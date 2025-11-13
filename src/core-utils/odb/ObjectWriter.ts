@@ -1,7 +1,7 @@
 import { GitObject } from "../../models/GitObject.ts"
-import { write as writeLoose } from './LooseObjectManager.js'
-import { deflate } from '../Zlib.js'
-import { shasum } from '../ShaHasher.js'
+import { write as writeLoose } from './LooseObjectManager.ts'
+import { deflate } from '../Zlib.ts'
+import { shasum } from '../ShaHasher.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 type ObjectFormat = 'deflated' | 'wrapped' | 'content'
@@ -49,4 +49,11 @@ export const write = async ({
   }
 
   return finalOid
+}
+
+/**
+ * Namespace export for ObjectWriter
+ */
+export const ObjectWriter = {
+  write,
 }

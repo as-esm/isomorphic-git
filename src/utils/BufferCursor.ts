@@ -2,8 +2,11 @@
 // but with the goal of being much lighter weight.
 export class BufferCursor {
   private _start = 0
+  private readonly buffer: Buffer
 
-  constructor(private readonly buffer: Buffer) {}
+  constructor(buffer: Buffer) {
+    this.buffer = buffer
+  }
 
   eof(): boolean {
     return this._start >= this.buffer.length

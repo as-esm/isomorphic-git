@@ -1,10 +1,10 @@
-import { InternalError } from '../errors/InternalError.js'
-import { UnsafeFilepathError } from '../errors/UnsafeFilepathError.js'
+import { InternalError } from '../errors/InternalError.ts'
+import { UnsafeFilepathError } from '../errors/UnsafeFilepathError.ts'
 import { BufferCursor } from "../utils/BufferCursor.ts"
 import { comparePath } from "../utils/comparePath.ts"
 import { normalizeStats } from "../utils/normalizeStats.ts"
 import { shasum } from "../utils/shasum.ts"
-import type { Stat } from './FileSystem.js'
+import type { Stat } from './FileSystem.ts'
 
 type CacheEntryFlags = {
   assumeValid: boolean

@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js'
+import { BaseError } from './BaseError.ts'
 
 export class UserCanceledError extends BaseError {
   static readonly code = 'UserCanceledError' as const

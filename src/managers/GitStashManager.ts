@@ -1,7 +1,7 @@
 import { _readCommit } from "../commands/readCommit.ts"
-import { _writeCommit } from "../commands/writeCommit.js"
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
-import { MissingNameError } from '../errors/MissingNameError.js'
+import { _writeCommit } from '../commands/writeCommit.ts'
+import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
+import { MissingNameError } from '../errors/MissingNameError.ts'
 import { GitRefStash } from "../models/GitRefStash.ts"
 import { join } from "../utils/join.ts"
 import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
@@ -10,7 +10,7 @@ import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { Author } from "../models/GitCommit.ts"
 
-import { GitRefManager } from './GitRefManager.js'
+import { GitRefManager } from './GitRefManager.ts'
 
 export class GitStashManager {
   fs: FsClient

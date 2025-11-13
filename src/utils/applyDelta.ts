@@ -1,5 +1,5 @@
-import { InternalError } from '../errors/InternalError.js'
-import { BufferCursor } from './BufferCursor.js'
+import { InternalError } from '../errors/InternalError.ts'
+import { BufferCursor } from './BufferCursor.ts'
 
 /**
  * Applies a delta patch to a base object to reconstruct the target object

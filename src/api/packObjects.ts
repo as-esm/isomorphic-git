@@ -1,4 +1,4 @@
-import { _packObjects } from "../commands/packObjects.js"
+import { _packObjects } from '../commands/packObjects.ts'
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"

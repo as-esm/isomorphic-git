@@ -77,7 +77,7 @@ export async function add({
     } catch (err) {
       // Config doesn't exist
     }
-    const { ConfigAccess } = await import('../utils/configAccess.js')
+    const { ConfigAccess } = await import('../utils/configAccess.ts')
     const configAccess = new ConfigAccess(_fs, gitdir)
     const autocrlf = ((await configAccess.getConfigValue('core.autocrlf')) as string) || 'false'
     

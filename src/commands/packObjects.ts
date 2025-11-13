@@ -1,8 +1,8 @@
-// @ts-check
 import { collect } from "../utils/collect.ts"
 import { join } from "../utils/join.ts"
 
-import { _pack } from './pack.js'
+import { _pack } from './pack.ts'
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  *
@@ -11,9 +11,14 @@ import { _pack } from './pack.js'
  * @property {Uint8Array} [packfile] - The packfile contents. Not present if `write` parameter was true, in which case the packfile was written straight to disk.
  */
 
+export type PackObjectsResult = {
+  filename: string
+  packfile?: Uint8Array
+}
+
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string[]} args.oids
@@ -22,7 +27,13 @@ import { _pack } from './pack.js'
  * @returns {Promise<PackObjectsResult>}
  * @see PackObjectsResult
  */
-export async function _packObjects({ fs, cache, gitdir, oids, write }) {
+export async function _packObjects({ fs, cache, gitdir, oids, write }: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  gitdir: string
+  oids: string[]
+  write: boolean
+}): Promise<PackObjectsResult> {
   const buffers = await _pack({ fs, cache, gitdir, oids })
   const packfile = Buffer.from(await collect(buffers))
   const packfileSha = packfile.slice(-20).toString('hex')
@@ -36,3 +47,4 @@ export async function _packObjects({ fs, cache, gitdir, oids, write }) {
     packfile: new Uint8Array(packfile),
   }
 }
+

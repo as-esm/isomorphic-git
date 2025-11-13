@@ -1,6 +1,6 @@
 import crc32 from 'crc-32'
 
-import { InternalError } from '../errors/InternalError.js'
+import { InternalError } from '../errors/InternalError.ts'
 import { GitObject } from "../models/GitObject.ts"
 import { BufferCursor } from "../utils/BufferCursor.ts"
 import { applyDelta } from "../utils/applyDelta.ts"

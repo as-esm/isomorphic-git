@@ -3,7 +3,7 @@ import { compareStrings } from "../utils/compareStrings.ts"
 import { flatFileListToDirectoryStructure } from "../utils/flatFileListToDirectoryStructure.ts"
 import { mode2type } from "../utils/mode2type.ts"
 import { normalizeStats } from "../utils/normalizeStats.ts"
-import type { FsClient, Stat } from './FileSystem.js'
+import type { FsClient, Stat } from './FileSystem.ts'
 
 type StageEntry = {
   _fullpath: string

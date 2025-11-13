@@ -1,5 +1,5 @@
-import { parse as parseConfig, serialize as serializeConfig, type ConfigObject } from './ConfigParser.js'
-import { join } from './GitPath.js'
+import { parse as parseConfig, serialize as serializeConfig, type ConfigObject } from './ConfigParser.ts'
+import { join } from './GitPath.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 type ConfigValueWithScope = {
@@ -12,17 +12,27 @@ type ConfigValueWithScope = {
  * with proper precedence: local > global > system
  */
 export class UnifiedConfigService {
+  private readonly fs: FsClient
+  private readonly gitdir: string
+  private readonly systemConfigPath?: string
+  private readonly globalConfigPath?: string
+
   private _localConfig: ConfigObject | null = null
   private _globalConfig: ConfigObject | null = null
   private _systemConfig: ConfigObject | null = null
   private _mergedConfig: ConfigObject | null = null
 
   constructor(
-    private readonly fs: FsClient,
-    private readonly gitdir: string,
-    private readonly systemConfigPath?: string,
-    private readonly globalConfigPath?: string
-  ) {}
+    fs: FsClient,
+    gitdir: string,
+    systemConfigPath?: string,
+    globalConfigPath?: string
+  ) {
+    this.fs = fs
+    this.gitdir = gitdir
+    this.systemConfigPath = systemConfigPath
+    this.globalConfigPath = globalConfigPath
+  }
 
   /**
    * Loads all config sources and merges them

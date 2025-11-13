@@ -1,4 +1,4 @@
-import type { GitBackend } from './GitBackend.js'
+import type { GitBackend } from './GitBackend.ts'
 
 /**
  * SQLiteBackend - SQLite-based implementation of GitBackend
@@ -7,13 +7,18 @@ import type { GitBackend } from './GitBackend.js'
  * a single-file repository format that's easy to backup and transfer.
  */
 export class SQLiteBackend implements GitBackend {
+  private readonly dbPath: string
+  private readonly sqliteModule?: any // Optional SQLite module (better-sqlite3, sql.js, etc.)
   private db: any // SQLite database instance
   private initialized: boolean = false
 
   constructor(
-    private readonly dbPath: string,
-    private readonly sqliteModule?: any // Optional SQLite module (better-sqlite3, sql.js, etc.)
-  ) {}
+    dbPath: string,
+    sqliteModule?: any // Optional SQLite module (better-sqlite3, sql.js, etc.)
+  ) {
+    this.dbPath = dbPath
+    this.sqliteModule = sqliteModule
+  }
 
   getType(): string {
     return 'sqlite'

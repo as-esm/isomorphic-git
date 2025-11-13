@@ -3,10 +3,11 @@ import { GitCommit } from "../models/GitCommit.ts"
 import { GitTree } from "../models/GitTree.ts"
 import { _readObject as readObject } from "../storage/readObject.ts"
 import { join } from "../utils/join.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} [args.dir]
  * @param {string} args.gitdir
@@ -19,12 +20,18 @@ export async function listObjects({
   dir,
   gitdir = join(dir, '.git'),
   oids,
-}) {
-  const visited = new Set()
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  dir?: string
+  gitdir?: string
+  oids: Iterable<string>
+}): Promise<Set<string>> {
+  const visited = new Set<string>()
   // We don't do the purest simplest recursion, because we can
   // avoid reading Blob objects entirely since the Tree objects
   // tell us which oids are Blobs and which are Trees.
-  async function walk(oid) {
+  async function walk(oid: string): Promise<void> {
     if (visited.has(oid)) return
     visited.add(oid)
     const { type, object } = await readObject({ fs, cache, gitdir, oid })
@@ -57,3 +64,4 @@ export async function listObjects({
   }
   return visited
 }
+

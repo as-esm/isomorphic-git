@@ -1,4 +1,4 @@
-import { InternalError } from '../errors/InternalError.js'
+import { InternalError } from '../errors/InternalError.ts'
 import { formatAuthor } from "../utils/formatAuthor.ts"
 import { indent } from "../utils/indent.ts"
 import { normalizeNewlines } from "../utils/normalizeNewlines.ts"

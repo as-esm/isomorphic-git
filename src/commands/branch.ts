@@ -1,19 +1,17 @@
-// @ts-check
-import '../typedefs.js'
-
 import cleanGitRef from 'clean-git-ref'
 
-import { AlreadyExistsError } from '../errors/AlreadyExistsError.js'
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.js'
+import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
+import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
 import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
 import validRef from "../utils/isValidRef.ts"
+import type { FsClient } from "../models/FileSystem.ts"
 
 /**
  * Create a branch
  *
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref
  * @param {string} [args.object = 'HEAD']
@@ -34,7 +32,14 @@ export async function _branch({
   object,
   checkout = false,
   force = false,
-}) {
+}: {
+  fs: FsClient
+  gitdir: string
+  ref: string
+  object?: string
+  checkout?: boolean
+  force?: boolean
+}): Promise<void> {
   if (!validRef(ref, true)) {
     throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
   }
@@ -53,7 +58,7 @@ export async function _branch({
   }
 
   // Get current HEAD tree oid
-  let oid
+  let oid: string | undefined
   try {
     oid = await RefManager.resolve({ fs, gitdir, ref: object || 'HEAD' })
   } catch (e) {
@@ -95,3 +100,4 @@ export async function _branch({
     })
   }
 }
+

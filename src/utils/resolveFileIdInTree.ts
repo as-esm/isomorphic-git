@@ -1,8 +1,8 @@
 // @ts-check
 import { GitTree } from "../models/GitTree.ts"
 import { _readObject as readObject } from "../storage/readObject.ts"
-import { join } from './join.js'
-import { resolveTree } from './resolveTree.js'
+import { join } from './join.ts'
+import { resolveTree } from './resolveTree.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 // the empty file content object id

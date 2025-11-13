@@ -6,7 +6,7 @@ import type { ReadTagResult } from "../models/GitAnnotatedTag.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.oid

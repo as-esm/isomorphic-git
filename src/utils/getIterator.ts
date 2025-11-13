@@ -1,4 +1,4 @@
-import { fromValue } from './fromValue.js'
+import { fromValue } from './fromValue.ts'
 
 export const getIterator = <T>(
   iterable: AsyncIterable<T> | Iterable<T> | { next: () => IteratorResult<T> } | T

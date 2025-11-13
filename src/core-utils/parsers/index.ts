@@ -1,5 +1,5 @@
-export * from './Blob.js'
-export * from './Tree.js'
-export * from './Commit.js'
-export * from './Tag.js'
+export * from './Blob.ts'
+export * from './Tree.ts'
+export * from './Commit.ts'
+export * from './Tag.ts'
 

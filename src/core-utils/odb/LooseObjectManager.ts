@@ -1,7 +1,7 @@
 import { InternalError } from "../../errors/InternalError.ts"
-import { toObjectPath } from '../GitPath.js'
-import { deflate, inflate } from '../Zlib.js'
-import { hashObject } from '../ShaHasher.js'
+import { toObjectPath } from '../GitPath.ts'
+import { deflate, inflate } from '../Zlib.ts'
+import { hashObject } from '../ShaHasher.ts'
 import { GitObject } from "../../models/GitObject.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
 

@@ -41,7 +41,7 @@ export class SmartProtocolManager {
     exclude = [],
   }: UploadPackRequestParams): Buffer[] {
     // Import wire functions dynamically to avoid circular dependencies
-    const { writeUploadPackRequest } = require('../../wire/writeUploadPackRequest.js')
+    const { writeUploadPackRequest } = require('../../wire/writeUploadPackRequest.ts')
     return writeUploadPackRequest({ capabilities, wants, haves, shallows, depth, since, exclude })
   }
 
@@ -49,7 +49,7 @@ export class SmartProtocolManager {
    * Parses an upload-pack response
    */
   static async parseUploadPackResponse(stream: AsyncIterable<Buffer>): Promise<unknown> {
-    const { parseUploadPackResponse } = require('../../wire/parseUploadPackResponse.js')
+    const { parseUploadPackResponse } = require('../../wire/parseUploadPackResponse.ts')
     return parseUploadPackResponse(stream)
   }
 
@@ -57,7 +57,7 @@ export class SmartProtocolManager {
    * Creates a receive-pack request for pushing
    */
   static createReceivePackRequest({ capabilities, commands, packfile }: ReceivePackRequestParams): Buffer[] {
-    const { writeReceivePackRequest } = require('../../wire/writeReceivePackRequest.js')
+    const { writeReceivePackRequest } = require('../../wire/writeReceivePackRequest.ts')
     return writeReceivePackRequest({ capabilities, commands, packfile })
   }
 
@@ -65,7 +65,7 @@ export class SmartProtocolManager {
    * Parses a receive-pack response
    */
   static async parseReceivePackResponse(stream: AsyncIterable<Buffer>): Promise<unknown> {
-    const { parseReceivePackResponse } = require('../../wire/parseReceivePackResponse.js')
+    const { parseReceivePackResponse } = require('../../wire/parseReceivePackResponse.ts')
     return parseReceivePackResponse(stream)
   }
 
@@ -73,7 +73,7 @@ export class SmartProtocolManager {
    * Lists refs from a remote
    */
   static createListRefsRequest({ capabilities = [], symrefs = false, refs = [] }: ListRefsRequestParams): Buffer[] {
-    const { writeListRefsRequest } = require('../../wire/writeListRefsRequest.js')
+    const { writeListRefsRequest } = require('../../wire/writeListRefsRequest.ts')
     return writeListRefsRequest({ capabilities, symrefs, refs })
   }
 
@@ -81,7 +81,7 @@ export class SmartProtocolManager {
    * Parses a list-refs response
    */
   static async parseListRefsResponse(stream: AsyncIterable<Buffer>): Promise<Map<string, string>> {
-    const { parseListRefsResponse } = require('../../wire/parseListRefsResponse.js')
+    const { parseListRefsResponse } = require('../../wire/parseListRefsResponse.ts')
     return parseListRefsResponse(stream)
   }
 }

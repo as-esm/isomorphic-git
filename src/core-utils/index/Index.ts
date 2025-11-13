@@ -3,7 +3,7 @@ import { UnsafeFilepathError } from "../../errors/UnsafeFilepathError.ts"
 import { BufferCursor } from "../../utils/BufferCursor.ts"
 import { comparePath } from "../../utils/comparePath.ts"
 import { normalizeStats } from "../../utils/normalizeStats.ts"
-import { shasum } from '../ShaHasher.js'
+import { shasum } from '../ShaHasher.ts'
 import type { Stat } from "../../models/FileSystem.ts"
 
 type CacheEntryFlags = {

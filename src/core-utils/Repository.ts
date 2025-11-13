@@ -1,9 +1,9 @@
-import { NotFoundError } from '../errors/NotFoundError.js'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import { _findRoot } from "../commands/findRoot.ts"
-import { join } from './GitPath.js'
-import { UnifiedConfigService } from './UnifiedConfigService.js'
-import { StateManager } from './StateManager.js'
-import { RefManager } from './refs/RefManager.js'
+import { join } from './GitPath.ts'
+import { UnifiedConfigService } from './UnifiedConfigService.ts'
+import { StateManager } from './StateManager.ts'
+import { RefManager } from './refs/RefManager.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 type ObjectReaderWrapper = {
@@ -26,6 +26,13 @@ type ObjectWriterWrapper = {
  * Provides lazy-loaded access to all low-level managers
  */
 export class Repository {
+  public readonly fs: FsClient
+  private _dir: string | null
+  private _gitdir: string | null
+  public readonly cache: Record<string, unknown>
+  private readonly _systemConfigPath?: string
+  private readonly _globalConfigPath?: string
+
   private _config: UnifiedConfigService | null = null
   private _stateManager: StateManager | null = null
   private _objectReader: ObjectReaderWrapper | null = null
@@ -34,13 +41,20 @@ export class Repository {
   private _isBare: boolean | null = null
 
   constructor(
-    public readonly fs: FsClient,
-    private _dir: string | null,
-    private _gitdir: string | null,
-    public readonly cache: Record<string, unknown> = {},
-    private readonly _systemConfigPath?: string,
-    private readonly _globalConfigPath?: string
-  ) {}
+    fs: FsClient,
+    dir: string | null,
+    gitdir: string | null,
+    cache: Record<string, unknown> = {},
+    systemConfigPath?: string,
+    globalConfigPath?: string
+  ) {
+    this.fs = fs
+    this._dir = dir
+    this._gitdir = gitdir
+    this.cache = cache
+    this._systemConfigPath = systemConfigPath
+    this._globalConfigPath = globalConfigPath
+  }
 
   /**
    * Opens a repository from a directory
@@ -121,7 +135,7 @@ export class Repository {
       if (configExists) {
         // Read config to check bare setting
         try {
-          const { ConfigAccess } = await import('../utils/configAccess.js')
+          const { ConfigAccess } = await import('../utils/configAccess.ts')
           const configAccess = new ConfigAccess(this.fs, gitdir)
           const bare = await configAccess.getConfigValue('core.bare')
           this._isBare = bare === 'true' || bare === true
@@ -178,7 +192,7 @@ export class Repository {
   async getObjectReader(): Promise<ObjectReaderWrapper> {
     if (!this._objectReader) {
       const gitdir = await this.getGitdir()
-      const { read } = await import('./odb/ObjectReader.js')
+      const { read } = await import('./odb/ObjectReader.ts')
       // ObjectReader exports functions, we'll create a wrapper
       this._objectReader = {
         read: async (params) => {
@@ -200,7 +214,7 @@ export class Repository {
   async getObjectWriter(): Promise<ObjectWriterWrapper> {
     if (!this._objectWriter) {
       const gitdir = await this.getGitdir()
-      const { write } = await import('./odb/ObjectWriter.js')
+      const { write } = await import('./odb/ObjectWriter.ts')
       // ObjectWriter exports functions, we'll create a wrapper
       this._objectWriter = {
         write: async (params) => {
@@ -223,12 +237,12 @@ export class Repository {
       const gitdir = await this.getGitdir()
       try {
         const indexBuffer = await this.fs.read(join(gitdir, 'index'))
-        const { parse: parseIndex } = await import('./index/Index.js')
+        const { parse: parseIndex } = await import('./index/Index.ts')
         this._index = await parseIndex(indexBuffer)
       } catch (err) {
         if ((err as { code?: string }).code === 'NOENT') {
           // Index doesn't exist yet, create empty one
-          const { parse: parseIndex } = await import('./index/Index.js')
+          const { parse: parseIndex } = await import('./index/Index.ts')
           this._index = await parseIndex(Buffer.alloc(0))
         } else {
           throw err
@@ -243,7 +257,7 @@ export class Repository {
    */
   async writeIndex(index: unknown): Promise<void> {
     const gitdir = await this.getGitdir()
-    const { serialize: serializeIndex } = await import('./index/Index.js')
+    const { serialize: serializeIndex } = await import('./index/Index.ts')
     const indexBuffer = await serializeIndex(index)
     await this.fs.write(join(gitdir, 'index'), indexBuffer)
     // Invalidate cached index

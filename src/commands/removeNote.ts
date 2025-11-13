@@ -1,13 +1,15 @@
-// @ts-check
 import { _commit } from "../commands/commit.ts"
 import { _readTree } from "../commands/readTree.ts"
 import { _writeTree } from "../commands/writeTree.ts"
-import { NotFoundError } from '../errors/NotFoundError.js'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import { GitRefManager } from "../managers/GitRefManager.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { SignCallback } from "../core-utils/Signing.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {object} args.cache
  * @param {SignCallback} [args.onSign]
  * @param {string} [args.dir]
@@ -39,9 +41,19 @@ export async function _removeNote({
   author,
   committer,
   signingKey,
-}) {
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  onSign?: SignCallback
+  gitdir: string
+  ref?: string
+  oid: string
+  author: Author
+  committer: Author
+  signingKey?: string
+}): Promise<string> {
   // Get the current note commit
-  let parent
+  let parent: string | undefined
   try {
     parent = await GitRefManager.resolve({ gitdir, fs, ref })
   } catch (err) {
@@ -85,3 +97,4 @@ export async function _removeNote({
 
   return commitOid
 }
+

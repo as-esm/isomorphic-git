@@ -1,6 +1,6 @@
 import AsyncLock from 'async-lock'
 
-import { UnmergedPathsError } from '../errors/UnmergedPathsError.js'
+import { UnmergedPathsError } from '../errors/UnmergedPathsError.ts'
 import { GitIndex } from "../models/GitIndex.ts"
 import { compareStats } from "../utils/compareStats.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"

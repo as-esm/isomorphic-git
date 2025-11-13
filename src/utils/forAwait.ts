@@ -1,4 +1,4 @@
-import { getIterator } from './getIterator.js'
+import { getIterator } from './getIterator.ts'
 
 // Currently 'for await' upsets my linters.
 export const forAwait = async <T>(

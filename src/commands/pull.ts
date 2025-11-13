@@ -1,14 +1,18 @@
-// @ts-check
-
 import { _checkout } from "../commands/checkout.ts"
 import { _currentBranch } from "../commands/currentBranch.ts"
 import { _fetch } from "../commands/fetch.ts"
 import { _merge } from "../commands/merge.ts"
-import { MissingParameterError } from '../errors/MissingParameterError.js'
+import { MissingParameterError } from '../errors/MissingParameterError.ts'
+import type { FsClient } from "../models/FileSystem.ts"
+import type { HttpClient } from "../managers/GitRemoteHTTP.ts"
+import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
+import type { MessageCallback } from "../api/fetch.ts"
+import type { AuthCallback, AuthFailureCallback, AuthSuccessCallback } from "../managers/GitRemoteHTTP.ts"
+import type { Author } from "../models/GitCommit.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.js').FsClient} args.fs
+ * @param {import('../types.ts').FsClient} args.fs
  * @param {object} args.cache
  * @param {HttpClient} args.http
  * @param {ProgressCallback} [args.onProgress]
@@ -69,7 +73,32 @@ export async function _pull({
   author,
   committer,
   signingKey,
-}) {
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  http: HttpClient
+  onProgress?: ProgressCallback
+  onMessage?: MessageCallback
+  onAuth?: AuthCallback
+  onAuthSuccess?: AuthSuccessCallback
+  onAuthFailure?: AuthFailureCallback
+  dir?: string
+  gitdir: string
+  ref?: string
+  url?: string
+  remote?: string
+  remoteRef?: string
+  prune?: boolean
+  pruneTags?: boolean
+  corsProxy?: string
+  singleBranch: boolean
+  fastForward: boolean
+  fastForwardOnly: boolean
+  headers?: Record<string, string>
+  author: Author
+  committer: Author
+  signingKey?: string
+}): Promise<void> {
   try {
     // If ref is undefined, use 'HEAD'
     if (!ref) {
@@ -127,8 +156,9 @@ export async function _pull({
       remote,
       noCheckout: false,
     })
-  } catch (err) {
+  } catch (err: any) {
     err.caller = 'git.pull'
     throw err
   }
 }
+

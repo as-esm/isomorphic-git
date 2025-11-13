@@ -1,7 +1,7 @@
-import { STAGE } from "../commands/STAGE.js"
-import { TREE } from "../commands/TREE.js"
-import { WORKDIR } from "../commands/WORKDIR.js"
-import { _walk } from "../commands/walk.js"
+import { STAGE } from '../commands/STAGE.ts'
+import { TREE } from '../commands/TREE.ts'
+import { WORKDIR } from '../commands/WORKDIR.ts'
+import { _walk } from '../commands/walk.ts'
 import { IndexResetError } from '../errors/IndexResetError.ts'
 import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"

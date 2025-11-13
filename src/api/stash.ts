@@ -6,7 +6,7 @@ import {
   _stashClear,
   _stashPop,
   _stashCreate,
-} from "../commands/stash.js"
+} from '../commands/stash.ts'
 import { InvalidRefNameError } from "../errors/InvalidRefNameError.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"

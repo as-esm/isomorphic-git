@@ -1,7 +1,7 @@
-import { _addRemote } from './addRemote.js'
-import { _checkout } from './checkout.js'
-import { _fetch } from './fetch.js'
-import { _init } from './init.js'
+import { _addRemote } from './addRemote.ts'
+import { _checkout } from './checkout.ts'
+import { _fetch } from './fetch.ts'
+import { _init } from './init.ts'
 import { ConfigAccess } from "../utils/configAccess.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type {

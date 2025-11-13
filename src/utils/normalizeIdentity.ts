@@ -1,5 +1,5 @@
-import { getConfigValue } from './configAccess.js'
-import { assignDefined } from './assignDefined.js'
+import { getConfigValue } from './configAccess.ts'
+import { assignDefined } from './assignDefined.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 import type { Author, CommitObject } from "../models/GitCommit.ts"
 

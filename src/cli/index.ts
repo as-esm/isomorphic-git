@@ -1,5 +1,5 @@
-import { ArgumentParser } from './ArgumentParser.js'
-import { CommandRouter } from './CommandRouter.js'
+import { ArgumentParser } from './ArgumentParser.ts'
+import { CommandRouter } from './CommandRouter.ts'
 import { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { HttpClient } from "../managers/GitRemoteHTTP.ts"
@@ -35,7 +35,7 @@ export const cli = async (args: string[], options: CliOptions = {} as CliOptions
   if (!command) {
     // No command provided, show help or version
     if (flags.version || flags.v) {
-      const { version } = await import('../api/version.js')
+      const { version } = await import('../api/version.ts')
       return version()
     }
     // Show help

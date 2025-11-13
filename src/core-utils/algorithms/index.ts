@@ -1,4 +1,4 @@
-export * from './CommitGraphWalker.js'
-export * from './MergeManager.js'
-export * from './SequencerManager.js'
+export * from './CommitGraphWalker.ts'
+export * from './MergeManager.ts'
+export * from './SequencerManager.ts'
 

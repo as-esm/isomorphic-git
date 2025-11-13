@@ -1,4 +1,4 @@
-import { RevisionParser } from './RevisionParser.js'
+import { RevisionParser } from './RevisionParser.ts'
 import { Repository } from "../core-utils/Repository.ts"
 
 /**
@@ -6,8 +6,11 @@ import { Repository } from "../core-utils/Repository.ts"
  */
 export class CommandRouter {
   private _revisionParser: RevisionParser | null = null
+  private readonly repo: Repository
 
-  constructor(private readonly repo: Repository) {}
+  constructor(repo: Repository) {
+    this.repo = repo
+  }
 
   /**
    * Gets the revision parser (lazy-loaded)
@@ -73,7 +76,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleInit(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { init } = await import('../api/init.js')
+    const { init } = await import('../api/init.ts')
     const cwd = typeof process !== 'undefined' && process.cwd ? process.cwd() : '.'
     return init({
       fs: this.repo.fs,
@@ -88,7 +91,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleAdd(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { add } = await import('../api/add.js')
+    const { add } = await import('../api/add.ts')
     const gitdir = await this.repo.getGitdir()
     return add({
       fs: this.repo.fs,
@@ -105,7 +108,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleCommit(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { commit } = await import('../api/commit.js')
+    const { commit } = await import('../api/commit.ts')
     const gitdir = await this.repo.getGitdir()
     return commit({
       fs: this.repo.fs,
@@ -123,7 +126,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleStatus(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { status } = await import('../api/status.js')
+    const { status } = await import('../api/status.ts')
     const gitdir = await this.repo.getGitdir()
     if (positional.length > 0) {
       // Status for specific file
@@ -145,7 +148,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleLog(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { log } = await import('../api/log.js')
+    const { log } = await import('../api/log.ts')
     const gitdir = await this.repo.getGitdir()
     const ref = positional[0] || 'HEAD'
     return log({
@@ -164,7 +167,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleCheckout(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { checkout } = await import('../api/checkout.js')
+    const { checkout } = await import('../api/checkout.ts')
     const gitdir = await this.repo.getGitdir()
     return checkout({
       fs: this.repo.fs,
@@ -184,7 +187,7 @@ export class CommandRouter {
   private async _handleBranch(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
     const gitdir = await this.repo.getGitdir()
     if (flags.delete || flags.d) {
-      const { deleteBranch } = await import('../api/deleteBranch.js')
+      const { deleteBranch } = await import('../api/deleteBranch.ts')
       return deleteBranch({
         fs: this.repo.fs,
         dir: this.repo.dir,
@@ -192,7 +195,7 @@ export class CommandRouter {
         ref: positional[0],
       })
     }
-    const { branch } = await import('../api/branch.js')
+    const { branch } = await import('../api/branch.ts')
     return branch({
       fs: this.repo.fs,
       dir: this.repo.dir,
@@ -209,7 +212,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleMerge(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { merge } = await import('../api/merge.js')
+    const { merge } = await import('../api/merge.ts')
     const gitdir = await this.repo.getGitdir()
     return merge({
       fs: this.repo.fs,
@@ -227,7 +230,7 @@ export class CommandRouter {
    * @private
    */
   private async _handlePull(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { pull } = await import('../api/pull.js')
+    const { pull } = await import('../api/pull.ts')
     const gitdir = await this.repo.getGitdir()
     return pull({
       fs: this.repo.fs,
@@ -245,7 +248,7 @@ export class CommandRouter {
    * @private
    */
   private async _handlePush(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { push } = await import('../api/push.js')
+    const { push } = await import('../api/push.ts')
     const gitdir = await this.repo.getGitdir()
     return push({
       fs: this.repo.fs,
@@ -263,7 +266,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleFetch(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { fetch } = await import('../api/fetch.js')
+    const { fetch } = await import('../api/fetch.ts')
     const gitdir = await this.repo.getGitdir()
     return fetch({
       fs: this.repo.fs,
@@ -280,7 +283,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleClone(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { clone } = await import('../api/clone.js')
+    const { clone } = await import('../api/clone.ts')
     const cwd = typeof process !== 'undefined' && process.cwd ? process.cwd() : '.'
     return clone({
       fs: this.repo.fs,
@@ -298,7 +301,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleTag(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { tag } = await import('../api/tag.js')
+    const { tag } = await import('../api/tag.ts')
     const gitdir = await this.repo.getGitdir()
     return tag({
       fs: this.repo.fs,
@@ -315,7 +318,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleDiff(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { diff } = await import('../api/diff.js')
+    const { diff } = await import('../api/diff.ts')
     const gitdir = await this.repo.getGitdir()
     return diff({
       fs: this.repo.fs,
@@ -333,7 +336,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleShow(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { show } = await import('../api/show.js')
+    const { show } = await import('../api/show.ts')
     const gitdir = await this.repo.getGitdir()
     return show({
       fs: this.repo.fs,
@@ -350,7 +353,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleRm(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { remove } = await import('../api/remove.js')
+    const { remove } = await import('../api/remove.ts')
     const gitdir = await this.repo.getGitdir()
     return remove({
       fs: this.repo.fs,
@@ -369,7 +372,7 @@ export class CommandRouter {
   private async _handleRemote(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
     const gitdir = await this.repo.getGitdir()
     if (flags.add) {
-      const { addRemote } = await import('../api/addRemote.js')
+      const { addRemote } = await import('../api/addRemote.ts')
       return addRemote({
         fs: this.repo.fs,
         dir: this.repo.dir,
@@ -379,7 +382,7 @@ export class CommandRouter {
         force: (flags.force as boolean) || (flags.f as boolean) || false,
       })
     } else if (flags.remove || flags.rm) {
-      const { deleteRemote } = await import('../api/deleteRemote.js')
+      const { deleteRemote } = await import('../api/deleteRemote.ts')
       return deleteRemote({
         fs: this.repo.fs,
         dir: this.repo.dir,
@@ -387,7 +390,7 @@ export class CommandRouter {
         remote: positional[0],
       })
     } else {
-      const { listRemotes } = await import('../api/listRemotes.js')
+      const { listRemotes } = await import('../api/listRemotes.ts')
       return listRemotes({
         fs: this.repo.fs,
         dir: this.repo.dir,
@@ -401,7 +404,7 @@ export class CommandRouter {
    * @private
    */
   private async _handleSparseCheckout(flags: Record<string, unknown>, positional: string[]): Promise<unknown> {
-    const { sparseCheckout } = await import('../api/sparseCheckout.js')
+    const { sparseCheckout } = await import('../api/sparseCheckout.ts')
     const gitdir = await this.repo.getGitdir()
     if (flags.init) {
       return sparseCheckout({

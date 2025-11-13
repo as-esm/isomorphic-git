@@ -1,4 +1,4 @@
-import { BaseError } from '../errors/BaseError.js'
+import { BaseError } from '../errors/BaseError.ts'
 
 /**
  * Factory function to create standardized error classes

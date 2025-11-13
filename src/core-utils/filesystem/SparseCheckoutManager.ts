@@ -1,5 +1,5 @@
 import ignore from 'ignore'
-import { join } from '../GitPath.js'
+import { join } from '../GitPath.ts'
 import { ConfigAccess } from "../../utils/configAccess.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
 
@@ -124,5 +124,16 @@ export const list = async ({
   gitdir: string
 }): Promise<string[]> => {
   return loadPatterns({ fs, gitdir })
+}
+
+/**
+ * Namespace export for SparseCheckoutManager
+ */
+export const SparseCheckoutManager = {
+  loadPatterns,
+  match,
+  set,
+  init,
+  list,
 }
 

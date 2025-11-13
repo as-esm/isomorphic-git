@@ -1,4 +1,4 @@
-import { compareStrings } from './compareStrings.js'
+import { compareStrings } from './compareStrings.ts'
 import type { TreeEntry } from "../models/GitTree.ts"
 
 export const compareTreeEntryPath = (a: TreeEntry, b: TreeEntry): number => {

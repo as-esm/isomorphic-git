@@ -1,4 +1,4 @@
-import { _removeNote } from "../commands/removeNote.js"
+import { _removeNote } from '../commands/removeNote.ts'
 import { MissingNameError } from "../errors/MissingNameError.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"

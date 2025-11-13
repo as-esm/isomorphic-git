@@ -1,4 +1,4 @@
-import { resolveObject } from './resolveObject.js'
+import { resolveObject } from './resolveObject.ts'
 import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
 import { GitTree } from "../models/GitTree.ts"
 import type { FsClient } from "../models/FileSystem.ts"
