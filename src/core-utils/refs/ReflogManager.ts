@@ -126,7 +126,7 @@ export const appendReflog = async ({
 
   // Ensure the directory exists
   const dir = reflogPath.substring(0, reflogPath.lastIndexOf('/'))
-  await fs.mkdir(dir, { recursive: true })
+  await fs.mkdir(dir)
 
   // Append to file
   try {
@@ -160,7 +160,7 @@ export const writeReflog = async ({
 
   // Ensure the directory exists
   const dir = reflogPath.substring(0, reflogPath.lastIndexOf('/'))
-  await fs.mkdir(dir, { recursive: true })
+  await fs.mkdir(dir)
 
   await fs.write(reflogPath, content, 'utf8')
 }

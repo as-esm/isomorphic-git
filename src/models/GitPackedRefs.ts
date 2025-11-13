@@ -50,6 +50,8 @@ export class GitPackedRefs {
   delete(ref: string): void {
     this.parsedConfig = this.parsedConfig.filter(entry => entry.ref !== ref)
     this.refs.delete(ref)
+    // Also delete the peeled ref if it exists
+    this.refs.delete(ref + '^{}')
   }
 
   toString(): string {

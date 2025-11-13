@@ -3,7 +3,7 @@ import * as os from 'os'
 import { join, resolve } from 'path'
 
 import findUp from 'find-up'
-import { FileSystem } from 'isomorphic-git/internal-apis'
+import { FileSystem } from '../../../src/models/FileSystem.ts'
 import onExit from 'signal-exit'
 
 const TEMP_PATH = join(os.tmpdir(), 'jest-fixture-')
@@ -23,6 +23,7 @@ const testsDir = resolve(import.meta.dirname, '..')
 export async function useTempDir(fixture) {
   const fixturePath = await findUp(join('__fixtures__', fixture), {
     cwd: testsDir,
+    type: 'directory',
   })
 
   const tempDir = await _fs.promises.mkdtemp(TEMP_PATH)

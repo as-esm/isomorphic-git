@@ -47,18 +47,9 @@ export const read = async ({
     // Inflate the object
     const inflated = await inflate(fileBuffer)
 
-    if (format === 'wrapped') {
-      return { object: Buffer.from(inflated), format: 'wrapped', source }
-    }
-
-    // format === 'content'
-    const unwrapped = GitObject.unwrap(Buffer.from(inflated))
-    return {
-      object: unwrapped.object,
-      type: unwrapped.type,
-      format: 'content',
-      source,
-    }
+    // Always return wrapped format - let ObjectReader handle unwrapping and SHA verification
+    // This ensures SHA checks happen on the wrapped object before unwrapping
+    return { object: Buffer.from(inflated), format: 'wrapped', source }
   } catch {
     return null
   }

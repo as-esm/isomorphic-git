@@ -1,7 +1,7 @@
 /* eslint-env node, browser, jasmine */
 import * as path from 'path'
 
-import { isBinary } from 'isomorphic-git/internal-apis'
+import { isBinary } from '../../src/internal-apis.ts'
 
 import { makeFixture } from './__helpers__/FixtureFS.js'
 

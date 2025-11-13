@@ -147,10 +147,10 @@ export const initSubmodule = async ({
   const submoduleGitdir = getSubmoduleGitdir({ gitdir, path: submodule.path })
 
   // Create submodule directory
-  await fs.mkdir(submoduleDir, { recursive: true })
+  await fs.mkdir(submoduleDir)
 
   // Create submodule gitdir
-  await fs.mkdir(submoduleGitdir, { recursive: true })
+  await fs.mkdir(submoduleGitdir)
 
   // The actual clone/checkout would be done by the clone/checkout commands
 }

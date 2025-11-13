@@ -21,6 +21,7 @@ export class UnifiedConfigService {
   private _globalConfig: ConfigObject | null = null
   private _systemConfig: ConfigObject | null = null
   private _mergedConfig: ConfigObject | null = null
+  private _deletedConfigs: Set<string> = new Set()
 
   constructor(
     fs: FsClient,
@@ -125,7 +126,55 @@ export class UnifiedConfigService {
     if (!this._mergedConfig) {
       await this.load()
     }
-    return this._mergedConfig.get(path)
+    
+    // Check if it was explicitly deleted first (before checking merged config)
+    // This handles deletions within the same service instance
+    if (this._deletedConfigs.has(path)) {
+      return undefined
+    }
+    
+    // The merged config's get() method also checks for deletion markers in the file
+    const result = this._mergedConfig.get(path)
+    // For boolean configs, return false instead of undefined when not found
+    // BUT: if the config was in the file and got deleted, we can't distinguish that from "never existed"
+    // So we only return false if it's a known boolean config that should default to false
+    if (result === undefined) {
+      // First, check if there's a deletion marker in any config source
+      // This must be checked BEFORE the boolean config default logic
+      const hasDeletionMarker = 
+        this._localConfig?.parsedConfig.some(c => c.path === path + '.deleted') ||
+        this._globalConfig?.parsedConfig.some(c => c.path === path + '.deleted') ||
+        this._systemConfig?.parsedConfig.some(c => c.path === path + '.deleted')
+      
+      // If there's a deletion marker, return undefined (it was explicitly deleted)
+      if (hasDeletionMarker) {
+        return undefined
+      }
+      
+      const parts = path.split('.')
+      if (parts.length >= 2) {
+        const section = parts[0]
+        const name = parts.slice(1).join('.')
+        // Boolean configs in core section that should default to false when never set
+        const booleanConfigs: Record<string, string[]> = {
+          core: ['symlinks', 'filemode', 'bare', 'logallrefupdates', 'ignorecase']
+        }
+        // Only return false if it's a boolean config AND it doesn't exist in any source
+        if (booleanConfigs[section]?.includes(name)) {
+          // Check if it exists in any source (as a regular config, not a deletion marker)
+          const existsInLocal = this._localConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
+          const existsInGlobal = this._globalConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
+          const existsInSystem = this._systemConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
+          if (!existsInLocal && !existsInGlobal && !existsInSystem) {
+            return false
+          }
+          // If it exists in any source but result is undefined, it means it was deleted
+          // In that case, return undefined (not false)
+          return undefined
+        }
+      }
+    }
+    return result
   }
 
   /**
@@ -137,17 +186,24 @@ export class UnifiedConfigService {
     }
 
     const results: ConfigValueWithScope[] = []
-    const systemValue = this._systemConfig?.get(path)
-    if (systemValue !== undefined) {
-      results.push({ value: systemValue, scope: 'system' })
+    // Use getall() to get all values from each config source
+    const systemValues = this._systemConfig?.getall(path) || []
+    for (const value of systemValues) {
+      if (value !== undefined) {
+        results.push({ value, scope: 'system' })
+      }
     }
-    const globalValue = this._globalConfig?.get(path)
-    if (globalValue !== undefined) {
-      results.push({ value: globalValue, scope: 'global' })
+    const globalValues = this._globalConfig?.getall(path) || []
+    for (const value of globalValues) {
+      if (value !== undefined) {
+        results.push({ value, scope: 'global' })
+      }
     }
-    const localValue = this._localConfig?.get(path)
-    if (localValue !== undefined) {
-      results.push({ value: localValue, scope: 'local' })
+    const localValues = this._localConfig?.getall(path) || []
+    for (const value of localValues) {
+      if (value !== undefined) {
+        results.push({ value, scope: 'local' })
+      }
     }
     return results
   }
@@ -160,7 +216,15 @@ export class UnifiedConfigService {
       if (!this._localConfig) {
         await this.load()
       }
+      // Check if config existed before deletion
+      const existedBefore = this._localConfig!.parsedConfig.some(c => c.path === path && c.name)
       this._localConfig!.set(path, value, append)
+      // Track deletions - if it existed before and we're deleting it, mark it as deleted
+      if (value == null && existedBefore) {
+        this._deletedConfigs.add(path)
+      } else {
+        this._deletedConfigs.delete(path)
+      }
       const configBuffer = serializeConfig(this._localConfig!)
       await this.fs.write(join(this.gitdir, 'config'), configBuffer)
       // Reload to update merged config
@@ -169,7 +233,15 @@ export class UnifiedConfigService {
       if (!this._globalConfig) {
         await this.load()
       }
+      // Check if config existed before deletion
+      const existedBefore = this._globalConfig!.parsedConfig.some(c => c.path === path && c.name)
       this._globalConfig!.set(path, value, append)
+      // Track deletions - if it existed before and we're deleting it, mark it as deleted
+      if (value == null && existedBefore) {
+        this._deletedConfigs.add(path)
+      } else {
+        this._deletedConfigs.delete(path)
+      }
       const configBuffer = serializeConfig(this._globalConfig!)
       await this.fs.write(this.globalConfigPath, configBuffer)
       await this.load()
@@ -177,7 +249,15 @@ export class UnifiedConfigService {
       if (!this._systemConfig) {
         await this.load()
       }
+      // Check if config existed before deletion
+      const existedBefore = this._systemConfig!.parsedConfig.some(c => c.path === path && c.name)
       this._systemConfig!.set(path, value, append)
+      // Track deletions - if it existed before and we're deleting it, mark it as deleted
+      if (value == null && existedBefore) {
+        this._deletedConfigs.add(path)
+      } else {
+        this._deletedConfigs.delete(path)
+      }
       const configBuffer = serializeConfig(this._systemConfig!)
       await this.fs.write(this.systemConfigPath, configBuffer)
       await this.load()

@@ -140,7 +140,18 @@ export async function _commit({
       // Index doesn't exist yet
     }
 
-    const index = await parseIndex(indexBuffer)
+    // Handle empty index - create an empty index object instead of parsing
+    let index
+    if (indexBuffer.length === 0) {
+      // Empty index - create a minimal index object with default version
+      index = {
+        entries: new Map(),
+        unmergedPaths: new Set(),
+        version: 2, // Default index version
+      }
+    } else {
+      index = await parseIndex(indexBuffer)
+    }
 
     // Check for unmerged paths
     if (index.unmergedPaths.size > 0) {

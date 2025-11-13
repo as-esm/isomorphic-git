@@ -277,7 +277,7 @@ export class GitRefManager {
     await Promise.all(refs.map(ref => normalizedFs.rm(join(gitdir, ref))))
     // Delete any packed ref
     const text = await acquireLock('packed-refs', async () =>
-      normalizedFs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
+      normalizedFs.read(join(gitdir, 'packed-refs'), { encoding: 'utf8' })
     )
     if (typeof text !== 'string') {
       return
@@ -319,7 +319,7 @@ export class GitRefManager {
       }
     }
 
-    // Is it a ref pointer?
+    // Is it a ref pointer? (content already read, not the ref name)
     if (ref.startsWith('ref: ')) {
       const newRef = ref.slice('ref: '.length)
       return GitRefManager.resolve({ fs, gitdir, ref: newRef, depth: currentDepth })
@@ -338,15 +338,47 @@ export class GitRefManager {
       const sha = await acquireLock(
         refPath,
         async () => {
-          const content = await normalizedFs.read(`${gitdir}/${refPath}`, { encoding: 'utf8' })
-          if (typeof content === 'string') {
-            return content
+          try {
+            // Read the ref file - try with 'utf8' encoding string first
+            let content = await normalizedFs.read(join(gitdir, refPath), 'utf8')
+            // If that returns null, try without encoding
+            if (content === null || content === undefined) {
+              content = await normalizedFs.read(join(gitdir, refPath))
+            }
+            if (content !== null && content !== undefined) {
+              // Handle both string and Buffer returns
+              let contentStr: string
+              if (typeof content === 'string') {
+                contentStr = content.trim()
+              } else if (Buffer.isBuffer(content)) {
+                contentStr = content.toString('utf8').trim()
+              } else if (content instanceof Uint8Array) {
+                contentStr = Buffer.from(content).toString('utf8').trim()
+              } else {
+                return null
+              }
+              // Check if the content is a ref pointer (starts with 'ref: ')
+              if (contentStr.startsWith('ref: ')) {
+                // Return the ref pointer as-is, resolve will handle it recursively
+                return contentStr
+              }
+              // Otherwise return the SHA/content
+              return contentStr || null
+            }
+          } catch (err) {
+            // File doesn't exist or error reading, try packed refs
+            // Don't log error here as it's expected for missing refs
           }
-          return packedMap.get(refPath)
+          // File doesn't exist or returned null, try packed refs
+          return packedMap.get(refPath) ?? null
         }
       )
       if (sha) {
-        return GitRefManager.resolve({ fs, gitdir, ref: sha.trim(), depth: currentDepth })
+        const trimmedSha = typeof sha === 'string' ? sha.trim() : String(sha).trim()
+        if (trimmedSha) {
+          // Recursively resolve - this handles both SHA and ref pointers
+          return GitRefManager.resolve({ fs, gitdir, ref: trimmedSha, depth: currentDepth })
+        }
       }
     }
     // Do we give up?
@@ -483,7 +515,7 @@ export class GitRefManager {
   }): Promise<Map<string, string>> {
     const normalizedFs = normalizeFs(fs)
     const text = await acquireLock('packed-refs', async () =>
-      normalizedFs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
+      normalizedFs.read(join(gitdir, 'packed-refs'), { encoding: 'utf8' })
     )
     if (typeof text !== 'string') {
       return new Map()

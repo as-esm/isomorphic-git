@@ -188,6 +188,9 @@ export class GitRemoteHTTP {
     }
     if (protocolVersion === 2) {
       headers['Git-Protocol'] = 'version=2'
+      console.log(`[Git Protocol] Requesting protocol version 2 for ${service} at ${url}`)
+    } else {
+      console.log(`[Git Protocol] Requesting protocol version 1 for ${service} at ${url}`)
     }
 
     let res: GitHttpResponse
@@ -249,6 +252,16 @@ export class GitRemoteHTTP {
       }
       const remoteHTTP = await parseRefsAdResponse(res.body, { service }) as any
       remoteHTTP.auth = auth
+      
+      // Log protocol version mismatch if detected
+      if (protocolVersion === 1 && remoteHTTP.protocolVersion === 2) {
+        console.warn(`[Git Protocol] WARNING: Requested protocol v1 but server responded with v2. This may cause issues.`)
+      } else if (protocolVersion === 2 && remoteHTTP.protocolVersion === 1) {
+        console.log(`[Git Protocol] Server downgraded from v2 to v1 (server doesn't support v2)`)
+      } else {
+        console.log(`[Git Protocol] Protocol negotiation successful: requested v${protocolVersion}, got v${remoteHTTP.protocolVersion}`)
+      }
+      
       return remoteHTTP
     } else {
       // If they don't send the correct content-type header, that's a good indicator it is either a "dumb" HTTP

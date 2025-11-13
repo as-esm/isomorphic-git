@@ -3,7 +3,7 @@ import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
 import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
 import { parse as parseTag, serialize as serializeTag } from "../core-utils/parsers/Tag.ts"
-import { signTag } from "../core-utils/Signing.ts"
+import { signTag, extractSignature } from "../core-utils/Signing.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { SignCallback } from "../core-utils/Signing.ts"
 import type { Author } from "../models/GitCommit.ts"
@@ -110,16 +110,31 @@ export async function _annotatedTag({
   
   // Sign if requested
   if (signingKey && onSign) {
+    // Serialize the tag and use GitAnnotatedTag to sign it
+    // This ensures we use the exact same payload logic as when reading
+    const { GitAnnotatedTag } = await import('../models/GitAnnotatedTag.ts')
     const tagBuffer = serializeTag(tagObject)
-    const signed = await signTag({
-      payload: tagBuffer,
-      signer: onSign,
-      secretKey: signingKey,
+    const tagString = tagBuffer.toString('utf8')
+    const tag = GitAnnotatedTag.from(tagString)
+    
+    // Sign using GitAnnotatedTag.sign() which uses tag.payload() - the same function used when reading
+    const signedTag = await GitAnnotatedTag.sign(tag, onSign, signingKey)
+    
+    // Write the signed tag's raw content directly (without re-serializing)
+    // This ensures the format matches exactly what we'll read back
+    const signedTagBuffer = signedTag.toObject()
+    const value = await writeObject({
+      fs,
+      gitdir,
+      type: 'tag',
+      object: signedTagBuffer,
     })
-    tagObject.gpgsig = signed
+
+    await RefManager.writeRef({ fs, gitdir, ref, value })
+    return
   }
   
-  // Serialize and write tag object
+  // Serialize and write tag object (unsigned)
   const tagBuffer = serializeTag(tagObject)
   const value = await writeObject({
     fs,

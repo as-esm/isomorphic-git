@@ -73,7 +73,7 @@ export const writeRebaseTodo = async ({
   commands: RebaseCommand[]
 }): Promise<void> => {
   const rebaseDir = getSequencerDir(gitdir, 'rebase')
-  await fs.mkdir(rebaseDir, { recursive: true })
+  await fs.mkdir(rebaseDir)
 
   const todoFile = join(rebaseDir, 'git-rebase-todo')
   const content = commands.map(cmd => `${cmd.action} ${cmd.oid} ${cmd.message}`).join('\n') + '\n'
@@ -143,7 +143,7 @@ export const initRebase = async ({
   commands: RebaseCommand[]
 }): Promise<void> => {
   const rebaseDir = getSequencerDir(gitdir, 'rebase')
-  await fs.mkdir(rebaseDir, { recursive: true })
+  await fs.mkdir(rebaseDir)
 
   await fs.write(join(rebaseDir, 'head-name'), headName + '\n', 'utf8')
   await fs.write(join(rebaseDir, 'onto'), onto + '\n', 'utf8')

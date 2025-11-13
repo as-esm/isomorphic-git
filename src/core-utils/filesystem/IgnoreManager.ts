@@ -112,3 +112,12 @@ export const checkIgnored = async ({
   return ignoredStatus
 }
 
+/**
+ * Namespace export for IgnoreManager
+ */
+export const IgnoreManager = {
+  loadRules,
+  isIgnored,
+  checkIgnored,
+}
+

@@ -195,10 +195,21 @@ export const parse = (buffer: Buffer | string): ConfigObject => {
           if (isVariable) {
             ;[name, value] = extractedVariable
           }
+          // Check if this is a deletion marker comment (e.g., "# bare was deleted")
+          if (!isVariable && trimmedLine.startsWith('#') && trimmedLine.includes('was deleted')) {
+            // Extract the config name from the comment
+            const match = trimmedLine.match(/#\s*(\w+)\s+was deleted/)
+            if (match && section) {
+              name = match[1]
+            }
+          }
         }
 
         const path = getPath(section, subsection, name)
-        return { line, isSection, section, subsection, name, value, path }
+        // Mark deletion comments with .deleted suffix
+        const isDeletionMarker = !isSection && trimmedLine.startsWith('#') && trimmedLine.includes('was deleted') && name && section
+        const finalPath = isDeletionMarker ? path + '.deleted' : path
+        return { line, isSection, section, subsection, name, value, path: finalPath }
       })
     : []
 
@@ -206,13 +217,19 @@ export const parse = (buffer: Buffer | string): ConfigObject => {
     parsedConfig,
     get(path: string, getall = false): unknown {
       const normalizedPath = normalizePath(path).path
+      // Check if this config was deleted (has a deletion marker)
+      const hasDeletionMarker = parsedConfig.some(c => c.path === normalizedPath + '.deleted')
+      if (hasDeletionMarker) {
+        return undefined
+      }
       const allValues = parsedConfig
         .filter(config => config.path === normalizedPath)
         .map(({ section, name, value }) => {
           const fn = section && schema[section] && name ? schema[section][name] : undefined
           return fn ? fn(value ?? '') : value
         })
-      return getall ? allValues : allValues.pop()
+      const result = getall ? allValues : allValues.pop()
+      return result
     },
     getall(path: string): unknown[] {
       return this.get(path, true) as unknown[]
@@ -238,6 +255,36 @@ export const parse = (buffer: Buffer | string): ConfigObject => {
       )
       if (value == null) {
         if (configIndex !== -1) {
+          // For boolean configs that are being deleted, add a comment marker
+          // so we can detect deletion across service instances
+          const parts = normalizedPath.split('.')
+          const booleanConfigs: Record<string, string[]> = {
+            core: ['symlinks', 'filemode', 'bare', 'logallrefupdates', 'ignorecase']
+          }
+          const isBooleanConfig = parts.length >= 2 && booleanConfigs[parts[0]]?.includes(parts.slice(1).join('.'))
+          if (isBooleanConfig) {
+            // Add a comment marker to indicate this config was deleted
+            const deletedMarker: ConfigEntry = {
+              section,
+              subsection: subsection ?? null,
+              name: null,
+              value: null,
+              path: normalizedPath + '.deleted',
+              isSection: false,
+              line: `\t# ${name} was deleted`,
+              modified: true,
+            }
+            // Insert the marker after the section header
+            const sectionIndex = parsedConfig.findIndex(c => c.path === sectionPath)
+            if (sectionIndex >= 0) {
+              // Find the position after the section and any existing entries
+              let insertIndex = sectionIndex + 1
+              while (insertIndex < parsedConfig.length && parsedConfig[insertIndex].path?.startsWith(normalizedPath.split('.').slice(0, -1).join('.'))) {
+                insertIndex++
+              }
+              parsedConfig.splice(insertIndex, 0, deletedMarker)
+            }
+          }
           parsedConfig.splice(configIndex, 1)
         }
       } else {
@@ -300,8 +347,12 @@ export const parse = (buffer: Buffer | string): ConfigObject => {
  */
 export const serialize = (config: ConfigObject): Buffer => {
   const text = config.parsedConfig
-    .map(({ line, section, subsection, name, value, modified = false }) => {
+    .map(({ line, section, subsection, name, value, modified = false, path }) => {
       if (!modified) {
+        return line
+      }
+      // Handle deletion markers (comments)
+      if (path?.endsWith('.deleted') && line) {
         return line
       }
       if (name != null && value != null) {

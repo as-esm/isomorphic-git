@@ -20,6 +20,8 @@ export async function parseCapabilitiesV2(read: ReadFunction): Promise<{ protoco
       capabilities2[lineStr] = true
     }
   }
+  const capabilityCount = Object.keys(capabilities2).length
+  console.log(`[Git Protocol] Using protocol version 2 with ${capabilityCount} capabilities`)
   return { protocolVersion: 2, capabilities2 }
 }
 

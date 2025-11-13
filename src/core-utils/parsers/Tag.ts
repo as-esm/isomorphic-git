@@ -38,7 +38,7 @@ tagger ${formatAuthor(tag.tagger)}
 ${tag.message}`
 
   if (tag.gpgsig) {
-    result += tag.gpgsig
+    result += '\n' + tag.gpgsig
   }
 
   return Buffer.from(result, 'utf8')

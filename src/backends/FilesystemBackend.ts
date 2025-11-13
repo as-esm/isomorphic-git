@@ -151,7 +151,7 @@ export class FilesystemBackend implements GitBackend {
   async writeSequencerFile(name: string, data: string): Promise<void> {
     const sequencerDir = join(this.gitdir, 'sequencer')
     if (!(await this.fs.exists(sequencerDir))) {
-      await this.fs.mkdir(sequencerDir, { recursive: true })
+      await this.fs.mkdir(sequencerDir)
     }
     const path = join(sequencerDir, name)
     await this.fs.write(path, Buffer.from(data, 'utf8'))
@@ -195,7 +195,7 @@ export class FilesystemBackend implements GitBackend {
     const { dir, file } = this._oidToPath(oid)
     const objectDir = join(this.gitdir, 'objects', dir)
     if (!(await this.fs.exists(objectDir))) {
-      await this.fs.mkdir(objectDir, { recursive: true })
+      await this.fs.mkdir(objectDir)
     }
     const path = join(objectDir, file)
     // Don't overwrite existing objects
@@ -245,7 +245,7 @@ export class FilesystemBackend implements GitBackend {
   async writePackfile(name: string, data: Buffer): Promise<void> {
     const packDir = join(this.gitdir, 'objects', 'pack')
     if (!(await this.fs.exists(packDir))) {
-      await this.fs.mkdir(packDir, { recursive: true })
+      await this.fs.mkdir(packDir)
     }
     const path = join(packDir, name)
     await this.fs.write(path, data)
@@ -276,7 +276,7 @@ export class FilesystemBackend implements GitBackend {
   async writePackIndex(name: string, data: Buffer): Promise<void> {
     const packDir = join(this.gitdir, 'objects', 'pack')
     if (!(await this.fs.exists(packDir))) {
-      await this.fs.mkdir(packDir, { recursive: true })
+      await this.fs.mkdir(packDir)
     }
     const path = join(packDir, name)
     await this.fs.write(path, data)
@@ -295,7 +295,7 @@ export class FilesystemBackend implements GitBackend {
   async writePackBitmap(name: string, data: Buffer): Promise<void> {
     const packDir = join(this.gitdir, 'objects', 'pack')
     if (!(await this.fs.exists(packDir))) {
-      await this.fs.mkdir(packDir, { recursive: true })
+      await this.fs.mkdir(packDir)
     }
     const path = join(packDir, name)
     await this.fs.write(path, data)
@@ -314,7 +314,7 @@ export class FilesystemBackend implements GitBackend {
   async writeODBInfoFile(name: string, data: string): Promise<void> {
     const infoDir = join(this.gitdir, 'objects', 'info')
     if (!(await this.fs.exists(infoDir))) {
-      await this.fs.mkdir(infoDir, { recursive: true })
+      await this.fs.mkdir(infoDir)
     }
     const path = join(infoDir, name)
     await this.fs.write(path, Buffer.from(data, 'utf8'))
@@ -342,7 +342,7 @@ export class FilesystemBackend implements GitBackend {
   async writeMultiPackIndex(data: Buffer): Promise<void> {
     const infoDir = join(this.gitdir, 'objects', 'info')
     if (!(await this.fs.exists(infoDir))) {
-      await this.fs.mkdir(infoDir, { recursive: true })
+      await this.fs.mkdir(infoDir)
     }
     const path = join(infoDir, 'multi-pack-index')
     await this.fs.write(path, data)
@@ -372,7 +372,7 @@ export class FilesystemBackend implements GitBackend {
     const path = join(this.gitdir, ref)
     const refDir = path.substring(0, path.lastIndexOf('/'))
     if (refDir && !(await this.fs.exists(refDir))) {
-      await this.fs.mkdir(refDir, { recursive: true })
+      await this.fs.mkdir(refDir)
     }
     await this.fs.write(path, Buffer.from(value + '\n', 'utf8'))
   }
@@ -455,7 +455,7 @@ export class FilesystemBackend implements GitBackend {
     const path = join(this.gitdir, 'logs', ref)
     const logDir = path.substring(0, path.lastIndexOf('/'))
     if (logDir && !(await this.fs.exists(logDir))) {
-      await this.fs.mkdir(logDir, { recursive: true })
+      await this.fs.mkdir(logDir)
     }
     await this.fs.write(path, Buffer.from(data, 'utf8'))
   }
@@ -464,7 +464,7 @@ export class FilesystemBackend implements GitBackend {
     const path = join(this.gitdir, 'logs', ref)
     const logDir = path.substring(0, path.lastIndexOf('/'))
     if (logDir && !(await this.fs.exists(logDir))) {
-      await this.fs.mkdir(logDir, { recursive: true })
+      await this.fs.mkdir(logDir)
     }
     const existing = await this.readReflog(ref)
     const newContent = existing ? existing + entry : entry
@@ -508,7 +508,7 @@ export class FilesystemBackend implements GitBackend {
   async writeInfoFile(name: string, data: string): Promise<void> {
     const infoDir = join(this.gitdir, 'info')
     if (!(await this.fs.exists(infoDir))) {
-      await this.fs.mkdir(infoDir, { recursive: true })
+      await this.fs.mkdir(infoDir)
     }
     const path = join(infoDir, name)
     await this.fs.write(path, Buffer.from(data, 'utf8'))
@@ -540,7 +540,7 @@ export class FilesystemBackend implements GitBackend {
   async writeHook(name: string, data: Buffer): Promise<void> {
     const hooksDir = join(this.gitdir, 'hooks')
     if (!(await this.fs.exists(hooksDir))) {
-      await this.fs.mkdir(hooksDir, { recursive: true })
+      await this.fs.mkdir(hooksDir)
     }
     const path = join(hooksDir, name)
     await this.fs.write(path, data)
@@ -587,7 +587,7 @@ export class FilesystemBackend implements GitBackend {
   async writeSubmoduleConfig(path: string, data: string): Promise<void> {
     const moduleDir = join(this.gitdir, 'modules', path)
     if (!(await this.fs.exists(moduleDir))) {
-      await this.fs.mkdir(moduleDir, { recursive: true })
+      await this.fs.mkdir(moduleDir)
     }
     const fullPath = join(moduleDir, 'config')
     await this.fs.write(fullPath, Buffer.from(data, 'utf8'))
@@ -606,7 +606,7 @@ export class FilesystemBackend implements GitBackend {
   async writeWorktreeConfig(name: string, data: string): Promise<void> {
     const worktreeDir = join(this.gitdir, 'worktrees', name)
     if (!(await this.fs.exists(worktreeDir))) {
-      await this.fs.mkdir(worktreeDir, { recursive: true })
+      await this.fs.mkdir(worktreeDir)
     }
     const path = join(worktreeDir, 'gitdir')
     await this.fs.write(path, Buffer.from(data, 'utf8'))
@@ -660,7 +660,7 @@ export class FilesystemBackend implements GitBackend {
     const lfsDir = join(this.gitdir, 'lfs')
     const fileDir = join(lfsDir, path.substring(0, path.lastIndexOf('/')))
     if (fileDir !== lfsDir && !(await this.fs.exists(fileDir))) {
-      await this.fs.mkdir(fileDir, { recursive: true })
+      await this.fs.mkdir(fileDir)
     }
     const fullPath = join(lfsDir, path)
     await this.fs.write(fullPath, data)
@@ -737,7 +737,7 @@ export class FilesystemBackend implements GitBackend {
     for (const dir of dirs) {
       const path = join(this.gitdir, dir)
       if (!(await this.fs.exists(path))) {
-        await this.fs.mkdir(path, { recursive: true })
+        await this.fs.mkdir(path)
       }
     }
   }

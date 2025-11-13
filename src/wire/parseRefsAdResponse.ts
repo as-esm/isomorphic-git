@@ -27,6 +27,7 @@ export async function parseRefsAdResponse(
 
   // Handle protocol v2 responses (Bitbucket Server doesn't include a `# service=` line)
   if (Buffer.isBuffer(lineOne) && lineOne.toString('utf8').includes('version 2')) {
+    console.log('[Git Protocol] Detected protocol version 2 in first line')
     return parseCapabilitiesV2(read)
   }
 
@@ -44,6 +45,7 @@ export async function parseRefsAdResponse(
 
   // Handle protocol v2 responses
   if (lineTwoStr.includes('version 2')) {
+    console.log('[Git Protocol] Detected protocol version 2 in second line')
     return parseCapabilitiesV2(read)
   }
 
@@ -73,6 +75,7 @@ export async function parseRefsAdResponse(
       }
     }
   }
+  console.log(`[Git Protocol] Using protocol version 1 with ${refs.size} refs and ${capabilities.size} capabilities`)
   return { protocolVersion: 1, capabilities, refs, symrefs }
 }
 

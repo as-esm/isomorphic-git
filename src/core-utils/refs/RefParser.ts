@@ -7,7 +7,8 @@ type LooseRef = {
 /**
  * Parses a packed-refs file buffer
  */
-export const parsePackedRefs = (buffer: Buffer | string): Map<string, string> => {
+export const parsePackedRefs = (buffer: Buffer | string | null | undefined): Map<string, string> => {
+  if (!buffer) return new Map()
   const text = typeof buffer === 'string' ? buffer : buffer.toString('utf8')
   const refs = new Map<string, string>()
   const lines = text.trim().split('\n')

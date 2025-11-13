@@ -1,5 +1,5 @@
 /* eslint-env node, browser, jasmine */
-import { uploadPack, collect } from 'isomorphic-git/internal-apis'
+import { uploadPack, collect } from '../../src/internal-apis.ts'
 
 import { makeFixture } from './__helpers__/FixtureFS.js'
 

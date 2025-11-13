@@ -2,7 +2,7 @@
 import * as path from 'path'
 
 import { packObjects, indexPack, readObject } from 'isomorphic-git'
-import { readObjectPacked } from 'isomorphic-git/internal-apis'
+import { readObjectPacked } from '../../src/internal-apis.ts'
 
 import { makeFixture } from './__helpers__/FixtureFS.js'
 

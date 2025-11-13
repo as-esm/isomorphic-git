@@ -19,8 +19,12 @@ export class GitConfigManager {
     // We can improve efficiency later if needed.
     // TODO: read from full list of git config files
     const normalizedFs = normalizeFs(fs)
-    const text = await normalizedFs.read(`${gitdir}/config`, { encoding: 'utf8' })
-    if (typeof text !== 'string') {
+    const configPath = `${gitdir}/config`
+    if (!(await normalizedFs.exists(configPath))) {
+      throw new Error('Failed to read config file')
+    }
+    const text = await normalizedFs.read(configPath, { encoding: 'utf8' })
+    if (text === null || typeof text !== 'string') {
       throw new Error('Failed to read config file')
     }
     return GitConfig.from(text)

@@ -81,7 +81,9 @@ export const signTag = async ({
 }): Promise<string> => {
   const { signature } = await signer({ payload, secretKey: secretKey ?? '' })
   const normalizedSignature = normalizeNewlines(signature)
-  const signedTag = payload + '\n' + normalizedSignature
+  // payload already ends with '\n' (from payload() function), so just append signature
+  // This matches GitAnnotatedTag.sign() which does payload + signature
+  const signedTag = payload + normalizedSignature
   return signedTag
 }
 

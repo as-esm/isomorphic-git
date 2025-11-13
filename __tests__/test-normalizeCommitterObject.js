@@ -1,7 +1,7 @@
 /* eslint-env node, browser, jasmine */
 
 import { setConfig } from 'isomorphic-git'
-import { normalizeCommitterObject } from 'isomorphic-git/internal-apis'
+import { normalizeCommitterObject } from '../../src/internal-apis.ts'
 
 import { makeFixture } from './__helpers__/FixtureFS.js'
 

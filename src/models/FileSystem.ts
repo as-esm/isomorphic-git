@@ -202,10 +202,19 @@ export class FileSystem {
    */
   async read(
     filepath: string,
-    options: { encoding?: string; autocrlf?: string } = {}
+    optionsOrEncoding: { encoding?: string; autocrlf?: string } | string = {}
   ): Promise<Buffer | string | null> {
     try {
-      let buffer: Buffer | string | Uint8Array = await this._readFile!(filepath, options)
+      // Handle both string encoding and options object
+      const options = typeof optionsOrEncoding === 'string' 
+        ? { encoding: optionsOrEncoding }
+        : optionsOrEncoding
+      // Node.js fs.promises.readFile accepts encoding as string or options object
+      // Pass encoding as string if specified, otherwise pass options object
+      const readOptions: string | { encoding?: string } = options.encoding 
+        ? options.encoding 
+        : options
+      let buffer: Buffer | string | Uint8Array = await this._readFile!(filepath, readOptions)
       if (options.autocrlf === 'true') {
         try {
           buffer = new TextDecoder('utf8', { fatal: true }).decode(

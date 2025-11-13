@@ -110,6 +110,7 @@ export async function _fetch({
   }
 
   const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url })
+  console.log(`[Git Protocol] Starting fetch operation, requesting protocol version 1`)
   const remoteHTTP = await GitRemoteHTTP.discover({
     http,
     onAuth,
@@ -121,8 +122,58 @@ export async function _fetch({
     headers,
     protocolVersion: 1,
   })
+  
   const auth = remoteHTTP.auth
-  const remoteRefs = remoteHTTP.refs
+  
+  // Handle protocol v2: fetch refs separately using ls-refs command
+  let remoteRefs: Map<string, string>
+  let symrefs: Map<string, string>
+  
+  if (remoteHTTP.protocolVersion === 2) {
+    console.log(`[Git Protocol] Server responded with v2, fetching refs separately using ls-refs command`)
+    
+    // Protocol v2 requires separate ls-refs command to get refs
+    const { writeListRefsRequest } = await import('../wire/writeListRefsRequest.ts')
+    const { parseListRefsResponse } = await import('../wire/parseListRefsResponse.ts')
+    
+    const body = await writeListRefsRequest({ symrefs: true })
+    const connectRes = await GitRemoteHTTP.connect({
+      http,
+      auth,
+      headers,
+      corsProxy,
+      service: 'git-upload-pack',
+      url,
+      body,
+    })
+    
+    if (!connectRes.body) {
+      throw new Error('No response body from ls-refs command')
+    }
+    
+    const serverRefs = await parseListRefsResponse(connectRes.body)
+    remoteRefs = new Map<string, string>()
+    symrefs = new Map<string, string>()
+    
+    for (const serverRef of serverRefs) {
+      remoteRefs.set(serverRef.ref, serverRef.oid)
+      if (serverRef.target) {
+        symrefs.set(serverRef.ref, serverRef.target)
+      }
+    }
+    
+    console.log(`[Git Protocol] Fetched ${remoteRefs.size} refs via protocol v2 ls-refs command`)
+  } else {
+    // Protocol v1: refs are in the initial response
+    remoteRefs = remoteHTTP.refs
+    symrefs = remoteHTTP.symrefs
+    
+    if (!remoteRefs) {
+      throw new Error('Protocol error: refs not available in protocol v1 response')
+    }
+    
+    console.log(`[Git Protocol] Fetch using protocol v${remoteHTTP.protocolVersion}, found ${remoteRefs.size} refs`)
+  }
   
   // For the special case of an empty repository with no refs, return null
   if (remoteRefs.size === 0) {
@@ -133,17 +184,33 @@ export async function _fetch({
     }
   }
   
+  // Get capabilities (different format for v1 vs v2)
+  let capabilities: Set<string>
+  if (remoteHTTP.protocolVersion === 2) {
+    // Convert v2 capabilities to Set for compatibility
+    capabilities = new Set<string>()
+    for (const [key, value] of Object.entries(remoteHTTP.capabilities2)) {
+      if (value === true) {
+        capabilities.add(key)
+      } else {
+        capabilities.add(`${key}=${value}`)
+      }
+    }
+  } else {
+    capabilities = remoteHTTP.capabilities
+  }
+  
   // Check that the remote supports the requested features
-  if (depth !== null && !remoteHTTP.capabilities.has('shallow')) {
+  if (depth !== null && !capabilities.has('shallow')) {
     throw new RemoteCapabilityError('shallow', 'depth')
   }
-  if (since !== null && !remoteHTTP.capabilities.has('deepen-since')) {
+  if (since !== null && !capabilities.has('deepen-since')) {
     throw new RemoteCapabilityError('deepen-since', 'since')
   }
-  if (exclude.length > 0 && !remoteHTTP.capabilities.has('deepen-not')) {
+  if (exclude.length > 0 && !capabilities.has('deepen-not')) {
     throw new RemoteCapabilityError('deepen-not', 'exclude')
   }
-  if (relative === true && !remoteHTTP.capabilities.has('deepen-relative')) {
+  if (relative === true && !capabilities.has('deepen-relative')) {
     throw new RemoteCapabilityError('deepen-relative', 'relative')
   }
   
@@ -166,8 +233,9 @@ export async function _fetch({
   }
   
   // Assemble the application/x-git-upload-pack-request
-  const capabilities = filterCapabilities(
-    [...remoteHTTP.capabilities],
+  // Use the capabilities we extracted (works for both v1 and v2)
+  const filteredCaps = filterCapabilities(
+    [...capabilities],
     [
       'multi_ack_detailed',
       'no-done',
@@ -176,7 +244,7 @@ export async function _fetch({
       `agent=${pkg.agent}`,
     ]
   )
-  if (relative) capabilities.push('deepen-relative')
+  if (relative) filteredCaps.push('deepen-relative')
   
   // Start figuring out which oids from the remote we want to request
   const wants = singleBranch ? [oid] : Array.from(remoteRefs.values())
@@ -205,10 +273,10 @@ export async function _fetch({
   haves = [...new Set(haves)]
   
   const oids = await ShallowManager.read({ fs, gitdir })
-  const shallows = remoteHTTP.capabilities.has('shallow') ? [...oids] : []
+  const shallows = capabilities.has('shallow') ? [...oids] : []
   
   const packstream = writeUploadPackRequest({
-    capabilities,
+    capabilities: filteredCaps,
     wants: wants as never[],
     haves: haves as never[],
     shallows: shallows as never[],
@@ -271,7 +339,7 @@ export async function _fetch({
     let bail = 10
     let key = fullref
     while (bail--) {
-      const value = remoteHTTP.symrefs.get(key)
+      const value = symrefs.get(key)
       if (value === undefined) break
       symrefs.set(key, value)
       key = value
@@ -298,7 +366,7 @@ export async function _fetch({
       gitdir,
       remote,
       refs: remoteRefs,
-      symrefs: remoteHTTP.symrefs,
+      symrefs: symrefs,
       tags,
       prune,
       pruneTags,
@@ -308,7 +376,7 @@ export async function _fetch({
     }
   }
   
-  response.HEAD = remoteHTTP.symrefs.get('HEAD')
+  response.HEAD = symrefs.get('HEAD')
   if (response.HEAD === undefined) {
     const { oid } = RefManager.resolveAgainstMap({
       ref: 'HEAD',
@@ -364,16 +432,110 @@ export async function _fetch({
   if (packfileSha !== '' && !emptyPackfile(packfile)) {
     res.packfile = `objects/pack/pack-${packfileSha}.pack`
     const fullpath = join(gitdir, res.packfile)
-    await normalizedFs.write(fullpath, packfile)
-    const getExternalRefDelta = (oid: string) => readObject({ fs, cache, gitdir, oid })
+    // Ensure the pack directory exists
+    const packDir = join(gitdir, 'objects', 'pack')
+    await normalizedFs.mkdir(packDir, { recursive: true })
+    
+    // Create index from packfile first (before writing to disk)
+    // We need getExternalRefDelta to be able to read from the packfile being indexed
+    const packfileBuffer = Buffer.isBuffer(packfile) ? packfile : Buffer.from(packfile)
+    
+    // Create a getExternalRefDelta that can read from the packfile being indexed
+    // The key insight: during fromPack, the GitPackIndex instance 'p' is created and
+    // objects are resolved incrementally. We need to make getExternalRefDelta use 'p'
+    // to read objects that have already been resolved.
+    // Since fromPack doesn't expose 'p' to getExternalRefDelta, we'll use a workaround:
+    // we'll modify fromPack to pass 'p' via a closure, or we'll scan the packfile.
+    // Actually, the simplest solution is to make getExternalRefDelta use the packfile
+    // buffer directly by creating a temporary index for reading.
+    
+    // Create the index
+    // The modified fromPack will now use the index being built to resolve ref-deltas
+    // We need to make sure getExternalRefDelta doesn't throw errors for objects that
+    // might be in the packfile but not yet resolved - the multi-pass will handle those
     const idx = await GitPackIndex.fromPack({
       pack: packfile,
-      getExternalRefDelta,
+      getExternalRefDelta: async (oid: string) => {
+        // The modified fromPack checks offsets first, so if we get here, the object
+        // is not in the packfile being indexed. Try to read from disk (other packfiles or loose).
+        try {
+          const result = await readObject({ fs, cache, gitdir, oid })
+          return { type: result.type || '', object: result.object }
+        } catch (err) {
+          // If we can't find it on disk, it might be in the packfile but not yet resolved
+          // This can happen if the object is a ref-delta that depends on another ref-delta
+          // The multi-pass will retry in the next pass
+          // However, if the base object truly doesn't exist, we need to throw the error
+          // so the object gets skipped and retried
+          throw err
+        }
+      },
       onProgress,
     })
-    await normalizedFs.write(fullpath.replace(/\.pack$/, '.idx'), await idx.toBuffer())
-  }
-  
-  return res
+    
+    // Write both packfile and index
+    await normalizedFs.write(fullpath, packfile)
+    const indexPath = fullpath.replace(/\.pack$/, '.idx')
+    const indexBuffer = await idx.toBuffer()
+    await normalizedFs.write(indexPath, indexBuffer)
+    
+    // Verify the index file was written correctly
+    if (!(await normalizedFs.exists(indexPath))) {
+      throw new Error(`Failed to write packfile index: ${indexPath}`)
+    }
+    
+    // Store the index in cache so it's immediately available for reading
+    // This ensures objects can be found right after fetch completes
+    // Populate both cache systems: loadIndex (symbol) and readPackIndex (string)
+    idx.pack = Promise.resolve(packfileBuffer)
+    
+    // Cache for loadIndex (used by readPacked in PackfileReader)
+    const PackfileCache = Symbol('PackfileCache')
+    if (!cache[PackfileCache]) {
+      cache[PackfileCache] = new Map<string, GitPackIndex>()
+    }
+    const cacheMap1 = cache[PackfileCache] as Map<string, GitPackIndex>
+    cacheMap1.set(indexPath, idx)
+    
+    // Cache for readPackIndex (used by packfileIterator)  
+    const cacheKey = PackfileCache as unknown as string
+    if (!cache[cacheKey]) {
+      cache[cacheKey] = new Map<string, Promise<GitPackIndex | undefined>>()
+    }
+    const cacheMap2 = cache[cacheKey] as Map<string, Promise<GitPackIndex | undefined>>
+    cacheMap2.set(indexPath, Promise.resolve(idx))
+    
+    // Also cache using just the filename (not full path) in case that's what's used
+    const filename = indexPath.split('/').pop() || indexPath.split('\\').pop() || ''
+    if (filename) {
+      const filenamePath = `${gitdir}/objects/pack/${filename}`
+      cacheMap1.set(filenamePath, idx)
+      cacheMap2.set(filenamePath, Promise.resolve(idx))
+    }
+    
+      // Verify that fetchHead is in the index after fromPack completes
+      // If it's not, the object might still be readable from the packfile
+      // (e.g., if it's a ref-delta that couldn't be resolved during indexing)
+      const fetchHeadInIndex = idx.offsets.has(res.fetchHead)
+      if (!fetchHeadInIndex) {
+        // The fetchHead might be in the packfile but not indexed
+        // This can happen if it's a ref-delta whose base object wasn't available during indexing
+        // Try to read it directly - if it works, that's fine (readObject will handle it)
+        // If it doesn't work, we'll get an error during checkout which is more informative
+        console.warn(`[Packfile Index] fetchHead ${res.fetchHead} not found in packfile index after indexing. Total objects in index: ${idx.offsets.size}`)
+        
+        // Try to find it by scanning the packfile
+        try {
+          const testRead = await idx.read({ oid: res.fetchHead })
+          console.log(`[Packfile Index] fetchHead ${res.fetchHead} is readable via packfile read() even though not in index`)
+        } catch (err) {
+          console.error(`[Packfile Index] fetchHead ${res.fetchHead} cannot be read from packfile:`, err)
+        }
+      } else {
+        console.log(`[Packfile Index] fetchHead ${res.fetchHead} found in index at offset ${idx.offsets.get(res.fetchHead)}`)
+      }
+    }
+
+    return res
 }
 

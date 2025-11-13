@@ -1,4 +1,4 @@
-import { FileSystem } from 'isomorphic-git/internal-apis'
+import { FileSystem } from '../../../src/models/FileSystem.ts'
 
 // this is so it works with either Node local tests or Browser WAN tests
 const localhost =

@@ -11,7 +11,7 @@ import {
   WORKDIR,
   walk,
 } from 'isomorphic-git'
-import { GitIndexManager, modified } from 'isomorphic-git/internal-apis'
+import { GitIndexManager, modified } from '../../src/internal-apis.ts'
 
 import { makeFixture } from './__helpers__/FixtureFS.js'
 

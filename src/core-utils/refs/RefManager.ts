@@ -2,6 +2,7 @@ import { InvalidOidError } from "../../errors/InvalidOidError.ts"
 import { NotFoundError } from "../../errors/NotFoundError.ts"
 import { parsePackedRefs } from './RefParser.ts'
 import { join } from '../GitPath.ts'
+import { dirname } from '../../utils/dirname.ts'
 import AsyncLock from 'async-lock'
 import type { FsClient } from "../../models/FileSystem.ts"
 
@@ -69,9 +70,15 @@ export class RefManager {
     for (const refPath of allpaths) {
       const sha = await acquireLock(refPath, async () => {
         try {
-          const looseRef = await fs.read(`${gitdir}/${refPath}`, { encoding: 'utf8' })
+          const looseRef = await fs.read(join(gitdir, refPath), 'utf8')
           if (looseRef) {
-            return looseRef as string
+            // Handle both string and Buffer returns
+            if (typeof looseRef === 'string') {
+              return looseRef
+            }
+            if (Buffer.isBuffer(looseRef)) {
+              return looseRef.toString('utf8')
+            }
           }
         } catch {
           // File doesn't exist, try packed refs
@@ -144,7 +151,14 @@ export class RefManager {
     if (!value.match(/[0-9a-f]{40}/)) {
       throw new InvalidOidError(value)
     }
-    await acquireLock(ref, async () => fs.write(join(gitdir, ref), `${value.trim()}\n`, 'utf8'))
+    await acquireLock(ref, async () => {
+      const path = join(gitdir, ref)
+      const refDir = dirname(path)
+      if (refDir && refDir !== gitdir && !(await fs.exists(refDir))) {
+        await fs.mkdir(refDir)
+      }
+      await fs.write(path, `${value.trim()}\n`, 'utf8')
+    })
   }
 
   /**
@@ -161,7 +175,14 @@ export class RefManager {
     ref: string
     value: string
   }): Promise<void> {
-    await acquireLock(ref, async () => fs.write(join(gitdir, ref), 'ref: ' + `${value.trim()}\n`, 'utf8'))
+    await acquireLock(ref, async () => {
+      const path = join(gitdir, ref)
+      const refDir = dirname(path)
+      if (refDir && refDir !== gitdir && !(await fs.exists(refDir))) {
+        await fs.mkdir(refDir)
+      }
+      await fs.write(path, 'ref: ' + `${value.trim()}\n`, 'utf8')
+    })
   }
 
   /**

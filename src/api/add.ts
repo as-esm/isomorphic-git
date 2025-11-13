@@ -65,7 +65,19 @@ export async function add({
     } catch (err) {
       // Index doesn't exist yet
     }
-    const index = await parseIndex(indexBuffer)
+    
+    // Handle empty index - create a minimal index object with default version
+    let index: IndexObject
+    if (indexBuffer.length === 0) {
+      // Empty index - create a minimal index object with default version
+      index = {
+        entries: new Map(),
+        unmergedPaths: new Set(),
+        version: 2, // Default index version
+      }
+    } else {
+      index = await parseIndex(indexBuffer)
+    }
     
     // Read config
     let configBuffer: Buffer<ArrayBuffer> = Buffer.alloc(0)

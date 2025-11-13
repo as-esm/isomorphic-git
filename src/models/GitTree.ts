@@ -103,6 +103,12 @@ function nudgeIntoShape(
   if (!entry.type) {
     entry.type = mode2type(entry.mode)
   }
+  // Check for missing or empty path/oid - allow empty strings only if they're already complete TreeEntry objects
+  // (which shouldn't happen, but handle gracefully)
+  if (entry.path === undefined || entry.oid === undefined) {
+    throw new InternalError('Entry missing path or oid')
+  }
+  // If path or oid are empty strings, that's also invalid
   if (!entry.path || !entry.oid) {
     throw new InternalError('Entry missing path or oid')
   }
@@ -121,13 +127,31 @@ export class GitTree {
     if (Buffer.isBuffer(entries)) {
       this._entries = parseBuffer(entries)
     } else if (Array.isArray(entries)) {
-      this._entries = entries.map(nudgeIntoShape)
+      // Check if entries are already complete TreeEntry objects (have all required fields)
+      // If so, use them directly; otherwise, nudge them into shape
+      this._entries = entries.map(entry => {
+        // If entry already has all required fields and they're non-empty, use it as-is
+        if (entry.mode && entry.path && entry.oid && entry.type) {
+          // Validate it's a complete entry
+          if (typeof entry.mode === 'string' && entry.path && entry.oid) {
+            return {
+              mode: limitModeToAllowed(entry.mode),
+              path: entry.path,
+              oid: entry.oid,
+              type: entry.type,
+            }
+          }
+        }
+        // Otherwise, nudge into shape (for partial entries)
+        return nudgeIntoShape(entry)
+      })
     } else {
       throw new InternalError('invalid type passed to GitTree constructor')
     }
-    // Tree entries are not sorted alphabetically in the usual sense (see `compareTreeEntryPath`)
-    // but it is important later on that these be sorted in the same order as they would be returned from readdir.
-    this._entries.sort(comparePath)
+    // Tree entries must be sorted using compareTreeEntryPath to match git's sorting
+    // (Git sorts tree entries as if there is a trailing slash on directory names)
+    // This ensures consistent serialization/deserialization
+    this._entries.sort(compareTreeEntryPath)
   }
 
   static from(

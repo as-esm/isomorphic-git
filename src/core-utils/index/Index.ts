@@ -87,12 +87,8 @@ export const parse = async (buffer: Buffer | Uint8Array): Promise<IndexObject> =
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer)
   
   if (buf.length === 0) {
-    // Empty index - return empty structure
-    return {
-      entries: new Map(),
-      unmergedPaths: new Set(),
-      version: 2,
-    }
+    // Empty index - throw error
+    throw new InternalError('Index file is empty (.git/index)')
   }
 
   const reader = new BufferCursor(buf)

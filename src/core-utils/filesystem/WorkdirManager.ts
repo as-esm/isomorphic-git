@@ -228,7 +228,7 @@ export const executeCheckout = async ({
       // Ensure directory exists
       const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'))
       if (dirPath) {
-        await fs.mkdir(dirPath, { recursive: true })
+        await fs.mkdir(dirPath)
       }
 
       // Write the file
@@ -278,7 +278,7 @@ export const executeCheckout = async ({
       }
     } else if (op[0] === 'mkdir') {
       const fullPath = join(dir, op[1] as string)
-      await fs.mkdir(fullPath, { recursive: true })
+      await fs.mkdir(fullPath)
     }
   }
 
