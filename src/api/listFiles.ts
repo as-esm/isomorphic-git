@@ -48,10 +48,24 @@ export async function listFiles({
     }
     assertParameter('gitdir', gitdir)
 
+    // CRITICAL: Resolve gitdir through Repository to ensure consistency with add()
+    // This ensures that add() and listFiles() use the same gitdir path and cache entry
+    let effectiveGitdir = gitdir
+    try {
+      const { Repository } = await import('../core-utils/Repository.ts')
+      const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+      effectiveGitdir = await repo.getGitdir()
+      // Use the repository's cache to ensure consistency
+      // Repository.open uses the provided cache if given, so repo.cache === cache
+    } catch {
+      // If Repository.open fails, use provided gitdir
+      effectiveGitdir = gitdir
+    }
+
     return await _listFiles({
       fs: normalizeFs(fs) as any,
       cache,
-      gitdir,
+      gitdir: effectiveGitdir,
       ref,
     })
   } catch (err) {

@@ -9,7 +9,7 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { ServerRef } from "../managers/GitRefManager.ts"
+import type { ServerRef } from "../git/refs/types.ts"
 
 /**
  * Fetch a list of refs (branches, tags, etc) from a server.

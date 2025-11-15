@@ -1,4 +1,4 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { listRefs } from "../git/refs/listRefs.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -48,10 +48,11 @@ export async function listBranches({
       throw new Error('gitdir is required')
     }
     assertParameter('gitdir', gitdir)
-    return GitRefManager.listBranches({
+    const filepath = remote ? `refs/remotes/${remote}` : 'refs/heads'
+    return listRefs({
       fs: normalizeFs(fs) as any,
       gitdir,
-      remote,
+      filepath,
     })
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.listBranches'

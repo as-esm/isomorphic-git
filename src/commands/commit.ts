@@ -1,8 +1,9 @@
 import { MissingNameError } from "../errors/MissingNameError.ts"
 import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { NoCommitError } from "../errors/NoCommitError.ts"
+import { UnmergedPathsError } from "../errors/UnmergedPathsError.ts"
 import { parse as parseIndex, serialize as serializeIndex } from "../core-utils/index/Index.ts"
-import { RefManager } from "../core-utils/refs/RefManager.ts"
+// RefManager import removed - using Repository.resolveRef/writeRef methods instead
 import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
 import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
 import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
@@ -61,29 +62,60 @@ export async function _commit({
   // Extract parameters from Repository if provided
   const fs = repo?.fs || _fs!
   const cache = repo?.cache || _cache || {}
-  const gitdir = _gitdir || (repo ? await repo.getGitdir() : undefined)
+  let gitdir = _gitdir || (repo ? await repo.getGitdir() : undefined)
   
   if (!fs) throw new MissingParameterError('fs')
   if (!gitdir) throw new MissingParameterError('gitdir')
+  
+  // If Repository is provided, use worktree's gitdir to ensure we're using the correct index
+  if (repo) {
+    const worktree = repo.getWorktree()
+    if (worktree) {
+      gitdir = await worktree.getGitdir()
+    }
+  }
   // Determine ref and the commit pointed to by ref, and if it is the initial commit
   let initialCommit = false
   if (!ref) {
-    ref = await RefManager.resolve({
-      fs,
-      gitdir,
-      ref: 'HEAD',
-      depth: 2,
-    })
+    // Try to resolve HEAD to get the ref (e.g., 'refs/heads/master')
+    // If HEAD doesn't exist (fresh repo), we'll determine the default branch
+    try {
+      // Use Repository.resolveRef() or direct resolveRef() for consistency
+      if (repo) {
+        ref = await repo.resolveRef('HEAD', 2) // depth 2 to resolve symbolic refs
+      } else {
+        const { resolveRef } = await import('../git/refs/readRef.ts')
+        ref = await resolveRef({ fs, gitdir, ref: 'HEAD', depth: 2 })
+      }
+    } catch {
+      // HEAD doesn't exist - get default branch from config (defaults to 'master')
+      let defaultBranch = 'master'
+      try {
+        const { ConfigAccess } = await import('../utils/configAccess.ts')
+        const configAccess = new ConfigAccess(fs, gitdir)
+        const initDefaultBranch = await configAccess.getConfigValue('init.defaultBranch')
+        if (initDefaultBranch && typeof initDefaultBranch === 'string') {
+          defaultBranch = initDefaultBranch
+        }
+      } catch {
+        // Config doesn't exist or can't be read, use 'master'
+      }
+      // Default to the branch ref (will create branch and set HEAD to point to it)
+      ref = `refs/heads/${defaultBranch}`
+    }
   }
 
+  // Try to resolve the ref to get the commit OID
   let refOid: string | undefined
   let refCommit: CommitObject | undefined
   try {
-    refOid = await RefManager.resolve({
-      fs,
-      gitdir,
-      ref,
-    })
+    // Use Repository.resolveRef() or direct resolveRef() for consistency
+    if (repo) {
+      refOid = await repo.resolveRef(ref)
+    } else {
+      const { resolveRef } = await import('../git/refs/readRef.ts')
+      refOid = await resolveRef({ fs, gitdir, ref })
+    }
     const commitResult = await readObject({ fs, cache, gitdir, oid: refOid, format: 'content' })
     if (commitResult.type === 'commit') {
       refCommit = parseCommit(commitResult.object) as CommitObject
@@ -93,18 +125,20 @@ export async function _commit({
     initialCommit = true
   }
 
+  // If amend is requested but there's no commit to amend, throw error
   if (amend && initialCommit) {
     throw new NoCommitError(ref)
   }
 
   // Determine author and committer information
   const author = !amend
-    ? await normalizeAuthorObject({ fs, gitdir, author: _author })
+    ? await normalizeAuthorObject({ fs, gitdir, author: _author, repo })
     : await normalizeAuthorObject({
         fs,
         gitdir,
         author: _author,
         commit: refCommit,
+        repo,
       })
   if (!author) throw new MissingNameError('author')
 
@@ -114,6 +148,7 @@ export async function _commit({
         gitdir,
         author,
         committer: _committer,
+        repo,
       })
     : await normalizeCommitterObject({
         fs,
@@ -121,6 +156,7 @@ export async function _commit({
         author,
         committer: _committer,
         commit: refCommit,
+        repo,
       })
   if (!committer) throw new MissingNameError('committer')
 
@@ -131,31 +167,65 @@ export async function _commit({
 
   const indexPath = join(gitdir, 'index')
   return indexLock.acquire(indexPath, async () => {
-    // Read index
-    let indexBuffer = Buffer.alloc(0)
-    try {
-      const indexData = await fs.read(indexPath)
-      indexBuffer = Buffer.isBuffer(indexData) ? indexData : Buffer.from(indexData as string | Uint8Array)
-    } catch {
-      // Index doesn't exist yet
-    }
-
-    // Handle empty index - create an empty index object instead of parsing
+    // Read index using Repository.readIndexDirect() if repo is available
+    // This ensures proper unmerged paths detection
     let index
-    if (indexBuffer.length === 0) {
-      // Empty index - create a minimal index object with default version
-      index = {
-        entries: new Map(),
-        unmergedPaths: new Set(),
-        version: 2, // Default index version
+    if (repo) {
+      try {
+        index = await repo.readIndexDirect(false, false) // Force fresh read, allowUnmerged: false
+        // If there are unmerged paths, readIndexDirect will throw UnmergedPathsError
+      } catch (error) {
+        // If readIndexDirect throws UnmergedPathsError, re-throw it
+        if (error instanceof UnmergedPathsError) {
+          throw error
+        }
+        // For other errors, fall back to direct file read
+        let indexBuffer = Buffer.alloc(0)
+        try {
+          const indexData = await fs.read(indexPath)
+          indexBuffer = Buffer.isBuffer(indexData) ? indexData : Buffer.from(indexData as string | Uint8Array)
+        } catch {
+          // Index doesn't exist yet
+        }
+        if (indexBuffer.length === 0) {
+          index = {
+            entries: new Map(),
+            unmergedPaths: new Set(),
+            version: 2,
+          }
+        } else {
+          index = await parseIndex(indexBuffer)
+        }
+        if (index.unmergedPaths.size > 0) {
+          throw new UnmergedPathsError(Array.from(index.unmergedPaths))
+        }
       }
     } else {
-      index = await parseIndex(indexBuffer)
-    }
+      // Fallback: read index directly from file
+      let indexBuffer = Buffer.alloc(0)
+      try {
+        const indexData = await fs.read(indexPath)
+        indexBuffer = Buffer.isBuffer(indexData) ? indexData : Buffer.from(indexData as string | Uint8Array)
+      } catch {
+        // Index doesn't exist yet
+      }
 
-    // Check for unmerged paths
-    if (index.unmergedPaths.size > 0) {
-      throw new Error(`Cannot commit: unmerged paths: ${Array.from(index.unmergedPaths).join(', ')}`)
+      // Handle empty index - create an empty index object instead of parsing
+      if (indexBuffer.length === 0) {
+        // Empty index - create a minimal index object with default version
+        index = {
+          entries: new Map(),
+          unmergedPaths: new Set(),
+          version: 2, // Default index version
+        }
+      } else {
+        index = await parseIndex(indexBuffer)
+      }
+
+      // Check for unmerged paths
+      if (index.unmergedPaths.size > 0) {
+        throw new UnmergedPathsError(Array.from(index.unmergedPaths))
+      }
     }
 
     // Build tree from index
@@ -181,11 +251,17 @@ export async function _commit({
       }
     } else {
       // ensure that the parents are oids, not refs
-      commitParents = await Promise.all(
-        parent.map(p => {
-          return RefManager.resolve({ fs, gitdir, ref: p })
-        })
-      )
+      // Use Repository.resolveRef() or direct resolveRef() for consistency
+      if (repo) {
+        commitParents = await Promise.all(
+          parent.map(p => repo.resolveRef(p))
+        )
+      } else {
+        const { resolveRef } = await import('../git/refs/readRef.ts')
+        commitParents = await Promise.all(
+          parent.map(p => resolveRef({ fs, gitdir, ref: p }))
+        )
+      }
     }
 
     // Determine message of this commit
@@ -237,12 +313,57 @@ export async function _commit({
     if (!noUpdateBranch && !dryRun) {
       // Update branch pointer
       const oldOid = refOid || '0000000000000000000000000000000000000000'
-      await RefManager.writeRef({
-        fs,
-        gitdir,
-        ref,
-        value: oid,
-      })
+      
+      // For initial commits, we need to:
+      // 1. Create the branch ref (e.g., refs/heads/master)
+      // 2. Set HEAD to point to that branch (if HEAD doesn't exist or is detached)
+      if (initialCommit && ref.startsWith('refs/heads/')) {
+        // Write the branch ref
+        if (repo) {
+          await repo.writeRef(ref, oid)
+        } else {
+          const { writeRef } = await import('../git/refs/writeRef.ts')
+          await writeRef({ fs, gitdir, ref, value: oid })
+        }
+        
+        // Set HEAD to point to this branch (if HEAD doesn't exist or is detached)
+        try {
+          // Try to read HEAD to see if it exists and what it points to
+          const { readRef } = await import('../git/refs/readRef.ts')
+          const headRef = await readRef({ fs, gitdir, ref: 'HEAD' })
+          // If HEAD exists and is already a symbolic ref pointing to our branch, we're good
+          if (headRef && typeof headRef === 'string' && headRef.startsWith('ref: ') && headRef.includes(ref)) {
+            // HEAD already points to this branch, nothing to do
+          } else {
+            // HEAD is detached or doesn't exist, update it
+            const branchName = ref.replace('refs/heads/', '')
+            if (repo) {
+              await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${branchName}`)
+            } else {
+              const { writeSymbolicRef } = await import('../git/refs/writeRef.ts')
+              await writeSymbolicRef({ fs, gitdir, ref: 'HEAD', value: `refs/heads/${branchName}` })
+            }
+          }
+        } catch {
+          // HEAD doesn't exist, create it as a symbolic ref pointing to the branch
+          const branchName = ref.replace('refs/heads/', '')
+          if (repo) {
+            await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${branchName}`)
+          } else {
+            const { writeSymbolicRef } = await import('../git/refs/writeRef.ts')
+            await writeSymbolicRef({ fs, gitdir, ref: 'HEAD', value: `refs/heads/${branchName}` })
+          }
+        }
+      } else {
+        // Normal commit - just update the ref
+        // Use Repository.writeRef() or direct writeRef() for consistency
+        if (repo) {
+          await repo.writeRef(ref, oid)
+        } else {
+          const { writeRef } = await import('../git/refs/writeRef.ts')
+          await writeRef({ fs, gitdir, ref, value: oid })
+        }
+      }
 
       // Write reflog entry
       try {

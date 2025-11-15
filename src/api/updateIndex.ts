@@ -1,6 +1,5 @@
 import { InvalidFilepathError } from "../errors/InvalidFilepathError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
-import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { _writeObject } from "../storage/writeObject.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
@@ -79,32 +78,34 @@ export async function updateIndex({
     const fs = normalizeFs(_fs)
 
     if (remove) {
-      return await GitIndexManager.acquire(
-        { fs, gitdir, cache },
-        async function (index) {
-          if (!force) {
-            // Check if the file is still present in the working directory
-            const fileStats = await fs.lstat(join(dir, filepath))
+      // Use Repository.readIndexDirect() and writeIndexDirect() for consistency
+      const { Repository } = await import('../core-utils/Repository.ts')
+      const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
+      const index = await repo.readIndexDirect(false) // Force fresh read
+      
+      if (!force) {
+        // Check if the file is still present in the working directory
+        const fileStats = await fs.lstat(join(dir, filepath))
 
-            if (fileStats) {
-              if (fileStats.isDirectory()) {
-                // Removing directories should not work
-                throw new InvalidFilepathError('directory')
-              }
-
-              // Do nothing if we don't force and the file still exists in the workdir
-              return
-            }
+        if (fileStats) {
+          if (fileStats.isDirectory()) {
+            // Removing directories should not work
+            throw new InvalidFilepathError('directory')
           }
 
-          // Directories are not allowed, so we make sure the provided filepath exists in the index
-          if (index.has({ filepath })) {
-            index.delete({
-              filepath,
-            })
-          }
+          // Do nothing if we don't force and the file still exists in the workdir
+          return
         }
-      )
+      }
+
+      // Directories are not allowed, so we make sure the provided filepath exists in the index
+      if (index.has({ filepath })) {
+        index.delete({
+          filepath,
+        })
+        await repo.writeIndexDirect(index)
+      }
+      return
     }
 
     // Test if it is a file and exists on disk if `remove` is not provided, only of no oid is provided
@@ -124,55 +125,56 @@ export async function updateIndex({
       }
     }
 
-    return await GitIndexManager.acquire(
-      { fs, gitdir, cache },
-      async function (index) {
-        if (!add && !index.has({ filepath })) {
-          // If the index does not contain the filepath yet and `add` is not set, we should throw
-          throw new NotFoundError(
-            `file at "${filepath}" in index and "add" not set`
-          )
-        }
+    // Use Repository.readIndexDirect() and writeIndexDirect() for consistency
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false) // Force fresh read
+    
+    if (!add && !index.has({ filepath })) {
+      // If the index does not contain the filepath yet and `add` is not set, we should throw
+      throw new NotFoundError(
+        `file at "${filepath}" in index and "add" not set`
+      )
+    }
 
-        let stats: any
-        if (!oid) {
-          stats = fileStats
+    let stats: any
+    if (!oid) {
+      stats = fileStats
 
-          // Write the file to the object database
-          const object = stats.isSymbolicLink()
-            ? await fs.readlink(join(dir, filepath))
-            : await fs.read(join(dir, filepath))
+      // Write the file to the object database
+      const object = stats.isSymbolicLink()
+        ? await fs.readlink(join(dir, filepath))
+        : await fs.read(join(dir, filepath))
 
-          oid = await _writeObject({
-            fs,
-            gitdir,
-            type: 'blob',
-            format: 'content',
-            object,
-          })
-        } else {
-          // By default we use 0 for the stats of the index file
-          stats = {
-            ctime: new Date(0),
-            mtime: new Date(0),
-            dev: 0,
-            ino: 0,
-            mode,
-            uid: 0,
-            gid: 0,
-            size: 0,
-          }
-        }
-
-        index.insert({
-          filepath,
-          oid,
-          stats,
-        })
-
-        return oid
+      oid = await _writeObject({
+        fs,
+        gitdir,
+        type: 'blob',
+        format: 'content',
+        object,
+      })
+    } else {
+      // By default we use 0 for the stats of the index file
+      stats = {
+        ctime: new Date(0),
+        mtime: new Date(0),
+        dev: 0,
+        ino: 0,
+        mode,
+        uid: 0,
+        gid: 0,
+        size: 0,
       }
-    )
+    }
+
+    index.insert({
+      filepath,
+      oid,
+      stats,
+    })
+
+    await repo.writeIndexDirect(index)
+    return oid
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.updateIndex'
     throw err

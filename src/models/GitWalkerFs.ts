@@ -1,11 +1,11 @@
 import { ConfigAccess } from "../utils/configAccess.ts"
-import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { compareStats } from "../utils/compareStats.ts"
 import { join } from "../utils/join.ts"
 import { normalizeStats } from "../utils/normalizeStats.ts"
 import { shasum } from "../utils/shasum.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
-import type { FsClient, Stat } from './FileSystem.ts'
+import type { Repository } from "../core-utils/Repository.ts"
+import type { Stat } from './FileSystem.ts'
 import type { WalkerEntry } from './Walker.ts'
 
 import { GitObject } from './GitObject.ts'
@@ -21,28 +21,12 @@ type WorkdirEntry = {
 }
 
 export class GitWalkerFs {
-  fs: FsClient
-  cache: Record<string, unknown>
-  dir: string
-  gitdir: string
+  private repo: Repository
   configAccess: ConfigAccess | null = null
   ConstructEntry: new (fullpath: string) => WorkdirEntry
 
-  constructor({
-    fs,
-    dir,
-    gitdir,
-    cache,
-  }: {
-    fs: FsClient
-    dir: string
-    gitdir: string
-    cache: Record<string, unknown>
-  }) {
-    this.fs = fs
-    this.cache = cache
-    this.dir = dir
-    this.gitdir = gitdir
+  constructor({ repo }: { repo: Repository }) {
+    this.repo = repo
 
     this.configAccess = null
     const walker = this
@@ -88,8 +72,8 @@ export class GitWalkerFs {
 
   async readdir(entry: WorkdirEntry): Promise<string[] | null> {
     const filepath = entry._fullpath
-    const { fs, dir } = this
-    const normalizedFs = normalizeFs(fs)
+    const dir = this.repo.dir!
+    const normalizedFs = normalizeFs(this.repo.fs)
     const names = await normalizedFs.readdir(join(dir, filepath))
     if (names === null) return null
     return names.map(name => join(filepath, name))
@@ -111,8 +95,8 @@ export class GitWalkerFs {
 
   async stat(entry: WorkdirEntry): Promise<Stat | undefined> {
     if (entry._stat === false) {
-      const { fs, dir } = this
-      const normalizedFs = normalizeFs(fs)
+      const dir = this.repo.dir!
+      const normalizedFs = normalizeFs(this.repo.fs)
       let stat = await normalizedFs.lstat(`${dir}/${entry._fullpath}`)
       if (!stat) {
         throw new Error(
@@ -137,12 +121,14 @@ export class GitWalkerFs {
 
   async content(entry: WorkdirEntry): Promise<Uint8Array | undefined> {
     if (entry._content === false) {
-      const { fs, dir, gitdir } = this
+      const dir = this.repo.dir!
+      const gitdir = await this.repo.getGitdir()
+      const fs = this.repo.fs
       const normalizedFs = normalizeFs(fs)
       if ((await this.type(entry)) === 'tree') {
         entry._content = undefined
       } else {
-        const configAccess = await this._getConfigAccess(fs, gitdir)
+        const configAccess = await this._getConfigAccess(this.repo.fs, gitdir)
         const autocrlf = (await configAccess.getConfigValue('core.autocrlf')) as string | undefined
         const content = await normalizedFs.read(`${dir}/${entry._fullpath}`, { autocrlf })
         if (content) {
@@ -163,61 +149,58 @@ export class GitWalkerFs {
 
   async oid(entry: WorkdirEntry): Promise<string | undefined> {
     if (entry._oid === false) {
-      const self = this
-      const { fs, gitdir, cache } = this
       let oid: string | undefined
       // See if we can use the SHA1 hash in the index.
-      await GitIndexManager.acquire(
-        { fs, gitdir, cache },
-        async function (index) {
-          const stage = index.entriesMap.get(entry._fullpath)
-          const stats = await this.stat(entry)
-          if (!stats) {
+      const index = await this.repo.readIndexDirect()
+      const stage = index.entriesMap.get(entry._fullpath)
+      const stats = await this.stat(entry)
+      if (!stats) {
+        oid = undefined
+      } else {
+        const gitdir = await this.repo.getGitdir()
+        const configAccess = await this._getConfigAccess(this.repo.fs, gitdir)
+        const filemode = (await configAccess.getConfigValue('core.filemode')) as boolean | undefined
+        const trustino =
+          typeof process !== 'undefined'
+            ? !(process.platform === 'win32')
+            : true
+        if (!stage || compareStats(stats, stage, filemode, trustino)) {
+          const content = await this.content(entry)
+          if (content === undefined) {
             oid = undefined
-            return
-          }
-          const configAccess = await self._getConfigAccess(fs, gitdir)
-          const filemode = (await configAccess.getConfigValue('core.filemode')) as boolean | undefined
-          const trustino =
-            typeof process !== 'undefined'
-              ? !(process.platform === 'win32')
-              : true
-          if (!stage || compareStats(stats, stage, filemode, trustino)) {
-            const content = await this.content(entry)
-            if (content === undefined) {
-              oid = undefined
-            } else {
-              oid = await shasum(
-                GitObject.wrap({ type: 'blob', object: content })
-              )
-              // Update the stats in the index so we will get a "cache hit" next time
-              // 1) if we can (because the oid and mode are the same)
-              // 2) and only if we need to (because other stats differ)
-              if (
-                stage &&
-                oid === stage.oid &&
-                (!filemode || stats.mode === stage.mode) &&
-                compareStats(stats, stage, filemode, trustino)
-              ) {
-                index.insert({
-                  filepath: entry._fullpath,
-                  stats,
-                  oid,
-                })
-              }
-            }
           } else {
-            // Use the index SHA1 rather than compute it
-            oid = stage.oid
+            oid = await shasum(
+              GitObject.wrap({ type: 'blob', object: content })
+            )
+            // Update the stats in the index so we will get a "cache hit" next time
+            // 1) if we can (because the oid and mode are the same)
+            // 2) and only if we need to (because other stats differ)
+            if (
+              stage &&
+              oid === stage.oid &&
+              (!filemode || stats.mode === stage.mode) &&
+              compareStats(stats, stage, filemode, trustino)
+            ) {
+              index.insert({
+                filepath: entry._fullpath,
+                stats,
+                oid,
+              })
+              // Write the updated index back
+              await this.repo.writeIndexDirect(index)
+            }
           }
+        } else {
+          // Use the index SHA1 rather than compute it
+          oid = stage.oid
         }
-      )
+      }
       entry._oid = oid
     }
     return entry._oid
   }
 
-  async _getConfigAccess(fs: FsClient, gitdir: string): Promise<ConfigAccess> {
+  async _getConfigAccess(fs: any, gitdir: string): Promise<ConfigAccess> {
     if (!this.configAccess) {
       this.configAccess = new ConfigAccess(fs, gitdir)
     }

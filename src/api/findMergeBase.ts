@@ -39,7 +39,11 @@ export async function findMergeBase({
       gitdir: gitdir!,
       oids,
     })
-    return Array.isArray(result) ? result[0] : result
+    // Return first result if array, or undefined if empty array, or the result itself if not an array
+    if (Array.isArray(result)) {
+      return result.length > 0 ? result[0] : undefined
+    }
+    return result
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.findMergeBase'
     throw err

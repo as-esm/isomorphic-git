@@ -1,5 +1,4 @@
-import { GitIndexManager } from "../managers/GitIndexManager.ts"
-import { GitRefManager } from "../managers/GitRefManager.ts"
+// GitRefManager import removed - using src/git/refs/ functions instead
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { hashObject } from "../utils/hashObject.ts"
@@ -53,8 +52,9 @@ export async function resetIndex({
     let workdirOid: string | undefined
 
     try {
-      // Resolve commit
-      oid = await GitRefManager.resolve({ fs, gitdir, ref: ref || 'HEAD' })
+      // Resolve commit - use direct resolveRef() for consistency
+      const { resolveRef } = await import('../git/refs/readRef.ts')
+      oid = await resolveRef({ fs, gitdir, ref: ref || 'HEAD' })
     } catch (e) {
       if (ref) {
         // Only throw the error if a ref is explicitly provided
@@ -106,15 +106,16 @@ export async function resetIndex({
         stats = await fs.lstat(join(dir, filepath))
       }
     }
-    await GitIndexManager.acquire(
-      { fs, gitdir, cache },
-      async function (index) {
-        index.delete({ filepath })
-        if (oid) {
-          index.insert({ filepath, stats, oid })
-        }
-      }
-    )
+    // Use Repository.readIndexDirect() and writeIndexDirect() for consistency
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false) // Force fresh read
+    
+    index.delete({ filepath })
+    if (oid) {
+      index.insert({ filepath, stats, oid })
+    }
+    await repo.writeIndexDirect(index)
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.reset'
     throw err

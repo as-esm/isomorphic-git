@@ -56,6 +56,7 @@ import { renameBranch } from './api/renameBranch.ts'
 import { resetIndex } from './api/resetIndex.ts'
 import { resolveRef } from './api/resolveRef.ts'
 import { setConfig } from './api/setConfig.ts'
+import { sparseCheckout } from './api/sparseCheckout.ts'
 import { stash } from './api/stash.ts'
 import { status } from './api/status.ts'
 import { statusMatrix } from './api/statusMatrix.ts'
@@ -133,6 +134,7 @@ export {
   resolveRef,
   status,
   statusMatrix,
+  sparseCheckout,
   tag,
   version,
   walk,
@@ -163,6 +165,7 @@ export default {
   getConfig,
   getConfigAll,
   setConfig,
+  sparseCheckout,
   currentBranch,
   deleteBranch,
   deleteRef,
@@ -207,6 +210,7 @@ export default {
   resolveRef,
   status,
   statusMatrix,
+  sparseCheckout,
   tag,
   version,
   walk,

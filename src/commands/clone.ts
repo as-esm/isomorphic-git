@@ -138,7 +138,7 @@ export async function _clone({
       
       // Initialize empty index (don't copy from source)
       // Create an empty index file with version 2 header and proper checksum
-      const { GitIndex } = await import('../models/GitIndex.ts')
+      const { GitIndex } = await import('../git/index/GitIndex.ts')
       const emptyIndex = new GitIndex()
       const indexBuffer = await emptyIndex.toObject()
       await fs.write(join(gitdir, 'index'), indexBuffer)
@@ -234,7 +234,7 @@ export async function _clone({
     await _init({ fs, gitdir })
     
     // Initialize empty index file (required for checkout)
-    const { GitIndex } = await import('../models/GitIndex.ts')
+    const { GitIndex } = await import('../git/index/GitIndex.ts')
     const emptyIndex = new GitIndex()
     const indexBuffer = await emptyIndex.toObject()
     await fs.write(join(gitdir, 'index'), indexBuffer)

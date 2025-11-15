@@ -82,10 +82,10 @@ const pkgify = (input, output, name) => {
 }
 
 export default [
-  ecmaConfig('index.js', 'index.js'),
-  nodeConfig('index.js', 'index.cjs'),
-  ecmaConfig('internal-apis.js', 'internal-apis.js'),
-  nodeConfig('internal-apis.js', 'internal-apis.cjs'),
+  ecmaConfig('index.ts', 'index.js'),
+  nodeConfig('index.ts', 'index.cjs'),
+  ecmaConfig('internal-apis.ts', 'internal-apis.js'),
+  nodeConfig('internal-apis.ts', 'internal-apis.cjs'),
   ecmaConfig('managers/index.js', 'managers/index.js'),
   nodeConfig('managers/index.js', 'managers/index.cjs'),
   ecmaConfig('models/index.js', 'models/index.js'),

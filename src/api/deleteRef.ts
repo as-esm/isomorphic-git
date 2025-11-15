@@ -1,4 +1,4 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { deleteRefs } from "../git/refs/deleteRef.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -35,7 +35,7 @@ export async function deleteRef({
     assertParameter('fs', fs)
     assertParameter('gitdir', gitdir!)
     assertParameter('ref', ref)
-    await GitRefManager.deleteRef({ fs: normalizeFs(fs) as any, gitdir: gitdir!, ref })
+    await deleteRefs({ fs: normalizeFs(fs) as any, gitdir: gitdir!, refs: [ref] })
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.deleteRef'
     throw err

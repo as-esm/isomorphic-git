@@ -11,6 +11,7 @@ import { InvalidRefNameError } from "../errors/InvalidRefNameError.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
+import { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
 // ============================================================================
@@ -92,6 +93,7 @@ export async function stash({
   op = 'push',
   message = '',
   refIdx = 0,
+  cache = {},
 }: {
   fs: FsClient
   dir: string
@@ -99,6 +101,7 @@ export async function stash({
   op?: StashOp
   message?: string
   refIdx?: number
+  cache?: Record<string, unknown>
 }): Promise<string | void> {
   assertParameter('fs', fs)
   assertParameter('dir', dir)
@@ -118,6 +121,27 @@ export async function stash({
   const opsNeedRefIdx: StashOp[] = ['apply', 'drop', 'pop']
 
   try {
+    // Use Repository to ensure consistent context and error handling
+    // IMPORTANT: Use the provided cache directly to ensure add() and stash() share the same cache
+    // Don't overwrite cache with repo.cache - Repository.open uses the provided cache if given
+    // CRITICAL: Don't overwrite gitdir - use the provided gitdir to ensure we read config from the correct location
+    // Repository.open() might find a different gitdir if dir is not the exact working directory
+    let repo: Repository | undefined
+    try {
+      // Use the provided gitdir if available, otherwise let Repository.open() find it
+      if (gitdir) {
+        // Create Repository with explicit gitdir to avoid _findRoot() finding wrong path
+        repo = new (await import('../core-utils/Repository.ts')).Repository(fs, dir, gitdir, cache, undefined, undefined)
+      } else {
+        repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+        gitdir = await repo.getGitdir()
+      }
+      // Don't overwrite cache - Repository uses the provided cache, so repo.cache === cache
+      // This ensures add() and stash() use the same cache instance
+    } catch {
+      // If Repository.open fails, continue with provided gitdir
+    }
+
     const _fs = normalizeFs(fs)
     const folders = ['refs', 'logs', 'logs/refs']
     await Promise.all(
@@ -138,7 +162,7 @@ export async function stash({
           'number that is in range of [0, num of stash pushed]'
         )
       }
-      return await opFunc({ fs: _fs, dir, gitdir, message, refIdx })
+      return await opFunc({ fs: _fs, dir, gitdir, message, refIdx, cache, repo })
     }
     throw new Error(`To be implemented: ${op}`)
   } catch (err) {

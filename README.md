@@ -26,6 +26,16 @@ But they don't write much code, mainly do code review and try to answer to issue
 
 If you want to help this project you're more than welcome to do so.
 
+## Project State and Development Plans
+
+For detailed information about the current project state, ongoing work, architectural plans, and implementation status, see **[PROJECT_STATE.md](./PROJECT_STATE.md)**.
+
+**Quick Summary**:
+- **Test Status**: 484+ passing / 572 total (improving)
+- **Recent Fixes**: Index cache management, merge conflict detection, sparse checkout cone mode
+- **Active Work**: Repository centralization, checkout/stash improvements, code structure refactoring
+- **Architecture**: Migrating to match `.git` directory structure for better maintainability
+
 ## Supported Environments
 
 The following environments are tested in CI and will continue to be supported until the next breaking version:

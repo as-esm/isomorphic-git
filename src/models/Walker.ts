@@ -5,11 +5,13 @@ import type { FsClient, Stat } from './FileSystem.ts'
 // WALKER TYPES
 // ============================================================================
 
+import type { Repository } from "../core-utils/Repository.ts"
+
 /**
  * Walker - an opaque handle for tree traversal
  */
 export type Walker = {
-  [GitWalkSymbol]: (args: { fs: FsClient; dir?: string; gitdir: string; cache: Record<string, unknown> }) => unknown
+  [GitWalkSymbol]: (args: { repo: Repository }) => Promise<unknown>
 }
 
 /**

@@ -119,6 +119,11 @@ export async function checkout({
     assertParameter('dir', dir)
     assertParameter('gitdir', gitdir)
 
+    // Use Repository to get worktree context
+    // This ensures checkout uses the correct worktree's gitdir and staging area
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+
     const ref = _ref || 'HEAD'
     return await _checkout({
       fs: normalizeFs(fs) as any,
@@ -126,7 +131,7 @@ export async function checkout({
       onProgress,
       onPostCheckout,
       dir,
-      gitdir,
+      gitdir, // gitdir will be resolved from worktree in _checkout
       remote,
       ref,
       filepaths,

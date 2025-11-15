@@ -2,8 +2,25 @@ import { test } from 'node:test'
 import assert from 'node:assert'
 import { init, getConfig, setConfig } from 'isomorphic-git'
 import { makeFixture } from '../helpers/fixture.ts'
+import { join } from '../../src/utils/join.ts'
 
 test('init', async (t) => {
+  await t.test('init creates repository', async () => {
+    const { fs, dir } = await makeFixture('test-empty')
+    
+    // Initialize a new repository
+    await init({ fs, dir })
+    
+    const gitdir = join(dir, '.git')
+    // Verify gitdir exists
+    const exists = await fs.exists(gitdir)
+    assert.strictEqual(exists, true)
+    
+    // Verify config exists
+    const configExists = await fs.exists(join(gitdir, 'config'))
+    assert.strictEqual(configExists, true)
+  })
+
   await t.test('init', async () => {
     const { fs, dir } = await makeFixture('test-init')
     await init({ fs, dir })

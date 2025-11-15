@@ -19,12 +19,22 @@ export function cleanupTempDirs() {
 }
 
 const testsDir = resolve(import.meta.dirname, '..')
+const projectRoot = resolve(testsDir, '..')
 
 export async function useTempDir(fixture) {
-  const fixturePath = await findUp(join('__fixtures__', fixture), {
-    cwd: testsDir,
+  // Check new location first: tests/__fixtures__/
+  let fixturePath = await findUp(join('__fixtures__', fixture), {
+    cwd: join(projectRoot, 'tests'),
     type: 'directory',
   })
+  
+  // Fallback to old location: __tests__/__fixtures__/
+  if (!fixturePath) {
+    fixturePath = await findUp(join('__fixtures__', fixture), {
+      cwd: testsDir,
+      type: 'directory',
+    })
+  }
 
   const tempDir = await _fs.promises.mkdtemp(TEMP_PATH)
   TEMP_DIRS_CREATED.add(tempDir)

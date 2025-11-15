@@ -2,7 +2,9 @@ import cleanGitRef from 'clean-git-ref'
 
 import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
 import { InvalidRefNameError } from "../errors/InvalidRefNameError.ts"
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { resolveRef as resolveRefDirect } from "../git/refs/readRef.ts"
+import { writeRef as writeRefDirect, writeSymbolicRef as writeSymbolicRefDirect } from "../git/refs/writeRef.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import validRef from "../utils/isValidRef.ts"
@@ -70,24 +72,31 @@ export async function writeRef({
       throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
     }
 
-    if (!force && (await GitRefManager.exists({ fs, gitdir, ref }))) {
-      throw new AlreadyExistsError('ref', ref)
+    if (!force) {
+      try {
+        await resolveRefDirect({ fs, gitdir, ref })
+        throw new AlreadyExistsError('ref', ref)
+      } catch (err) {
+        if (err instanceof AlreadyExistsError) throw err
+        // NotFoundError means ref doesn't exist, which is fine
+        if (!(err instanceof NotFoundError)) throw err
+      }
     }
 
     if (symbolic) {
-      await GitRefManager.writeSymbolicRef({
+      await writeSymbolicRefDirect({
         fs,
         gitdir,
         ref,
         value,
       })
     } else {
-      value = await GitRefManager.resolve({
+      value = await resolveRefDirect({
         fs,
         gitdir,
         ref: value,
       })
-      await GitRefManager.writeRef({
+      await writeRefDirect({
         fs,
         gitdir,
         ref,

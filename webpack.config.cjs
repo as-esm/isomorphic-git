@@ -7,8 +7,8 @@ module.exports = [
   {
     target: 'webworker',
     entry: {
-      index: './src/index.js',
-      'internal-apis': './src/internal-apis.js',
+      index: './src/index.ts',
+      'internal-apis': './src/internal-apis.ts',
       'managers/index': './src/managers/index.js',
       'models/index': './src/models/index.js'
     },

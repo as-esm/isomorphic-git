@@ -3,7 +3,10 @@ import cleanGitRef from 'clean-git-ref'
 import { _currentBranch } from "../commands/currentBranch.ts"
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { resolveRef } from "../git/refs/readRef.ts"
+import { writeRef, writeSymbolicRef } from "../git/refs/writeRef.ts"
+import { deleteRefs } from "../git/refs/deleteRef.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
 import validRef from "../utils/isValidRef.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
@@ -43,21 +46,25 @@ export async function _renameBranch({
   const fulloldref = `refs/heads/${oldref}`
   const fullnewref = `refs/heads/${ref}`
 
-  const newexist = await GitRefManager.exists({ fs, gitdir, ref: fullnewref })
-
-  if (newexist) {
+  // Check if new branch already exists
+  try {
+    await resolveRef({ fs, gitdir, ref: fullnewref })
     throw new AlreadyExistsError('branch', ref, false)
+  } catch (err) {
+    if (err instanceof AlreadyExistsError) throw err
+    // NotFoundError means branch doesn't exist, which is fine
+    if (!(err instanceof NotFoundError)) throw err
   }
 
-  const value = await GitRefManager.resolve({
+  const value = await resolveRef({
     fs,
     gitdir,
     ref: fulloldref,
     depth: 1,
   })
 
-  await GitRefManager.writeRef({ fs, gitdir, ref: fullnewref, value })
-  await GitRefManager.deleteRef({ fs, gitdir, ref: fulloldref })
+  await writeRef({ fs, gitdir, ref: fullnewref, value })
+  await deleteRefs({ fs, gitdir, refs: [fulloldref] })
 
   const fullCurrentBranchRef = await _currentBranch({
     fs,
@@ -68,7 +75,7 @@ export async function _renameBranch({
 
   if (checkout || isCurrentBranch) {
     // Update HEAD
-    await GitRefManager.writeSymbolicRef({
+    await writeSymbolicRef({
       fs,
       gitdir,
       ref: 'HEAD',

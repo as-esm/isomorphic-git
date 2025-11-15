@@ -39,16 +39,30 @@ export async function readObjectPacked({
           return null
         }
         const { normalizeFs } = await import('../utils/normalizeFs.ts')
+        const { readPackIndex } = await import('./readPackIndex.ts')
         const normalizedFs = normalizeFs(fs)
+        
+        // Get the actual GitPackIndex instance from cache to load the pack
+        const indexFile = `${gitdir}/objects/pack/${filename}`
+        const packIndexInstance = await readPackIndex({ fs, cache, filename: indexFile, getExternalRefDelta })
+        if (!packIndexInstance) {
+          return null
+        }
+        
+        // Load the pack if not already loaded
         if (!p.pack) {
-          const indexFile = `${gitdir}/objects/pack/${filename}`
           const packFile = indexFile.replace(/idx$/, 'pack')
           const packData = await normalizedFs.read(packFile)
           if (!packData) {
             return null
           }
-          p.pack = Promise.resolve(Buffer.isBuffer(packData) ? packData : Buffer.from(packData as string | Uint8Array))
+          const packBuffer = Buffer.isBuffer(packData) ? packData : Buffer.from(packData as string | Uint8Array)
+          await packIndexInstance.load({ pack: Promise.resolve(packBuffer) })
+        } else {
+          // Ensure pack is loaded on the instance
+          await packIndexInstance.load({ pack: p.pack })
         }
+        
         const readResult = await p.read({ oid })
         const result = readResult as ReadObjectPackedResult
         result.format = 'content'

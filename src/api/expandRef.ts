@@ -1,8 +1,19 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { NotFoundError } from "../errors/NotFoundError.ts"
+import { parsePackedRefs } from "../core-utils/refs/RefParser.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
+
+// @see https://git-scm.com/docs/git-rev-parse.html#_specifying_revisions
+const refpaths = (ref: string): string[] => [
+  `${ref}`,
+  `refs/${ref}`,
+  `refs/tags/${ref}`,
+  `refs/heads/${ref}`,
+  `refs/remotes/${ref}`,
+  `refs/remotes/${ref}/HEAD`,
+]
 
 /**
  * Expand an abbreviated ref to its full name
@@ -35,11 +46,40 @@ export async function expandRef({
     assertParameter('fs', fs)
     assertParameter('gitdir', gitdir!)
     assertParameter('ref', ref)
-    return await GitRefManager.expand({
-      fs: normalizeFs(fs) as any,
-      gitdir: gitdir!,
-      ref,
-    })
+    
+    const normalizedFs = normalizeFs(fs)
+    
+    // Is it a complete and valid SHA?
+    if (ref.length === 40 && /[0-9a-f]{40}/.test(ref)) {
+      return ref
+    }
+    
+    // Read packed refs
+    let packedMap = new Map<string, string>()
+    try {
+      const packedRefsPath = join(gitdir!, 'packed-refs')
+      const content = await normalizedFs.read(packedRefsPath, 'utf8')
+      if (typeof content === 'string') {
+        packedMap = parsePackedRefs(content)
+      }
+    } catch {
+      // packed-refs doesn't exist, that's okay
+    }
+    
+    // Look in all the proper paths, in this order
+    const allpaths = refpaths(ref)
+    for (const refPath of allpaths) {
+      try {
+        const exists = await normalizedFs.exists(join(gitdir!, refPath))
+        if (exists) return refPath
+      } catch {
+        // Continue to next path
+      }
+      if (packedMap.has(refPath)) return refPath
+    }
+    
+    // Do we give up?
+    throw new NotFoundError(ref)
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.expandRef'
     throw err

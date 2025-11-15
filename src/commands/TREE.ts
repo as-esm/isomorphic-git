@@ -1,7 +1,7 @@
 import { GitWalkerRepo } from "../models/GitWalkerRepo.ts"
 import { GitWalkSymbol } from "../utils/symbols.ts"
 import type { Walker } from "../models/Walker.ts"
-import type { FsClient } from "../models/FileSystem.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 
 /**
  * @param {object} args
@@ -11,8 +11,10 @@ import type { FsClient } from "../models/FileSystem.ts"
 export function TREE({ ref = 'HEAD' }: { ref?: string } = {}): Walker {
   const o = Object.create(null)
   Object.defineProperty(o, GitWalkSymbol, {
-    value: function ({ fs, gitdir, cache }: { fs: FsClient; gitdir: string; cache: Record<string, unknown> }) {
-      return new GitWalkerRepo({ fs, gitdir, ref, cache })
+    value: async function ({ repo }: { repo: Repository }) {
+      // Ensure gitdir is resolved
+      const gitdir = await repo.getGitdir()
+      return new GitWalkerRepo({ fs: repo.fs, gitdir, ref, cache: repo.cache })
     },
   })
   Object.freeze(o)

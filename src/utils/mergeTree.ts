@@ -2,28 +2,27 @@ import { TREE } from '../commands/TREE.ts'
 import { _walk } from '../commands/walk.ts'
 import { MergeConflictError } from '../errors/MergeConflictError.ts'
 import { MergeNotSupportedError } from '../errors/MergeNotSupportedError.ts'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import { GitTree } from "../models/GitTree.ts"
 import { _writeObject as writeObject } from "../storage/writeObject.ts"
 import { basename } from './basename.ts'
 import { join } from './join.ts'
 import { mergeFile } from './mergeFile.ts'
-import { modified } from './modified.ts'
+import { modified, detectThreeWayChange } from './changeDetection.ts'
 import { normalizeFs } from './normalizeFs.ts'
+import type { Repository } from '../core-utils/Repository.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 import type { MergeDriverCallback, MergeDriverParams } from "../core-utils/algorithms/MergeManager.ts"
 import type { ObjectType } from "../models/GitObject.ts"
 import type { TreeEntry } from "../models/GitTree.ts"
 import type { WalkerEntry } from "../models/Walker.ts"
-import type { GitIndex } from "../models/GitIndex.ts"
+import type { GitIndex } from "../git/index/GitIndex.ts"
 
 /**
  * Create a merged tree
  *
  * @param {Object} args
- * @param {import('../types.ts').FsClient} args.fs
- * @param {object} args.cache
- * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
- * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {Repository} args.repo - Repository instance
  * @param {string} args.ourOid - The SHA-1 object id of our tree
  * @param {string} args.baseOid - The SHA-1 object id of the base tree
  * @param {string} args.theirOid - The SHA-1 object id of their tree
@@ -38,10 +37,7 @@ import type { GitIndex } from "../models/GitIndex.ts"
  *
  */
 export async function mergeTree({
-  fs,
-  cache,
-  dir,
-  gitdir = dir ? join(dir, '.git') : undefined,
+  repo,
   index,
   ourOid,
   baseOid,
@@ -53,10 +49,7 @@ export async function mergeTree({
   abortOnConflict = true,
   mergeDriver,
 }: {
-  fs: FsClient
-  cache: Record<string, unknown>
-  dir?: string
-  gitdir?: string
+  repo: Repository
   index: GitIndex
   ourOid: string
   baseOid: string
@@ -68,9 +61,11 @@ export async function mergeTree({
   abortOnConflict?: boolean
   mergeDriver?: MergeDriverCallback
 }): Promise<string | MergeConflictError> {
-  if (!gitdir) {
-    throw new Error('gitdir is required')
-  }
+  // Extract components from Repository for consistent state
+  const fs = repo.fs
+  const cache = repo.cache
+  const dir = repo.dir || undefined
+  const gitdir = await repo.getGitdir()
   const ourTree = TREE({ ref: ourOid })
   const baseTree = TREE({ ref: baseOid })
   const theirTree = TREE({ ref: theirOid })
@@ -80,68 +75,125 @@ export async function mergeTree({
   const deleteByUs: string[] = []
   const deleteByTheirs: string[] = []
 
-  const results = await _walk({
-    fs,
-    cache,
-    dir,
-    gitdir,
-    trees: [ourTree, baseTree, theirTree],
-    map: async function (filepath: string, [ours, base, theirs]: (WalkerEntry | null)[]): Promise<TreeEntry | undefined> {
-      const path = basename(filepath)
-      // What we did, what they did
-      const ourChange = await modified(ours, base)
-      const theirChange = await modified(theirs, base)
-      switch (`${ourChange}-${theirChange}`) {
-        case 'false-false': {
-          if (!base) return undefined
-      return {
-        mode: (await base.mode()).toString(8).padStart(6, '0'),
-        path,
-        oid: await base.oid(),
-        type: (await base.type()) as ObjectType,
-      }
-        }
-        case 'false-true': {
-          // if directory is deleted in theirs but not in ours we return our directory
-          if (!theirs && ours && (await ours.type()) === 'tree') {
-            return {
-              mode: (await ours.mode()).toString(8).padStart(6, '0'),
-              path,
-              oid: await ours.oid(),
-              type: (await ours.type()) as ObjectType,
-            }
-          }
+  // Store conflicted file contents (with markers) to write to worktree
+  // Map: filepath -> { content: string, mode: number }
+  // We'll populate this when conflicts are detected
+  const conflictedFiles: Map<string, { content: string; mode: number }> = new Map()
 
-          return theirs
-            ? {
-                mode: (await theirs.mode()).toString(8).padStart(6, '0'),
-                path,
-                oid: await theirs.oid(),
-                type: (await theirs.type()) as ObjectType,
-              }
-            : undefined
+  // Store tree OIDs for error reporting
+  const treeOids = { baseOid, ourOid, theirOid }
+  
+  let results
+  let walkError: Error | null = null
+  try {
+    results = await _walk({
+      repo,
+      trees: [ourTree, baseTree, theirTree],
+      map: async function (filepath: string, [ours, base, theirs]: (WalkerEntry | null)[]): Promise<TreeEntry | undefined> {
+      const path = basename(filepath)
+      
+      // Use centralized three-way change detection
+      const { ourChange, theirChange, ourOid, baseOid, theirOid } = await detectThreeWayChange(ours, base, theirs)
+      
+      // Determine the change pattern
+      // false-false: neither changed (unchanged)
+      // false-true: we deleted, they modified/added
+      // true-false: we modified/added, they deleted
+      // true-true: both modified/added (potential conflict)
+      
+      if (!ourChange && !theirChange) {
+        // Neither changed - return base (if it exists)
+        if (!base) return undefined
+        return {
+          mode: (await base.mode()).toString(8).padStart(6, '0'),
+          path,
+          oid: baseOid!,
+          type: (await base.type()) as ObjectType,
         }
-        case 'true-false': {
-          // if directory is deleted in ours but not in theirs we return their directory
-          if (!ours && theirs && (await theirs.type()) === 'tree') {
+      }
+      
+      if (!ourChange && theirChange) {
+        // We didn't change, they did - accept their changes
+        // Ours deleted it (false), theirs has it (true)
+        // Check if theirs matches base (unchanged) or is different (modified)
+        if (base && theirs) {
+          const baseType = await base.type()
+          const theirType = await theirs.type()
+          
+          // If theirs matches base (unchanged), it's a delete/modify conflict
+          // Native git treats this as a conflict when we delete and they keep it unchanged
+          // But if they modified it, we should keep their version
+          if (baseType === theirType && baseOid === theirOid) {
+            // They kept it unchanged, we deleted it - this is a conflict
+            // But for now, native git seems to accept their version (keep the file)
+            // This matches the behavior where deleting a file that wasn't modified is not a conflict
             return {
               mode: (await theirs.mode()).toString(8).padStart(6, '0'),
               path,
-              oid: await theirs.oid(),
+              oid: theirOid!,
+              type: (await theirs.type()) as ObjectType,
+            }
+          } else {
+            // They modified it, so keep their version
+            return {
+              mode: (await theirs.mode()).toString(8).padStart(6, '0'),
+              path,
+              oid: theirOid!,
               type: (await theirs.type()) as ObjectType,
             }
           }
-
-          return ours
-            ? {
-                mode: (await ours.mode()).toString(8).padStart(6, '0'),
-                path,
-                oid: await ours.oid(),
-                type: (await ours.type()) as ObjectType,
-              }
-            : undefined
         }
-        case 'true-true': {
+        
+        // if directory is deleted in theirs but not in ours we return our directory
+        if (!theirs && ours && (await ours.type()) === 'tree') {
+          return {
+            mode: (await ours.mode()).toString(8).padStart(6, '0'),
+            path,
+            oid: ourOid!,
+            type: (await ours.type()) as ObjectType,
+          }
+        }
+
+        // If base doesn't exist and ours doesn't exist, include theirs (they added it)
+        // This handles the case where they added a file that we don't have
+        if (!base && !ours && theirs) {
+          return {
+            mode: (await theirs.mode()).toString(8).padStart(6, '0'),
+            path,
+            oid: theirOid!,
+            type: (await theirs.type()) as ObjectType,
+          }
+        }
+
+        // Base exists and ours matches base, so include their changes
+        return theirs
+          ? {
+              mode: (await theirs.mode()).toString(8).padStart(6, '0'),
+              path,
+              oid: theirOid!,
+              type: (await theirs.type()) as ObjectType,
+            }
+          : undefined
+      }
+      
+      if (ourChange && !theirChange) {
+        // We changed, they didn't - keep our changes
+        // Ours has it (true), theirs deleted it (false)
+        // Native git behavior: always keep ours when we have it and they deleted it
+        // This is NOT a conflict - we simply keep the file
+        if (ours) {
+          return {
+            mode: (await ours.mode()).toString(8).padStart(6, '0'),
+            path,
+            oid: ourOid!,
+            type: (await ours.type()) as ObjectType,
+          }
+        }
+        return undefined
+      }
+      
+      // Both changed (ourChange && theirChange) - potential conflict
+      {
           // Handle tree-tree merges (directories)
           if (
             ours &&
@@ -149,12 +201,22 @@ export async function mergeTree({
             (await ours.type()) === 'tree' &&
             (await theirs.type()) === 'tree'
           ) {
-            return {
-              mode: (await ours.mode()).toString(8).padStart(6, '0'),
-              path,
-              oid: await ours.oid(),
-              type: 'tree',
+            // Check if trees are the same - if so, return either one
+            // OIDs already computed by detectThreeWayChange
+            if (ourOid === theirOid) {
+              // Trees are identical, return either one
+              return {
+                mode: (await ours.mode()).toString(8).padStart(6, '0'),
+                path,
+                oid: ourOid!,
+                type: 'tree',
+              }
             }
+            // Trees are different - need to recursively merge them
+            // Return undefined to let the walker continue recursively
+            // The walker will automatically handle the recursive merge
+            // by walking into both trees and merging their contents
+            return undefined
           }
 
           // Modifications - both are blobs
@@ -164,7 +226,7 @@ export async function mergeTree({
             (await ours.type()) === 'blob' &&
             (await theirs.type()) === 'blob'
           ) {
-            return mergeBlobs({
+            const r = await mergeBlobs({
               fs,
               gitdir,
               path,
@@ -175,35 +237,47 @@ export async function mergeTree({
               baseName,
               theirName,
               mergeDriver,
-            }).then(async r => {
-              if (!r.cleanMerge) {
-                unmergedFiles.push(filepath)
-                bothModified.push(filepath)
-                if (!abortOnConflict) {
-                  let baseOidValue = ''
-                  if (base && (await base.type()) === 'blob') {
-                    baseOidValue = await base.oid()
-                  }
-                  const ourOidValue = await ours.oid()
-                  const theirOidValue = await theirs.oid()
-
-                  index.delete({ filepath })
-
-                  if (baseOidValue && base) {
-                    const baseStats = await base.stat()
-                    index.insert({ filepath, stats: baseStats, oid: baseOidValue, stage: 1 })
-                  }
-                  const ourStats = await ours.stat()
-                  index.insert({ filepath, stats: ourStats, oid: ourOidValue, stage: 2 })
-                  const theirStats = await theirs.stat()
-                  index.insert({ filepath, stats: theirStats, oid: theirOidValue, stage: 3 })
-                }
-              } else if (!abortOnConflict) {
-                const stats = await ours.stat()
-                index.insert({ filepath, stats, oid: r.mergeResult.oid, stage: 0 })
-              }
-              return r.mergeResult
             })
+            if (!r.cleanMerge) {
+              // Use filepath (full path) for unmergedFiles tracking
+              unmergedFiles.push(filepath)
+              bothModified.push(filepath)
+              if (!abortOnConflict) {
+                // OIDs already computed by detectThreeWayChange
+                const baseOidValue = baseOid || ''
+                const ourOidValue = ourOid || (ours ? await ours.oid() : '')
+                const theirOidValue = theirOid || (theirs ? await theirs.oid() : '')
+
+                // Delete existing entry for this filepath
+                index.delete({ filepath })
+
+                // Insert conflicted stages into index
+                if (baseOidValue && base) {
+                  const baseStats = await base.stat()
+                  index.insert({ filepath, stats: baseStats, oid: baseOidValue, stage: 1 })
+                }
+                const ourStats = await ours.stat()
+                index.insert({ filepath, stats: ourStats, oid: ourOidValue, stage: 2 })
+                const theirStats = await theirs.stat()
+                index.insert({ filepath, stats: theirStats, oid: theirOidValue, stage: 3 })
+
+                // Store conflicted content to write to worktree
+                // The conflicted content (with markers) is already generated by mergeFile
+                // Only store if we're not aborting on conflict (abortOnConflict = false)
+                if (dir && !dryRun && !abortOnConflict && r.mergedText) {
+                  const mode = parseInt(r.mergeResult.mode, 8)
+                  conflictedFiles.set(filepath, { content: r.mergedText, mode })
+                }
+              }
+              // Return undefined so conflicted files don't get added to the tree
+              return undefined
+            } else {
+              // Clean merge - update index with merged result (regardless of abortOnConflict)
+              // When mergeDriver returns cleanMerge: true, the conflict is resolved
+              const stats = await ours.stat()
+              index.insert({ filepath, stats, oid: r.mergeResult.oid, stage: 0 })
+            }
+            return r.mergeResult
           }
 
           // deleted by us
@@ -217,8 +291,9 @@ export async function mergeTree({
             unmergedFiles.push(filepath)
             deleteByUs.push(filepath)
             if (!abortOnConflict) {
-              const baseOidValue = await base.oid()
-              const theirOidValue = await theirs.oid()
+              // OIDs already computed by detectThreeWayChange
+              const baseOidValue = baseOid || await base.oid()
+              const theirOidValue = theirOid || await theirs.oid()
 
               index.delete({ filepath })
 
@@ -227,13 +302,8 @@ export async function mergeTree({
               const theirStats = await theirs.stat()
               index.insert({ filepath, stats: theirStats, oid: theirOidValue, stage: 3 })
             }
-
-            return {
-              mode: (await theirs.mode()).toString(8).padStart(6, '0'),
-              oid: await theirs.oid(),
-              type: 'blob',
-              path,
-            }
+            // Return undefined so conflicted files don't get added to the tree
+            return undefined
           }
 
           // deleted by theirs
@@ -247,8 +317,9 @@ export async function mergeTree({
             unmergedFiles.push(filepath)
             deleteByTheirs.push(filepath)
             if (!abortOnConflict) {
-              const baseOidValue = await base.oid()
-              const ourOidValue = await ours.oid()
+              // OIDs already computed by detectThreeWayChange
+              const baseOidValue = baseOid || await base.oid()
+              const ourOidValue = ourOid || await ours.oid()
 
               index.delete({ filepath })
 
@@ -257,13 +328,8 @@ export async function mergeTree({
               const ourStats = await ours.stat()
               index.insert({ filepath, stats: ourStats, oid: ourOidValue, stage: 2 })
             }
-
-            return {
-              mode: (await ours.mode()).toString(8).padStart(6, '0'),
-              oid: await ours.oid(),
-              type: 'blob',
-              path,
-            }
+            // Return undefined so conflicted files don't get added to the tree
+            return undefined
           }
 
           // deleted by both
@@ -286,68 +352,141 @@ export async function mergeTree({
      * @param {TreeEntry} [parent]
      * @param {Array<TreeEntry>} children
      */
-    reduce:
-      unmergedFiles.length !== 0 && (!dir || abortOnConflict)
-        ? undefined
-        : async (parent: TreeEntry | undefined, children: TreeEntry[]): Promise<TreeEntry | undefined> => {
-            const entries = children.filter(Boolean) // remove undefineds
+    reduce: async (parent: TreeEntry | undefined, children: TreeEntry[]): Promise<TreeEntry | undefined> => {
+      // If we have conflicts and abortOnConflict is true, we still need to build the tree structure
+      // to detect all conflicts, but we can skip writing objects to save time
+      // The key is that we still need to return a valid tree structure so the walk completes
+      // and we can detect all conflicts before throwing MergeConflictError
+      // However, if abortOnConflict is false, we build the tree (without conflicted files)
+      // and then return MergeConflictError at the end
+      // For now, always build the tree structure to ensure all conflicts are detected
+      
+      const entries = children.filter(Boolean) // remove undefineds
 
-            // if the parent was deleted, the children have to go
-            if (!parent) return undefined
+      // if the parent was deleted, the children have to go
+      if (!parent) return undefined
 
-            // automatically delete directories if they have been emptied
-            // except for the root directory
-            if (
-              parent &&
-              parent.type === 'tree' &&
-              entries.length === 0 &&
-              parent.path !== '.'
-            )
-              return undefined
+      // automatically delete directories if they have been emptied
+      // except for the root directory
+      if (
+        parent &&
+        parent.type === 'tree' &&
+        entries.length === 0 &&
+        parent.path !== '.'
+      )
+        return undefined
 
-            if (
-              entries.length > 0 ||
-              (parent.path === '.' && entries.length === 0)
-            ) {
-              const tree = new GitTree(entries)
-              const object = tree.toObject()
-              const oid = await writeObject({
-                fs,
-                gitdir,
-                type: 'tree',
-                object,
-                dryRun,
-              })
-              parent.oid = oid
-            }
-            return parent
-          },
+      if (
+        entries.length > 0 ||
+        (parent.path === '.' && entries.length === 0)
+      ) {
+        const tree = new GitTree(entries)
+        const object = tree.toObject()
+        const oid = await writeObject({
+          fs,
+          gitdir,
+          type: 'tree',
+          object,
+          dryRun,
+        })
+        parent.oid = oid
+      }
+      return parent
+    },
   })
-
-  if (unmergedFiles.length !== 0) {
-    if (dir && !abortOnConflict) {
-      const normalizedFs = normalizeFs(fs)
-      await _walk({
-        fs,
-        cache,
-        dir,
-        gitdir,
-        trees: [TREE({ ref: results.oid })],
-        map: async function (filepath: string, [entry]: (WalkerEntry | null)[]): Promise<boolean> {
-          if (!entry) return false
-          const path = `${dir}/${filepath}`
-          if ((await entry.type()) === 'blob') {
-            const mode = await entry.mode()
-            const content = await entry.content()
-            if (content) {
-              const contentStr = new TextDecoder().decode(content)
-              await normalizedFs.write(path, contentStr, { mode })
-            }
-          }
-          return true
-        },
-      })
+  } catch (error) {
+    // Store the error but don't throw yet - we need to check for conflicts first
+    walkError = error as Error
+    
+    // If the walk fails due to missing objects, provide better error context
+    if (error instanceof NotFoundError) {
+      const errorMessage = (error as any).data?.what || error.message || 'unknown'
+      // Ensure treeOids are available for error message
+      const baseTree = treeOids.baseOid || 'unknown'
+      const ourTree = treeOids.ourOid || 'unknown'
+      const theirTree = treeOids.theirOid || 'unknown'
+      
+      // If the error already has a detailed message (from readdir), preserve it and add context
+      if (errorMessage.includes('referenced at path')) {
+        walkError = new NotFoundError(
+          `${errorMessage} ` +
+          `Base tree: ${baseTree}, Our tree: ${ourTree}, Their tree: ${theirTree}`
+        )
+      } else {
+        // Otherwise, extract OID and create a new error message
+        const oidMatch = errorMessage.match(/[a-f0-9]{40}/i)
+        const oid = oidMatch ? oidMatch[0] : errorMessage
+        walkError = new NotFoundError(
+          `Tree object ${oid} does not exist in the object database during merge. ` +
+          `This indicates a repository integrity issue. The merge cannot proceed without all referenced objects. ` +
+          `Base tree: ${baseTree}, Our tree: ${ourTree}, Their tree: ${theirTree}`
+        )
+      }
     }
+    // Don't throw yet - check for conflicts first
+  }
+
+  // Check for conflicts after the walk completes
+  // IMPORTANT: Always check for conflicts FIRST, even if the walk failed or results is undefined
+  // This ensures conflicts are detected even if there were errors during the walk
+  // Conflicts take precedence over walk errors - if conflicts were detected, throw MergeConflictError
+  // NOTE: Conflicts are detected regardless of abortOnConflict - we always track them in unmergedFiles
+  // Even if the walk failed due to missing objects (NotFoundError), we should still check for conflicts
+  // because conflicts might have been detected before the walk failed
+  if (unmergedFiles.length > 0) {
+    if (dir && !abortOnConflict && !dryRun) {
+      const normalizedFs = normalizeFs(fs)
+      // Write workdir files from the merged tree (excluding conflicted files)
+      // Only if we have a valid tree OID
+      if (results && typeof results === 'object' && 'oid' in results && results.oid) {
+        await _walk({
+          fs,
+          cache,
+          dir,
+          gitdir,
+          trees: [TREE({ ref: results.oid as string })],
+          map: async function (filepath: string, [entry]: (WalkerEntry | null)[]): Promise<boolean> {
+            if (!entry) return false
+            const path = `${dir}/${filepath}`
+            if ((await entry.type()) === 'blob') {
+              const mode = await entry.mode()
+              const content = await entry.content()
+              if (content) {
+                const contentStr = new TextDecoder().decode(content)
+                await normalizedFs.write(path, contentStr, { mode })
+              }
+            }
+            return true
+          },
+        })
+      }
+
+      // Write conflicted files with conflict markers to worktree
+      // Use Promise.allSettled to write all files concurrently and handle partial failures
+      // This eliminates race conditions and ensures all conflicts are written even if some fail
+      const { dirname } = await import('./dirname.ts')
+      const writePromises = Array.from(conflictedFiles.entries()).map(async ([filepath, { content, mode }]) => {
+        const fullPath = `${dir}/${filepath}`
+        const parentDir = dirname(fullPath)
+        try {
+          await normalizedFs.mkdir(parentDir, { recursive: true })
+        } catch {
+          // Directory might already exist, ignore
+        }
+        await normalizedFs.write(fullPath, content, { mode })
+      })
+      
+      const writeResults = await Promise.allSettled(writePromises)
+      // Check for any failures and log them, but don't throw - we still want to return MergeConflictError
+      const failures = writeResults
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map(result => result.reason)
+      if (failures.length > 0) {
+        // Log failures but continue - the merge conflict error will still be returned
+        console.warn(`Failed to write ${failures.length} conflicted file(s):`, failures)
+      }
+    }
+    // Always return MergeConflictError when there are conflicts
     return new MergeConflictError(
       unmergedFiles,
       bothModified,
@@ -356,7 +495,21 @@ export async function mergeTree({
     )
   }
 
-  return results.oid
+  // No conflicts - return the merged tree OID
+  // But only if we have valid results from the walk
+  if (results && typeof results === 'object' && 'oid' in results) {
+    return results.oid as string
+  }
+  
+  // If we get here and there are no conflicts, but also no results,
+  // the walk must have failed. Throw the walk error if we have one.
+  // This handles NotFoundError and other walk errors when there are no conflicts
+  if (walkError) {
+    throw walkError
+  }
+  
+  // If we get here, something unexpected happened
+  throw new Error('Unexpected result from merge tree walk: no conflicts detected but no tree OID returned')
 }
 
 /**
@@ -375,7 +528,7 @@ export async function mergeTree({
  * @param {MergeDriverCallback} [args.mergeDriver]
  *
  */
-async function mergeBlobs({
+export async function mergeBlobs({
   fs,
   gitdir,
   path,
@@ -399,7 +552,7 @@ async function mergeBlobs({
   baseName?: string
   dryRun?: boolean
   mergeDriver?: MergeDriverCallback
-}): Promise<{ cleanMerge: boolean; mergeResult: TreeEntry }> {
+}): Promise<{ cleanMerge: boolean; mergeResult: TreeEntry; mergedText?: string }> {
   const type = 'blob'
   // Compute the new mode.
   // Since there are ONLY two valid blob modes ('100755' and '100644') it boils down to this
@@ -456,6 +609,10 @@ async function mergeBlobs({
     dryRun,
   })
 
-  return { cleanMerge, mergeResult: { mode: mode.padStart(6, '0'), path, oid, type } }
+  return { 
+    cleanMerge, 
+    mergeResult: { mode: mode.padStart(6, '0'), path, oid, type },
+    mergedText: cleanMerge ? undefined : mergedText // Only return mergedText for conflicts
+  }
 }
 

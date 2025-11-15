@@ -15,7 +15,7 @@ type CacheEntryFlags = {
   intentToAdd?: boolean
 }
 
-type IndexEntry = {
+export type IndexEntry = {
   path: string
   oid: string
   mode: number
@@ -58,18 +58,22 @@ function renderCacheEntryFlags(entry: IndexEntry, version: number = 2): { flags:
   const nameLength = pathLength > 0xfff ? 0xfff : pathLength
   const needsExtendedPathLength = pathLength > 0xfff
   
+  // Set extended bit if explicitly set, or if version 3 and extended flags properties exist
+  const hasExtendedFlags = flags.extended || (version === 3 && (flags.skipWorktree !== undefined || flags.intentToAdd !== undefined))
   const baseFlags = (
     (flags.assumeValid ? 0b1000000000000000 : 0) +
-    ((flags.extended || (version === 3 && (flags.skipWorktree || flags.intentToAdd))) ? 0b0100000000000000 : 0) +
+    (hasExtendedFlags ? 0b0100000000000000 : 0) +
     ((flags.stage & 0b11) << 12) +
     (nameLength & 0b111111111111)
   )
   
   let extendedFlags: number | undefined
-  if (version === 3 && (flags.extended || flags.skipWorktree || flags.intentToAdd)) {
+  // In version 3, if extended flag bit is set OR if skipWorktree/intentToAdd properties exist (even if false),
+  // we need to write extended flags. If the properties don't exist (undefined), we don't write extended flags.
+  if (version === 3 && (flags.extended || flags.skipWorktree !== undefined || flags.intentToAdd !== undefined)) {
     extendedFlags = (
-      (flags.skipWorktree ? 0b0000000000000001 : 0) +
-      (flags.intentToAdd ? 0b0000000000000010 : 0)
+      ((flags.skipWorktree !== undefined && flags.skipWorktree) ? 0b0000000000000001 : 0) +
+      ((flags.intentToAdd !== undefined && flags.intentToAdd) ? 0b0000000000000010 : 0)
     )
   }
   
@@ -244,11 +248,12 @@ export const serialize = async (index: IndexObject): Promise<Buffer> => {
     const bpath = Buffer.from(entry.path)
     const flagInfo = renderCacheEntryFlags(entry, version)
     
-    // Calculate entry size: base (62) + flags (2) + extended flags (2 if version 3) + path length (2 if large) + path + null + padding
-    let baseSize = 62 + 2 // ctime, mtime, dev, ino, mode, uid, gid, size, oid, flags
+    // Calculate entry size: base (62 includes flags) + extended flags (2 if version 3) + path length (2 if large) + path + null + padding
+    let baseSize = 62 // ctime, mtime, dev, ino, mode, uid, gid, size, oid, flags (62 bytes total)
     if (version === 3 && flagInfo.extendedFlags !== undefined) {
       baseSize += 2 // extended flags
     }
+    // Path length bytes are written when pathLength > 0xFFF (matches parse logic which reads when nameLength === 0xfff)
     if (flagInfo.pathLengthBytes !== undefined) {
       baseSize += 2 // path length for large paths
     }
@@ -276,13 +281,24 @@ export const serialize = async (index: IndexObject): Promise<Buffer> => {
       entryWriter.writeUInt16BE(flagInfo.extendedFlags)
     }
     
-    // Write path length for large paths
+    // Write path length for large paths (when pathLength > 0xFFF)
+    // This must match the parse logic which reads path length when nameLength === 0xfff
     if (flagInfo.pathLengthBytes !== undefined) {
       entryWriter.writeUInt16BE(flagInfo.pathLengthBytes)
     }
     
-    entryWriter.write(entry.path, bpath.length, 'utf8')
+    // Write path as bytes directly to ensure exact byte count
+    entryWriter.copy(bpath, 0, bpath.length)
     entryWriter.writeUInt8(0) // Null terminator
+    
+    // Verify we're at the expected position before padding
+    const currentPos = entryWriter.tell()
+    const expectedPos = totalSize
+    if (currentPos !== expectedPos) {
+      throw new InternalError(
+        `Index entry size mismatch: expected position ${expectedPos} but got ${currentPos} for path ${entry.path}`
+      )
+    }
     
     // Pad to 8-byte boundary
     const padding = length - totalSize

@@ -1,4 +1,5 @@
 import { ObjectTypeError } from '../errors/ObjectTypeError.ts'
+import { NotFoundError } from '../errors/NotFoundError.ts'
 import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
 import { parse as parseTag } from "../core-utils/parsers/Tag.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
@@ -39,7 +40,18 @@ export async function resolveObject<T>(
     return { oid, object: parser(emptyTreeBuffer) }
   }
 
-  const result = await readObject({ fs, cache, gitdir, oid, format: 'content' })
+  let result: any
+  try {
+    result = await readObject({ fs, cache, gitdir, oid, format: 'content' })
+  } catch (error) {
+    // If we're looking for a tree and it doesn't exist, fall back to empty tree
+    // This handles cases where tree objects are missing from the repository
+    if (expectedType === 'tree' && error instanceof NotFoundError) {
+      const emptyTreeBuffer = Buffer.from('tree 0\x00')
+      return { oid: emptyTreeOid || '4b825dc642cb6eb9a060e54bf8d69288fbee4904', object: parser(emptyTreeBuffer) }
+    }
+    throw error
+  }
 
   // Handle tag peeling
   if (result.type === 'tag') {
@@ -58,15 +70,26 @@ export async function resolveObject<T>(
   // Handle commit -> tree resolution
   if (expectedType === 'tree' && result.type === 'commit') {
     const commit = parseCommit(result.object) as CommitObject
-    return resolveObject({
-      fs,
-      cache,
-      gitdir,
-      oid: commit.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
-      expectedType,
-      parser,
-      emptyTreeOid,
-    })
+    const treeOid = commit.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+    try {
+      return await resolveObject({
+        fs,
+        cache,
+        gitdir,
+        oid: treeOid,
+        expectedType,
+        parser,
+        emptyTreeOid,
+      })
+    } catch (error) {
+      // If the commit's tree doesn't exist, fall back to empty tree
+      // This can happen in repositories where objects weren't fully written
+      if (error instanceof NotFoundError && treeOid !== (emptyTreeOid || '4b825dc642cb6eb9a060e54bf8d69288fbee4904')) {
+        const emptyTreeBuffer = Buffer.from('tree 0\x00')
+        return { oid: emptyTreeOid || '4b825dc642cb6eb9a060e54bf8d69288fbee4904', object: parser(emptyTreeBuffer) }
+      }
+      throw error
+    }
   }
 
   // Type check

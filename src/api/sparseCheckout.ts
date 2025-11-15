@@ -6,6 +6,7 @@ import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
+import { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
 /**
@@ -60,8 +61,34 @@ export async function sparseCheckout({
 
     const _fs = normalizeFs(fs)
 
+    // Use Repository when dir is available to get full config support (system/global config)
+    let repo: Repository | undefined
+    if (dir) {
+      try {
+        repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+        // Use gitdir from Repository to ensure consistency
+        const repoGitdir = await repo.getGitdir()
+        if (repoGitdir !== gitdir) {
+          gitdir = repoGitdir
+        }
+      } catch {
+        // If Repository.open fails, continue with provided gitdir
+      }
+    }
+
     if (init) {
-      await SparseCheckoutManager.init({ fs: _fs, gitdir, coneMode: cone })
+      // Use Repository's config if available, otherwise fall back to SparseCheckoutManager.init
+      if (repo) {
+        const configService = await repo.getConfig()
+        await configService.set('core.sparseCheckout', 'true', 'local')
+        if (cone) {
+          await configService.set('core.sparseCheckoutCone', 'true', 'local')
+        }
+        // Create sparse-checkout file with default pattern (everything)
+        await SparseCheckoutManager.set({ fs: _fs, gitdir, patterns: ['/*'], coneMode: cone })
+      } else {
+        await SparseCheckoutManager.init({ fs: _fs, gitdir, coneMode: cone })
+      }
 
       // Update working directory based on new patterns
       try {
@@ -69,14 +96,24 @@ export async function sparseCheckout({
         const { object: commitObject } = await ObjectReader.read({ fs: _fs, cache, gitdir, oid: headOid })
         const commit = parseCommit(commitObject)
         const patterns = await SparseCheckoutManager.loadPatterns({ fs: _fs, gitdir })
-        await WorkdirManager.checkout({
-          fs: _fs,
-          dir,
-          gitdir,
-          treeOid: commit.tree,
-          sparsePatterns: patterns,
-          cache,
-        })
+        
+        if (repo) {
+          // Use Repository.checkout for centralized cache and state management
+          await repo.checkout({
+            treeOid: commit.tree,
+            sparsePatterns: patterns,
+          })
+        } else {
+          // Fallback for backward compatibility
+          await WorkdirManager.checkout({
+            fs: _fs,
+            dir,
+            gitdir,
+            treeOid: commit.tree,
+            sparsePatterns: patterns,
+            cache,
+          })
+        }
       } catch (err) {
         // No HEAD commit yet, that's okay
       }
@@ -88,14 +125,24 @@ export async function sparseCheckout({
         const headOid = await RefManager.resolve({ fs: _fs, gitdir, ref: 'HEAD' })
         const { object: commitObject } = await ObjectReader.read({ fs: _fs, cache, gitdir, oid: headOid })
         const commit = parseCommit(commitObject)
-        await WorkdirManager.checkout({
-          fs: _fs,
-          dir,
-          gitdir,
-          treeOid: commit.tree,
-          sparsePatterns: set,
-          cache,
-        })
+        
+        if (repo) {
+          // Use Repository.checkout for centralized cache and state management
+          await repo.checkout({
+            treeOid: commit.tree,
+            sparsePatterns: set,
+          })
+        } else {
+          // Fallback for backward compatibility
+          await WorkdirManager.checkout({
+            fs: _fs,
+            dir,
+            gitdir,
+            treeOid: commit.tree,
+            sparsePatterns: set,
+            cache,
+          })
+        }
       } catch (err) {
         // No HEAD commit yet, that's okay
       }

@@ -1,4 +1,4 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { resolveRef } from "../git/refs/readRef.ts"
 
 import { _readBlob } from './readBlob.ts'
 import type { FsClient } from "../models/FileSystem.ts"
@@ -29,7 +29,7 @@ export async function _readNote({
   ref?: string
   oid: string
 }): Promise<Uint8Array> {
-  const parent = await GitRefManager.resolve({ gitdir, fs, ref })
+  const parent = await resolveRef({ fs, gitdir, ref })
   const { blob } = await _readBlob({
     fs,
     cache,

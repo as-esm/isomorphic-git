@@ -1,7 +1,7 @@
 import { CheckoutConflictError } from "../errors/CheckoutConflictError.ts"
 import { CommitNotFetchedError } from "../errors/CommitNotFetchedError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
-import { RefManager } from "../core-utils/refs/RefManager.ts"
+// RefManager import removed - using Repository.resolveRef/writeRef methods instead
 import { WorkdirManager } from "../core-utils/filesystem/WorkdirManager.ts"
 import { SparseCheckoutManager } from "../core-utils/filesystem/SparseCheckoutManager.ts"
 import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
@@ -51,136 +51,79 @@ export async function _checkout({
   nonBlocking?: boolean
   batchSize?: number
 }): Promise<void> {
+  // Use Repository to get worktree context
+  const { Repository } = await import('../core-utils/Repository.ts')
+  const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+  const worktree = repo.getWorktree()
+  
+  if (!worktree) {
+    throw new Error('Cannot checkout in bare repository')
+  }
+  
+  // Get worktree's gitdir (may differ from provided gitdir for linked worktrees)
+  const worktreeGitdir = await worktree.getGitdir()
+  
   // oldOid is defined only if onPostCheckout hook is attached
   let oldOid: string | undefined
   if (onPostCheckout) {
     try {
-      oldOid = await RefManager.resolve({ fs, gitdir, ref: 'HEAD' })
+      oldOid = await repo.resolveRef('HEAD')
     } catch (err) {
       oldOid = '0000000000000000000000000000000000000000'
     }
   }
-
-  // Get tree oid
+  
+  // Resolve ref to get oid for post-checkout hook
   let oid: string
   try {
-    oid = await RefManager.resolve({ fs, gitdir, ref })
+    oid = await repo.resolveRef(ref)
   } catch (err) {
     if (ref === 'HEAD') throw err
-    // If `ref` doesn't exist, create a new remote tracking branch
+    // If `ref` doesn't exist, try to create a new remote tracking branch
     const remoteRef = `${remote}/${ref}`
-    oid = await RefManager.resolve({ fs, gitdir, ref: remoteRef })
-    if (track) {
-      // Set up remote tracking branch
-      let configBuffer = Buffer.alloc(0)
-      try {
-        const buffer = await fs.read(join(gitdir, 'config'))
-        if (buffer && buffer !== null) {
-          configBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as string | Uint8Array)
-        }
-      } catch (err) {
-        // Config doesn't exist yet
+    try {
+      oid = await repo.resolveRef(remoteRef)
+      if (track) {
+        // Set up remote tracking branch
+        const { ConfigAccess } = await import('../utils/configAccess.ts')
+        const configAccess = new ConfigAccess(fs, worktreeGitdir)
+        await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
+        await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')
       }
-      const { ConfigAccess } = await import('../utils/configAccess.ts')
-      const configAccess = new ConfigAccess(fs, gitdir)
-      await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
-      await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')
+      // Create a new branch that points at that same commit
+      await repo.writeRef(`refs/heads/${ref}`, oid)
+    } catch {
+      throw err
     }
-    // Create a new branch that points at that same commit
-    await RefManager.writeRef({
-      fs,
-      gitdir,
-      ref: `refs/heads/${ref}`,
-      value: oid,
-    })
   }
 
-  // Get commit to get tree OID
-  const { object: commitObject } = await ObjectReader.read({ fs, cache, gitdir, oid })
-  const commit = parseCommit(commitObject)
-  const treeOid = commit.tree
-
-  // Load sparse checkout patterns if enabled
-  let sparsePatterns: string[] | null = null
+  // Use worktree.checkout() which handles ref resolution, HEAD update, and workdir checkout
+  // This ensures all operations use the worktree's gitdir and staging area
   try {
-    sparsePatterns = await SparseCheckoutManager.loadPatterns({ fs, gitdir })
-    if (sparsePatterns.length === 0) {
-      sparsePatterns = null
-    }
+    await worktree.checkout(ref, {
+      filepaths,
+      force,
+      noCheckout,
+      noUpdateHead,
+      dryRun,
+      remote,
+      track,
+      onProgress,
+    })
   } catch (err) {
-    // Sparse checkout not enabled
+    if (err instanceof NotFoundError && (err as any).data && (err as any).data.what === oid) {
+      throw new CommitNotFetchedError(ref, oid)
+    }
+    throw err
   }
 
-  // Update working dir
-  if (!noCheckout) {
-    try {
-      if (dryRun) {
-        // Just analyze, don't execute
-        const operations = await WorkdirManager.analyzeCheckout({
-          fs,
-          dir,
-          gitdir,
-          treeOid,
-          filepaths,
-          force,
-          sparsePatterns,
-          cache,
-        })
-        const conflicts = operations.filter(op => op[0] === 'conflict').map(op => op[1])
-        if (conflicts.length > 0) {
-          throw new CheckoutConflictError(conflicts)
-        }
-      } else {
-        await WorkdirManager.checkout({
-          fs,
-          dir,
-          gitdir,
-          treeOid,
-          filepaths,
-          force,
-          sparsePatterns,
-          cache,
-          onProgress,
-        })
-      }
-    } catch (err) {
-      if (err instanceof NotFoundError && err.data && err.data.what === oid) {
-        throw new CommitNotFetchedError(ref, oid)
-      } else {
-        throw err
-      }
-    }
-
-    if (onPostCheckout) {
-      await onPostCheckout({
-        previousHead: oldOid || '0000000000000000000000000000000000000000',
-        newHead: oid,
-        type: filepaths != null && filepaths.length > 0 ? 'file' : 'branch',
-      })
-    }
-  }
-
-  // Update HEAD
-  if (!noUpdateHead) {
-    // Try to resolve as branch first
-    try {
-      const branchOid = await RefManager.resolve({ fs, gitdir, ref: `refs/heads/${ref}` })
-      if (branchOid === oid) {
-        // It's a branch
-        await RefManager.writeSymbolicRef({
-          fs,
-          gitdir,
-          ref: 'HEAD',
-          value: `refs/heads/${ref}`,
-        })
-      } else {
-        // detached head
-        await RefManager.writeRef({ fs, gitdir, ref: 'HEAD', value: oid })
-      }
-    } catch (err) {
-      // Not a branch, use as detached head
-      await RefManager.writeRef({ fs, gitdir, ref: 'HEAD', value: oid })
-    }
+  // Call post-checkout hook if provided
+  if (onPostCheckout) {
+    await onPostCheckout({
+      previousHead: oldOid || '0000000000000000000000000000000000000000',
+      newHead: oid,
+      type: filepaths != null && filepaths.length > 0 ? 'file' : 'branch',
+    })
   }
 }
 

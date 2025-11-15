@@ -1,5 +1,5 @@
 import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { resolveRef } from "../git/refs/readRef.ts"
 import { GitShallowManager } from "../managers/GitShallowManager.ts"
 import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
 import { GitCommit } from "../models/GitCommit.ts"
@@ -36,12 +36,12 @@ export async function listCommitsAndTags({
   const startingSet = new Set<string>()
   const finishingSet = new Set<string>()
   for (const ref of start) {
-    startingSet.add(await GitRefManager.resolve({ fs, gitdir, ref }))
+    startingSet.add(await resolveRef({ fs, gitdir, ref }))
   }
   for (const ref of finish) {
     // We may not have these refs locally so we must try/catch
     try {
-      const oid = await GitRefManager.resolve({ fs, gitdir, ref })
+      const oid = await resolveRef({ fs, gitdir, ref })
       finishingSet.add(oid)
     } catch (err) {
       // Ignore errors for refs we don't have locally

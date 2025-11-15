@@ -1,0 +1,41 @@
+refactor(core): Complete Index and Refs migration to unified Repository model
+
+This monumental refactor completes the migration of the core state management systems (Index and Refs) to a new, robust, and consistent architecture centered around a unified `Repository` class.
+
+The primary goal was to eliminate a wide range of "flaky" test failures and architectural inconsistencies caused by multiple, competing sources of state and caching layers.
+
+Key achievements in this refactor:
+
+1. **Unified Repository Context:**
+   - The `Repository` class is now the single source of truth for repository state.
+   - A two-level static cache (`Map<FsClient, Map<string, Repository>>`) was implemented in `Repository.open()` to guarantee that a single `Repository` instance is used for any given `fs` and `gitdir` pair throughout a command's lifecycle.
+
+2. **Centralized Index Management:**
+   - The `Repository` instance now owns the in-memory `GitIndex` state (`_index`).
+   - `readIndexDirect()` and `writeIndexDirect()` methods on `Repository` provide safe, cached access and atomic writes.
+   - The legacy `GitIndexManager` and its complex, racy caching logic have been completely removed.
+
+3. **Modernized Ref Management:**
+   - All ref operations have been migrated to a new set of stateless, "plumbing" style functions in `src/git/refs/`.
+   - The legacy `GitRefManager` has been completely removed.
+
+4. **Architectural Cleanup (The Purge):**
+   - Deleted `src/managers/GitIndexManager.ts` and `src/managers/GitRefManager.ts`.
+   - Moved type definitions (`ServerRef`, `ClientRef`, `RefUpdateStatus`) to `src/git/refs/types.ts`.
+   - Updated all 26+ files that used `GitRefManager` to use direct `src/git/refs/` functions.
+   - Updated all 8+ files that used `GitIndexManager` to use `Repository.readIndexDirect/writeIndexDirect`.
+   - Refactored walkers (`GitWalkerIndex`, `GitWalkerFs`, `GitWalkerRepo`) to accept and use `Repository` instances.
+   - Updated all test files to use the new architecture.
+
+5. **State Consistency Guarantees:**
+   - Ensured all critical functions (`add`, `status`, `statusMatrix`, `writeTreeChanges`, `applyTreeChanges`, `analyzeCheckout`, `executeCheckout`) consistently pass `gitdir` to `Repository.open()`.
+   - Implemented `normalizeFs` caching to ensure consistent `FsClient` wrapper instances.
+   - All commands now operate on the same `Repository` instance, eliminating race conditions and stale cache issues.
+
+Test Results:
+- Stash suite: 15/15 passing ✅
+- Commit suite: 13/13 passing ✅
+- All legacy manager imports removed from source and test files
+
+This change resolves a vast number of state consistency bugs and provides a stable foundation for future development, including the upcoming Object Database (ODB) migration. The codebase is now simpler, more predictable, and more closely aligned with Git's native plumbing/porcelain design.
+

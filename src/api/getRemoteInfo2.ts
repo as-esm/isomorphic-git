@@ -7,7 +7,7 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { ServerRef } from "../managers/GitRefManager.ts"
+import type { ServerRef } from "../git/refs/types.ts"
 
 /**
  * This object has the following schema:

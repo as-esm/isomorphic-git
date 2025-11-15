@@ -1,4 +1,3 @@
-import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -41,12 +40,26 @@ export async function remove({
     assertParameter('gitdir', gitdir)
     assertParameter('filepath', filepath)
 
-    await GitIndexManager.acquire(
-      { fs: normalizeFs(_fs), gitdir, cache },
-      async function (index) {
-        index.delete({ filepath })
-      }
-    )
+    // CRITICAL: Resolve gitdir through Repository to ensure consistency with add() and listFiles()
+    // This ensures that add(), remove(), and listFiles() use the same gitdir path and cache entry
+    let effectiveGitdir = gitdir
+    try {
+      const { Repository } = await import('../core-utils/Repository.ts')
+      const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
+      effectiveGitdir = await repo.getGitdir()
+      // Use the repository's cache to ensure consistency
+      // Repository.open uses the provided cache if given, so repo.cache === cache
+    } catch {
+      // If Repository.open fails, use provided gitdir
+      effectiveGitdir = gitdir
+    }
+
+    // Use Repository.readIndexDirect() and writeIndexDirect() for consistency
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false) // Force fresh read
+    index.delete({ filepath })
+    await repo.writeIndexDirect(index)
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.remove'
     throw err

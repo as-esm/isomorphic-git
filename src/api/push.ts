@@ -9,8 +9,8 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { ClientRef } from "../managers/GitRefManager.ts"
-import type { RefUpdateStatus } from "../managers/GitRefManager.ts"
+import type { ClientRef } from "../git/refs/types.ts"
+import type { RefUpdateStatus } from "../git/refs/types.ts"
 
 // ============================================================================
 // PUSH TYPES

@@ -53,8 +53,9 @@ export const parseLooseRef = (buffer: Buffer | string): LooseRef => {
     }
   }
 
-  // Must be an OID
-  if (text.length === 40 && /[0-9a-f]{40}/.test(text)) {
+  // Must be an OID (SHA-1: 40 chars, SHA-256: 64 chars)
+  // We accept both formats since we can't determine format without gitdir
+  if ((text.length === 40 || text.length === 64) && /^[0-9a-f]+$/i.test(text)) {
     return {
       oid: text,
       symbolic: false,

@@ -1,7 +1,7 @@
 import { GitWalkerFs } from "../models/GitWalkerFs.ts"
 import { GitWalkSymbol } from "../utils/symbols.ts"
 import type { Walker } from "../models/Walker.ts"
-import type { FsClient } from "../models/FileSystem.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 
 /**
  * @returns {Walker}
@@ -9,8 +9,14 @@ import type { FsClient } from "../models/FileSystem.ts"
 export function WORKDIR(): Walker {
   const o = Object.create(null)
   Object.defineProperty(o, GitWalkSymbol, {
-    value: function ({ fs, dir, gitdir, cache }: { fs: FsClient; dir?: string; gitdir: string; cache: Record<string, unknown> }) {
-      return new GitWalkerFs({ fs, dir, gitdir, cache })
+    value: async function ({ repo }: { repo: Repository }) {
+      // Ensure gitdir is resolved
+      const gitdir = await repo.getGitdir()
+      const dir = repo.dir
+      if (!dir) {
+        throw new Error('Cannot create WORKDIR walker for bare repository')
+      }
+      return new GitWalkerFs({ repo })
     },
   })
   Object.freeze(o)

@@ -1,6 +1,5 @@
 import { _readTree } from './readTree.ts'
-import { GitIndexManager } from "../managers/GitIndexManager.ts"
-import { GitRefManager } from "../managers/GitRefManager.ts"
+// GitRefManager import removed - using src/git/refs/ functions instead
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
@@ -19,7 +18,9 @@ export async function _listFiles({
   cache: Record<string, unknown>
 }): Promise<string[]> {
   if (ref) {
-    const oid = await GitRefManager.resolve({ gitdir, fs, ref })
+    // Use direct resolveRef() for consistency
+    const { resolveRef } = await import('../git/refs/readRef.ts')
+    const oid = await resolveRef({ fs, gitdir, ref })
     const filenames: string[] = []
     await accumulateFilesFromOid({
       fs,
@@ -31,12 +32,15 @@ export async function _listFiles({
     })
     return filenames
   } else {
-    return GitIndexManager.acquire(
-      { fs, gitdir, cache },
-      async function (index) {
-        return index.entries.map(x => x.path)
-      }
-    )
+    // Use Repository.readIndexDirect() for consistency
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir: undefined, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false) // Force fresh read
+    // Filter out entries without paths and return sorted list
+    // This handles edge cases where entries might not have paths set
+    return index.entries
+      .map(x => x.path)
+      .filter((path): path is string => path !== undefined && path !== null && path !== '')
   }
 }
 

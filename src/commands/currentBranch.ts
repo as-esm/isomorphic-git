@@ -1,4 +1,5 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+// GitRefManager import removed - using src/git/refs/ functions instead
+import { resolveRef } from "../git/refs/readRef.ts"
 import { abbreviateRef } from "../utils/abbreviateRef.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
@@ -16,15 +17,23 @@ export async function _currentBranch({
   fullname?: boolean
   test?: boolean
 }): Promise<string | undefined> {
-  const ref = await GitRefManager.resolve({
-    fs,
-    gitdir,
-    ref: 'HEAD',
-    depth: 2,
-  })
+  // Use direct resolveRef() for consistency
+  // Handle the case where HEAD doesn't exist (fresh repo)
+  let ref: string
+  try {
+    ref = await resolveRef({
+      fs,
+      gitdir,
+      ref: 'HEAD',
+      depth: 2,
+    })
+  } catch {
+    // HEAD doesn't exist - return undefined (no branch)
+    return undefined
+  }
   if (test) {
     try {
-      await GitRefManager.resolve({ fs, gitdir, ref })
+      await resolveRef({ fs, gitdir, ref })
     } catch (_) {
       return undefined
     }

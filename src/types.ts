@@ -34,7 +34,7 @@ export type { TagObject, ReadTagResult } from "./models/GitAnnotatedTag.ts"
 export type { TreeEntry, TreeObject, ReadTreeResult } from "./models/GitTree.ts"
 
 // Ref types
-export type { ServerRef, ClientRef, RefUpdateStatus } from "./managers/GitRefManager.ts"
+export type { ServerRef, ClientRef, RefUpdateStatus } from "./git/refs/types.ts"
 
 // Walker types
 export type {

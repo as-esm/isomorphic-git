@@ -9,14 +9,16 @@ import { acquireLock } from "../utils/walkerToTreeEntryMap.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { Author } from "../models/GitCommit.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 
-import { GitRefManager } from './GitRefManager.ts'
+// GitRefManager import removed - using src/git/refs/ functions instead
 
 export class GitStashManager {
   fs: FsClient
   dir: string
   gitdir: string
   _author: Author | null = null
+  repo: Repository | null = null
 
   /**
    * Creates an instance of GitStashManager.
@@ -25,15 +27,18 @@ export class GitStashManager {
     fs,
     dir,
     gitdir = join(dir, '.git'),
+    repo,
   }: {
     fs: FsClient
     dir: string
     gitdir?: string
+    repo?: Repository
   }) {
     this.fs = fs
     this.dir = dir
     this.gitdir = gitdir
     this._author = null
+    this.repo = repo || null
   }
 
   /**
@@ -66,15 +71,30 @@ export class GitStashManager {
 
   /**
    * Retrieves the author information for the stash.
+   * Uses Repository's config service if available, otherwise falls back to direct config access.
    */
   async getAuthor(): Promise<Author> {
     if (!this._author) {
-      const author = await normalizeAuthorObject({
-        fs: this.fs,
-        gitdir: this.gitdir,
-        author: {},
-      })
-      if (!author) throw new MissingNameError('author')
+      let author: Author | undefined
+      
+      // CRITICAL: Use normalizeAuthorObject directly instead of repo.getConfig()
+      // This avoids calling repo.getGitdir() which might throw NotFoundError
+      // We want MissingNameError to be thrown, not NotFoundError
+      // normalizeAuthorObject will handle repo.getConfig() internally if repo is provided
+      try {
+        author = await normalizeAuthorObject({
+          fs: this.fs,
+          gitdir: this.gitdir,
+          author: {},
+          repo: this.repo, // Pass repo so normalizeAuthorObject can use it if available
+        })
+      } catch (err) {
+        throw err
+      }
+      
+      if (!author) {
+        throw new MissingNameError('author')
+      }
       this._author = author
     }
     return this._author
@@ -172,7 +192,9 @@ export class GitStashManager {
    * Writes a stash reference to the repository.
    */
   async writeStashRef(stashCommit: string): Promise<void> {
-    return GitRefManager.writeRef({
+    // Use direct writeRef() for consistency
+    const { writeRef } = await import('../git/refs/writeRef.ts')
+    return writeRef({
       fs: this.fs,
       gitdir: this.gitdir,
       ref: GitStashManager.refStash,
@@ -224,6 +246,11 @@ export class GitStashManager {
 
     const reflogString = await normalizedFs.read(this.refLogsStashPath, { encoding: 'utf8' })
     if (typeof reflogString !== 'string') {
+      return []
+    }
+
+    // If the reflog string is empty or only whitespace, return empty array
+    if (!reflogString.trim()) {
       return []
     }
 

@@ -3,7 +3,7 @@ import { _readTree } from './readTree.ts'
 import { _writeTree } from './writeTree.ts'
 import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { resolveRef } from "../git/refs/readRef.ts"
 import { _writeObject as writeObject } from "../storage/writeObject.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { SignCallback } from "../core-utils/Signing.ts"
@@ -40,7 +40,7 @@ export async function _addNote({
   // Get the current note commit
   let parent: string | undefined
   try {
-    parent = await GitRefManager.resolve({ gitdir, fs, ref })
+    parent = await resolveRef({ fs, gitdir, ref })
   } catch (err) {
     if (!(err instanceof NotFoundError)) {
       throw err

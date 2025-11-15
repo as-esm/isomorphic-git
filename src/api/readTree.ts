@@ -42,10 +42,31 @@ export async function readTree({
     assertParameter('gitdir', gitdir)
     assertParameter('oid', oid)
 
+    // CRITICAL: Resolve gitdir through Repository to ensure consistency with writeTreeChanges
+    // This ensures that writeTreeChanges() and readTree() use the same worktree's gitdir
+    let effectiveGitdir = gitdir
+    if (dir) {
+      try {
+        const { Repository } = await import('../core-utils/Repository.ts')
+        const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+        const worktree = repo.getWorktree()
+        if (worktree) {
+          effectiveGitdir = await worktree.getGitdir()
+        } else {
+          effectiveGitdir = await repo.getGitdir()
+        }
+        // Use the repository's cache to ensure consistency
+        cache = repo.cache
+      } catch {
+        // If Repository.open fails, use provided gitdir
+        effectiveGitdir = gitdir
+      }
+    }
+
     return await _readTree({
       fs: normalizeFs(fs),
       cache,
-      gitdir,
+      gitdir: effectiveGitdir,
       oid,
       filepath,
     })

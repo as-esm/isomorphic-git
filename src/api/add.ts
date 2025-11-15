@@ -1,13 +1,11 @@
 import { MultipleGitError } from "../errors/MultipleGitError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { checkIgnored as checkIgnoredFile } from "../core-utils/filesystem/IgnoreManager.ts"
-import { parse as parseIndex, serialize as serializeIndex, type IndexObject } from "../core-utils/index/Index.ts"
 import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { posixifyPathBuffer } from "../utils/posixifyPathBuffer.ts"
-import { normalizeStats } from "../utils/normalizeStats.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
 /**
@@ -55,47 +53,36 @@ export async function add({
 
     const fs = normalizeFs(_fs)
     
-    // Read index
-    let indexBuffer: Buffer<ArrayBuffer> = Buffer.alloc(0)
-    try {
-      const buffer = await fs.read(join(gitdir, 'index'))
-      if (buffer && buffer !== null) {
-        indexBuffer = (Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as string | Uint8Array)) as Buffer<ArrayBuffer>
-      }
-    } catch (err) {
-      // Index doesn't exist yet
+    // CRITICAL: Pass gitdir to Repository.open() to ensure we get the same Repository instance
+    // as other operations like status() and stash(). This ensures index state consistency.
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+    const worktree = repo.getWorktree()
+    
+    if (!worktree) {
+      throw new Error('Cannot add files in bare repository')
     }
     
-    // Handle empty index - create a minimal index object with default version
-    let index: IndexObject
-    if (indexBuffer.length === 0) {
-      // Empty index - create a minimal index object with default version
-      index = {
-        entries: new Map(),
-        unmergedPaths: new Set(),
-        version: 2, // Default index version
-      }
-    } else {
-      index = await parseIndex(indexBuffer)
-    }
+    const effectiveGitdir = await worktree.getGitdir()
     
     // Read config
-    let configBuffer: Buffer<ArrayBuffer> = Buffer.alloc(0)
-    try {
-      const buffer = await fs.read(join(gitdir, 'config'))
-      if (buffer && buffer !== null) {
-        configBuffer = (Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as string | Uint8Array)) as Buffer<ArrayBuffer>
-      }
-    } catch (err) {
-      // Config doesn't exist
-    }
     const { ConfigAccess } = await import('../utils/configAccess.ts')
-    const configAccess = new ConfigAccess(_fs, gitdir)
+    const configAccess = new ConfigAccess(_fs, effectiveGitdir)
     const autocrlf = ((await configAccess.getConfigValue('core.autocrlf')) as string) || 'false'
     
+    // Read index directly from .git/index file (single source of truth)
+    const index = await repo.readIndexDirect()
+    
+    // Check for unmerged paths
+    if (index.unmergedPaths.size > 0) {
+      const { UnmergedPathsError } = await import('../errors/UnmergedPathsError.ts')
+      throw new UnmergedPathsError(Array.from(index.unmergedPaths))
+    }
+    
+    // Modify index
     await addToIndex({
       dir,
-      gitdir,
+      gitdir: effectiveGitdir,
       fs,
       filepath,
       index,
@@ -104,9 +91,8 @@ export async function add({
       autocrlf,
     })
     
-    // Write index back
-    const updatedIndex = await serializeIndex(index)
-    await fs.write(join(gitdir, 'index'), updatedIndex)
+    // Write index directly to .git/index file (single source of truth)
+    await repo.writeIndexDirect(index)
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.add'
     throw err
@@ -127,7 +113,7 @@ async function addToIndex({
   gitdir: string
   fs: ReturnType<typeof normalizeFs>
   filepath: string | string[]
-  index: IndexObject
+  index: import('../git/index/GitIndex.ts').GitIndex
   force: boolean
   parallel: boolean
   autocrlf: string
@@ -187,35 +173,13 @@ async function addToIndex({
       // Write blob using ObjectWriter
       const oid = await writeObject({ fs: fs as any, gitdir, type: 'blob', object, format: 'content' })
       
-      // Insert into index
-      const normalizedStats = normalizeStats(stats)
-      const entry = {
-        path: currentFilepath,
+      // Insert into index using GitIndex.insert() method
+      index.insert({
+        filepath: currentFilepath,
         oid,
-        mode: normalizedStats.mode || 0o100644,
-        ctimeSeconds: normalizedStats.ctimeSeconds,
-        ctimeNanoseconds: normalizedStats.ctimeNanoseconds,
-        mtimeSeconds: normalizedStats.mtimeSeconds,
-        mtimeNanoseconds: normalizedStats.mtimeNanoseconds,
-        dev: normalizedStats.dev,
-        ino: normalizedStats.ino,
-        uid: normalizedStats.uid,
-        gid: normalizedStats.gid,
-        size: normalizedStats.size,
-        flags: {
-          assumeValid: false,
-          extended: false,
-          stage: 0,
-          nameLength: Buffer.from(currentFilepath).length,
-          skipWorktree: false,
-          intentToAdd: false,
-        },
-        stages: [],
-      }
-      // Set stages array - for stage 0 entries, stages contains the entry itself
-      const fullEntry = entry as any
-      fullEntry.stages = [fullEntry]
-      index.entries.set(currentFilepath, fullEntry)
+        stats,
+        stage: 0,
+      })
     }
   })
 

@@ -31,13 +31,51 @@ export class GitRefStash {
     reflogString: string,
     parsed = false
   ): string[] | Array<Record<string, unknown>> {
-    const reflogLines = reflogString.split('\n')
-    const entries = reflogLines
-      .filter(l => l)
+    // Split by newlines and filter out empty lines
+    const reflogLines = reflogString.split('\n').filter(l => l.trim())
+    
+    // If no valid lines, return empty array
+    if (reflogLines.length === 0) {
+      return []
+    }
+    
+    // Filter out invalid reflog lines - valid format: "oldoid newoid name email timestamp timezone\tmessage"
+    // A valid line should have at least 6 space-separated fields before the tab (if present)
+    const validLines = reflogLines.filter(line => {
+      // Check if line has the basic structure of a reflog entry
+      // Should have at least: oldoid (40 chars) + space + newoid (40 chars) + space + name + ...
+      const tabIndex = line.indexOf('\t')
+      const beforeTab = tabIndex >= 0 ? line.substring(0, tabIndex) : line
+      const parts = beforeTab.trim().split(/\s+/)
+      // Should have at least 6 parts: oldoid, newoid, name, email, timestamp, timezone
+      // And oldoid/newoid should be 40 characters (SHA-1) or 64 characters (SHA-256)
+      if (parts.length >= 6) {
+        const oldoid = parts[0]
+        const newoid = parts[1]
+        // Check if OIDs look valid (40 or 64 hex characters)
+        const isValidOid = /^[a-f0-9]{40}$|^[a-f0-9]{64}$/i.test(oldoid) && /^[a-f0-9]{40}$|^[a-f0-9]{64}$/i.test(newoid)
+        return isValidOid
+      }
+      return false
+    })
+    
+    // If no valid lines after filtering, return empty array
+    if (validLines.length === 0) {
+      return []
+    }
+    
+    // Reverse so most recent entries come first (stash@{0} is most recent)
+    const entries = validLines
       .reverse()
-      .map((line, idx) =>
-        parsed ? `stash@{${idx}}: ${line.split('\t')[1]}` : line
-      )
+      .map((line, idx) => {
+        if (parsed) {
+          // Parse the reflog line format: "oldoid newoid name email timestamp timezone\tmessage"
+          const parts = line.split('\t')
+          const message = parts.length > 1 ? parts[1] : ''
+          return `stash@{${idx}}: ${message}`
+        }
+        return line
+      })
     return entries as string[] | Array<Record<string, unknown>>
   }
 }

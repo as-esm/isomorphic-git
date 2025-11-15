@@ -51,11 +51,26 @@ export async function commit({
       assertParameter('onSign', onSign)
     }
 
+    // CRITICAL: Resolve gitdir through Repository to ensure consistency with add()
+    // This ensures that add() and commit() use the same gitdir path and cache entry
+    let effectiveGitdir = gitdir
+    let repo: import('../core-utils/Repository.ts').Repository | undefined
+    try {
+      const { Repository } = await import('../core-utils/Repository.ts')
+      repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+      effectiveGitdir = await repo.getGitdir()
+      // Use the repository's cache to ensure consistency
+      // Repository.open uses the provided cache if given, so repo.cache === cache
+    } catch {
+      // If Repository.open fails, use provided gitdir
+      effectiveGitdir = gitdir
+    }
+
     return await _commit({
       fs,
       cache,
       onSign,
-      gitdir,
+      gitdir: effectiveGitdir,
       message,
       author,
       committer,
@@ -66,6 +81,7 @@ export async function commit({
       ref,
       parent,
       tree,
+      repo,
     })
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.commit'

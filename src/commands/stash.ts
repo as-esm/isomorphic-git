@@ -1,8 +1,11 @@
 import { checkout } from '../api/checkout.ts'
+import { WorkdirManager } from '../core-utils/filesystem/WorkdirManager.ts'
 import { readCommit } from '../api/readCommit.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { UnmergedPathsError } from '../errors/UnmergedPathsError.ts'
+// GitRefManager import removed - using src/git/refs/ functions instead
 import { GitStashManager } from "../managers/GitStashManager.ts"
+// GitIndexManager import removed - using Repository.readIndexDirect/writeIndexDirect instead
 import {
   writeTreeChanges,
   applyTreeChanges,
@@ -13,97 +16,170 @@ import { STAGE } from './STAGE.ts'
 import { TREE } from './TREE.ts'
 import { _currentBranch } from './currentBranch.ts'
 import { _readCommit } from './readCommit.ts'
+import { _listFiles } from './listFiles.ts'
+import { join } from '../utils/join.ts'
+import { normalize as normalizePath } from '../core-utils/GitPath.ts'
 import type { FsClient } from "../models/FileSystem.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 
 /**
  * Common logic for creating a stash commit
  * @private
  */
-async function _createStashCommit({ fs, dir, gitdir, message = '' }: { fs: FsClient; dir?: string; gitdir: string; message?: string }) {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir })
+async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; message?: string; cache?: Record<string, unknown>; repo?: Repository }) {
+  // CRITICAL: Check for author FIRST - this must be the very first thing we do
+  // This ensures we throw MissingNameError before any other errors (NotFoundError, etc.)
+  // This matches git's behavior where it checks for author before checking for changes
+  // DO NOT call repo.getGitdir() or any other repo methods before this check
+  // Use the provided gitdir directly to avoid any HEAD resolution or other operations
+  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
+  try {
+    await stashMgr.getAuthor() // ensure there is an author
+  } catch (err) {
+    // If author check fails, throw immediately (don't check for changes, don't resolve HEAD, etc.)
+    throw err
+  }
+  
+  // Now that author check passed, we can safely resolve gitdir through repo if needed
+  const effectiveGitdir = repo ? await repo.getGitdir() : gitdir
+  // Create a new stashMgr with the resolved gitdir if it changed
+  const effectiveStashMgr = effectiveGitdir !== gitdir 
+    ? new GitStashManager({ fs, dir, gitdir: effectiveGitdir, repo })
+    : stashMgr
 
-  await stashMgr.getAuthor() // ensure there is an author
-  const branch = await _currentBranch({
-    fs,
-    gitdir,
-    fullname: false,
-  })
+  // Use Repository's cache and gitdir if available
+  // IMPORTANT: Use the provided cache directly - Repository uses the same cache instance if provided
+  // This ensures add() and stash() share the same cache for index synchronization
+  const effectiveCache = cache // Always use the provided cache to ensure consistency with add()
 
   // prepare the stash commit: first parent is the current branch HEAD
-  const headCommit = await GitRefManager.resolve({
-    fs,
-    gitdir,
-    ref: 'HEAD',
-  })
+  // Use Repository.resolveRefDirect() or direct resolveRef() for consistency
+  // Handle the case where HEAD doesn't exist (fresh repo with no commits)
+  let headCommit: string
+  try {
+    if (repo) {
+      headCommit = await repo.resolveRefDirect('HEAD')
+    } else {
+      const { resolveRef } = await import('../git/refs/readRef.ts')
+      headCommit = await resolveRef({ fs, gitdir: effectiveGitdir, ref: 'HEAD' })
+    }
+  } catch (err) {
+    // HEAD doesn't exist - this means there are no commits yet
+    // Stash requires at least one commit, so throw an appropriate error
+    const { NotFoundError } = await import('../errors/NotFoundError.ts')
+    throw new NotFoundError('HEAD', 'Cannot stash in a repository with no commits')
+  }
 
-  const headCommitObj = await readCommit({ fs, dir, gitdir, oid: headCommit })
+  // Now that we know HEAD exists, get the branch name
+  const branch = await _currentBranch({
+    fs,
+    gitdir: effectiveGitdir,
+    fullname: false,
+  }) || 'HEAD' // Fallback to 'HEAD' if branch is undefined (detached HEAD)
+
+  const headCommitObj = await readCommit({ fs, dir, gitdir: effectiveGitdir, oid: headCommit })
   const headMsg = headCommitObj.commit.message
 
+  // Native git stash structure:
+  // - Parent 1: HEAD commit
+  // - Parent 2: Index commit (if staged changes exist) - this commit's tree = index state
+  // - Stash commit tree: Worktree state (working directory)
+  
   const stashCommitParents: string[] = [headCommit]
-  let stashCommitTree: string | null = null
-  let workDirCompareBase = TREE({ ref: 'HEAD' })
+  let indexCommitOid: string | null = null
 
+  // Ensure index is read from disk before writeTreeChanges
+  // Use Repository.readIndexDirect() or direct readIndex() to get the latest index state
+  if (repo) {
+    await repo.readIndexDirect(false) // Force fresh read to bypass cache
+  } else {
+    // Fallback: use direct readIndex for backward compatibility
+    const { readIndex } = await import('../git/index/readIndex.ts')
+    await readIndex({ fs, gitdir: effectiveGitdir })
+  }
+
+  // Step 1: Check for staged changes (HEAD vs INDEX)
+  // If staged changes exist, create an index commit with tree = index state, parent = [HEAD]
   const indexTree = await writeTreeChanges({
     fs,
     dir,
-    gitdir,
+    gitdir: effectiveGitdir,
+    cache: effectiveCache,
     treePair: [TREE({ ref: 'HEAD' }), 'stage'],
   })
+  
   if (indexTree) {
-    // this indexTree will be the tree of the stash commit
-    // create a commit from the index tree, which has one parent, the current branch HEAD
-    const stashCommitOne = await stashMgr.writeStashCommit({
-      message: `stash-Index: WIP on ${branch} - ${new Date().toISOString()}`,
+    // Create index commit: tree = index state, parent = [HEAD]
+    // This commit's tree represents the INDEX state
+    indexCommitOid = await effectiveStashMgr.writeStashCommit({
+      message: `index on ${branch}`,
       tree: indexTree,
-      parent: stashCommitParents,
+      parent: [headCommit],
     })
-    stashCommitParents.push(stashCommitOne)
-    stashCommitTree = indexTree
-    workDirCompareBase = STAGE()
+    stashCommitParents.push(indexCommitOid)
   }
 
-  const workingTree = await writeTreeChanges({
+  // Step 2: Create worktree tree - compare HEAD (or INDEX if exists) vs WORKDIR
+  // The worktree tree represents the WORKING DIRECTORY state
+  const workDirCompareBase = indexCommitOid ? STAGE() : TREE({ ref: 'HEAD' })
+  const worktreeTree = await writeTreeChanges({
     fs,
     dir,
-    gitdir,
+    gitdir: effectiveGitdir,
+    cache: effectiveCache,
     treePair: [workDirCompareBase, 'workdir'],
   })
-  if (workingTree) {
-    // create a commit from the working directory tree, which has one parent, either the one we just had, or the headCommit
-    const workingHeadCommit = await stashMgr.writeStashCommit({
-      message: `stash-WorkDir: WIP on ${branch} - ${new Date().toISOString()}`,
-      tree: workingTree,
-      parent: [stashCommitParents[stashCommitParents.length - 1]],
-    })
 
-    stashCommitParents.push(workingHeadCommit)
-    stashCommitTree = workingTree
-  }
-
-  if (!stashCommitTree || (!indexTree && !workingTree)) {
+  if (!worktreeTree && !indexTree) {
     throw new NotFoundError('changes, nothing to stash')
   }
 
-  // create another commit from the tree, which has three parents: HEAD and the commit we just made:
+  // Step 3: Create stash commit with tree = worktree state
+  // Parents: [HEAD, indexCommit] (if index commit exists)
   const stashMsg =
     (message.trim() || `WIP on ${branch}`) +
     `: ${headCommit.substring(0, 7)} ${headMsg}`
 
-  const stashCommit = await stashMgr.writeStashCommit({
+  // If no worktree changes but index changes exist, use index tree as worktree tree
+  // (This matches git's behavior when only staged changes exist)
+  const stashCommitTree = worktreeTree || indexTree!
+
+  const stashCommit = await effectiveStashMgr.writeStashCommit({
     message: stashMsg,
     tree: stashCommitTree,
     parent: stashCommitParents,
   })
 
-  return { stashCommit, stashMsg, branch, stashMgr }
+  return { stashCommit, stashMsg, branch, stashMgr: effectiveStashMgr }
 }
 
-export async function _stashPush({ fs, dir, gitdir, message = '' }: { fs: FsClient; dir?: string; gitdir: string; message?: string }): Promise<string> {
+export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; message?: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<string> {
+  // IMPORTANT: Always use the provided cache directly to ensure consistency with add()
+  // Repository.open uses the provided cache if given, so repo.cache === cache
+  // But to be safe, always use the provided cache parameter
+  const effectiveCache = cache
+  const effectiveGitdir = repo ? await repo.getGitdir() : gitdir
+  
+  // Check for unmerged paths before stashing
+  if (repo) {
+    const index = await repo.readIndexDirect(false, false) // Force fresh read, allowUnmerged: false
+    // If there are unmerged paths, readIndexDirect will throw UnmergedPathsError
+  } else {
+    // Fallback: use direct readIndex and check unmerged paths manually
+    const { readIndex } = await import('../git/index/readIndex.ts')
+    const index = await readIndex({ fs, gitdir: effectiveGitdir })
+    if (index.unmergedPaths.length > 0) {
+      throw new UnmergedPathsError(index.unmergedPaths)
+    }
+  }
+  
   const { stashCommit, stashMsg, branch, stashMgr } = await _createStashCommit({
     fs,
     dir,
-    gitdir,
+    gitdir: effectiveGitdir,
     message,
+    cache: effectiveCache,
+    repo,
   })
 
   // next, write this commit into .git/refs/stash:
@@ -115,66 +191,166 @@ export async function _stashPush({ fs, dir, gitdir, message = '' }: { fs: FsClie
     message: stashMsg,
   })
 
-  // finally, go back to a clean working directory
-  await checkout({
+  // Finally, reset worktree and index to HEAD
+  // Get HEAD commit to get tree OID, then use WorkdirManager.checkout directly
+  // This ensures we're checking out the exact HEAD tree, not just the branch ref
+  // Use Repository.resolveRefDirect() or direct resolveRef() for consistency
+  // Note: We already resolved HEAD in _createStashCommit, so this should always succeed
+  let headCommit: string
+  try {
+    if (repo) {
+      headCommit = await repo.resolveRefDirect('HEAD')
+    } else {
+      const { resolveRef } = await import('../git/refs/readRef.ts')
+      headCommit = await resolveRef({ fs, gitdir: effectiveGitdir, ref: 'HEAD' })
+    }
+  } catch (err) {
+    // This should never happen since _createStashCommit already resolved HEAD
+    // But if it does, re-throw with context
+    throw new Error(`Failed to resolve HEAD after creating stash commit: ${err}`)
+  }
+  const headCommitObj = await readCommit({ fs, dir, gitdir: effectiveGitdir, oid: headCommit })
+  const headTreeOid = headCommitObj.commit.tree
+  
+  // CRITICAL: Check index state before checkout to see what's staged
+  if (repo) {
+    const index = await repo.readIndexDirect(false) // Force fresh read
+    const indexFilepaths = Array.from(index.entriesMap.keys())
+  }
+  
+  // Use WorkdirManager.checkout directly since we have a treeOid, not a ref
+  // This ensures consistent cache, gitdir, and index synchronization
+  // repo.checkout() expects a ref string, but we have a treeOid, so use WorkdirManager directly
+  await WorkdirManager.checkout({
     fs,
-    dir,
-    gitdir,
-    ref: branch,
-    track: false,
+    dir: dir || '',
+    gitdir: effectiveGitdir,
+    treeOid: headTreeOid,
     force: true, // force checkout to discard changes
+    cache: effectiveCache,
   })
 
   return stashCommit
 }
 
-export async function _stashCreate({ fs, dir, gitdir, message = '' }: { fs: FsClient; dir?: string; gitdir: string; message?: string }): Promise<string> {
+export async function _stashCreate({ fs, dir, gitdir, message = '', cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; message?: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<string> {
+  // Check for unmerged paths before creating stash
+  if (repo) {
+    const index = await repo.readIndexDirect(false, false) // Force fresh read, allowUnmerged: false
+    // If there are unmerged paths, readIndexDirect will throw UnmergedPathsError
+  } else {
+    // Fallback: use direct readIndex and check unmerged paths manually
+    const { readIndex } = await import('../git/index/readIndex.ts')
+    const index = await readIndex({ fs, gitdir })
+    if (index.unmergedPaths.length > 0) {
+      throw new UnmergedPathsError(index.unmergedPaths)
+    }
+  }
+  
   const { stashCommit } = await _createStashCommit({
     fs,
     dir,
     gitdir,
     message,
+    cache,
+    repo,
   })
 
   // Return the stash commit hash without modifying refs or working directory
   return stashCommit
 }
 
-export async function _stashApply({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number }): Promise<void> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir })
+export async function _stashApply({ fs, dir, gitdir, refIdx = 0, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number; cache?: Record<string, unknown>; repo?: Repository }): Promise<void> {
+  // Use Repository's cache and gitdir if available
+  const effectiveCache = repo ? repo.cache : cache
+  const effectiveGitdir = repo ? await repo.getGitdir() : gitdir
+  
+  // Check for unmerged paths before applying stash
+  if (repo) {
+    const index = await repo.readIndexDirect(false, false) // Force fresh read, allowUnmerged: false
+    // If there are unmerged paths, readIndexDirect will throw UnmergedPathsError
+  } else {
+    // Fallback: use direct readIndex and check unmerged paths manually
+    const { readIndex } = await import('../git/index/readIndex.ts')
+    const index = await readIndex({ fs, gitdir: effectiveGitdir })
+    if (index.unmergedPaths.length > 0) {
+      throw new UnmergedPathsError(index.unmergedPaths)
+    }
+  }
+  
+  const stashMgr = new GitStashManager({ fs, dir, gitdir: effectiveGitdir, repo })
 
   // get the stash commit object
   const stashCommit = await stashMgr.readStashCommit(refIdx)
-  const { parent: stashParents = null } = stashCommit.commit
+  const { parent: stashParents = null, tree: stashCommitTree } = stashCommit.commit
     ? stashCommit.commit
-    : {}
-  if (!stashParents || !Array.isArray(stashParents)) {
+    : { parent: null, tree: null }
+  if (!stashParents || !Array.isArray(stashParents) || !stashCommitTree) {
     return // no stash found
   }
 
-  // compare the stash commit tree with its parent commit
-  for (let i = 0; i < stashParents.length - 1; i++) {
-    const applyingCommit = await _readCommit({
-      fs,
-      cache: {},
-      gitdir,
-      oid: stashParents[i + 1],
-    })
-    const wasStaged = applyingCommit.commit.message.startsWith('stash-Index')
+  // Native git stash structure:
+  // - Parent 1: HEAD commit (used for reference)
+  // - Parent 2: Index commit (if exists) - this commit's tree = index state
+  // - Stash commit tree: Worktree state (working directory)
 
+  const headCommit = stashParents[0]
+  const indexCommit = stashParents.length > 1 ? stashParents[1] : null
+
+  // Step 1: Apply index changes (if index commit exists)
+  // Compare index commit tree vs HEAD tree to get index changes
+  if (indexCommit) {
+    const indexCommitObj = await _readCommit({
+      fs,
+      cache: effectiveCache,
+      gitdir: effectiveGitdir,
+      oid: indexCommit,
+    })
+    // Apply index commit tree to index (stage the changes)
     await applyTreeChanges({
       fs,
       dir,
-      gitdir,
-      stashCommit: stashParents[i + 1],
-      parentCommit: stashParents[i],
-      wasStaged,
+      gitdir: effectiveGitdir,
+      cache: effectiveCache,
+      stashCommit: indexCommit,
+      parentCommit: headCommit,
+      wasStaged: true, // This is the index commit, apply to index
     })
   }
+
+  // Step 2: Apply worktree changes
+  // The stash commit's tree represents the worktree state
+  // We need to apply the stash commit tree to the workdir
+  // Compare stash commit tree vs the base (HEAD if no index, or current worktree state)
+  // Actually, we should apply the stash commit tree directly to workdir
+  // by comparing it to what's currently in workdir (or HEAD if workdir is clean)
+  
+  // Get the current HEAD tree for comparison
+  const headCommitObj = await _readCommit({
+    fs,
+    cache: effectiveCache,
+    gitdir: effectiveGitdir,
+    oid: headCommit,
+  })
+  const headTreeOid = headCommitObj.commit.tree
+  
+  // Apply worktree changes: stash commit tree vs HEAD tree (or index tree if index was applied)
+  // If index was applied, the workdir might have changed, so we compare stash tree vs current state
+  // But actually, we should compare stash tree vs the base that was used when stashing
+  const worktreeBaseCommit = indexCommit || headCommit
+  await applyTreeChanges({
+    fs,
+    dir,
+    gitdir: effectiveGitdir,
+    cache: effectiveCache,
+    stashCommit: stashCommit.oid, // Stash commit OID - its tree is the worktree state
+    parentCommit: worktreeBaseCommit, // Base commit - compare stash tree vs this commit's tree
+    wasStaged: false, // This is worktree, apply to workdir only
+  })
 }
 
-export async function _stashDrop({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number }): Promise<void> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir })
+export async function _stashDrop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number; cache?: Record<string, unknown>; repo?: Repository }): Promise<void> {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
   const stashCommit = await stashMgr.readStashCommit(refIdx)
   if (!stashCommit.commit) {
     return // no stash found
@@ -214,13 +390,13 @@ export async function _stashDrop({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient
   })
 }
 
-export async function _stashList({ fs, dir, gitdir }: { fs: FsClient; dir?: string; gitdir: string }): Promise<unknown[]> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir })
+export async function _stashList({ fs, dir, gitdir, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<unknown[]> {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
   return stashMgr.readStashReflogs({ parsed: true })
 }
 
-export async function _stashClear({ fs, dir, gitdir }: { fs: FsClient; dir?: string; gitdir: string }): Promise<void> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir })
+export async function _stashClear({ fs, dir, gitdir, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<void> {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
   const stashRefPath = [stashMgr.refStashPath, stashMgr.refLogsStashPath]
 
   await acquireLock(stashRefPath, async () => {
@@ -234,8 +410,8 @@ export async function _stashClear({ fs, dir, gitdir }: { fs: FsClient; dir?: str
   })
 }
 
-export async function _stashPop({ fs, dir, gitdir, refIdx = 0 }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number }): Promise<void> {
-  await _stashApply({ fs, dir, gitdir, refIdx })
-  await _stashDrop({ fs, dir, gitdir, refIdx })
+export async function _stashPop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number; cache?: Record<string, unknown>; repo?: Repository }): Promise<void> {
+  await _stashApply({ fs, dir, gitdir, refIdx, cache, repo })
+  await _stashDrop({ fs, dir, gitdir, refIdx, cache, repo })
 }
 

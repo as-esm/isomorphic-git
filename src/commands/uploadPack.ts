@@ -1,4 +1,5 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { listRefs } from "../git/refs/listRefs.ts"
+import { resolveRef } from "../git/refs/readRef.ts"
 import { join } from "../utils/join.ts"
 import { writeRefsAdResponse } from "../wire/writeRefsAdResponse.ts"
 import type { FsClient } from "../models/FileSystem.ts"
@@ -27,7 +28,7 @@ export async function uploadPack({
         'allow-tip-sha1-in-want',
         'allow-reachable-sha1-in-want',
       ]
-      let keys = await GitRefManager.listRefs({
+      let keys = await listRefs({
         fs,
         gitdir,
         filepath: 'refs',
@@ -36,10 +37,10 @@ export async function uploadPack({
       const refs: Record<string, string> = {}
       keys.unshift('HEAD') // HEAD must be the first in the list
       for (const key of keys) {
-        refs[key] = await GitRefManager.resolve({ fs, gitdir, ref: key })
+        refs[key] = await resolveRef({ fs, gitdir, ref: key })
       }
       const symrefs: Record<string, string> = {}
-      symrefs.HEAD = await GitRefManager.resolve({
+      symrefs.HEAD = await resolveRef({
         fs,
         gitdir,
         ref: 'HEAD',

@@ -2,7 +2,7 @@ import { _commit } from "../commands/commit.ts"
 import { _readTree } from "../commands/readTree.ts"
 import { _writeTree } from "../commands/writeTree.ts"
 import { NotFoundError } from '../errors/NotFoundError.ts'
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { resolveRef } from "../git/refs/readRef.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { SignCallback } from "../core-utils/Signing.ts"
 import type { Author } from "../models/GitCommit.ts"
@@ -55,7 +55,7 @@ export async function _removeNote({
   // Get the current note commit
   let parent: string | undefined
   try {
-    parent = await GitRefManager.resolve({ gitdir, fs, ref })
+    parent = await resolveRef({ fs, gitdir, ref })
   } catch (err) {
     if (!(err instanceof NotFoundError)) {
       throw err

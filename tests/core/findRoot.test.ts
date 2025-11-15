@@ -8,6 +8,32 @@ import { makeFixture } from '../helpers/fixture.ts'
 // we can't actually store the ".git" folders in our fixture,
 // so we have to make those folders dynamically.
 test('findRoot', async (t) => {
+  await t.test('finds git directory', async () => {
+    const { fs, dir } = await makeFixture('test-simple')
+    
+    // Create .git directory in the working directory so findRoot can find it
+    await fs.mkdir(path.join(dir, '.git'))
+    
+    const foundRoot = await findRoot({ fs, filepath: dir })
+    // findRoot returns the directory containing .git, not the .git directory itself
+    assert.strictEqual(foundRoot, dir)
+  })
+
+  await t.test('finds git directory from subdirectory', async () => {
+    const { fs, dir } = await makeFixture('test-simple')
+    
+    // Create .git directory in the working directory
+    await fs.mkdir(path.join(dir, '.git'))
+    
+    // Create a subdirectory
+    const subdir = path.join(dir, 'subdir')
+    await fs.mkdir(subdir)
+    
+    const foundRoot = await findRoot({ fs, filepath: subdir })
+    // findRoot should find the directory containing .git
+    assert.strictEqual(foundRoot, dir)
+  })
+
   await t.test('filepath has its own .git folder', async () => {
     // Setup
     const { fs, dir } = await makeFixture('test-findRoot')

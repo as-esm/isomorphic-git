@@ -52,11 +52,9 @@ test('annotatedTag', async (t) => {
     const { pgp } = await import('@isomorphic-git/pgp-plugin')
     const { fs, gitdir } = await makeFixture('test-annotatedTag')
     // Test
-    // Import pgp-keys using file:// protocol for proper resolution
-    const { resolve } = await import('path')
-    const { fileURLToPath } = await import('url')
-    const pgpKeysPath = resolve('__tests__/__fixtures__/pgp-keys.mjs')
-    const { privateKey, publicKey } = await import(`file:///${pgpKeysPath.replace(/\\/g, '/')}`)
+    // Import pgp-keys from fixtures directory
+    const pgpKeysUrl = new URL('../__fixtures__/pgp-keys.mjs', import.meta.url).href
+    const { privateKey, publicKey } = await import(pgpKeysUrl)
     await annotatedTag({
       fs,
       gitdir,

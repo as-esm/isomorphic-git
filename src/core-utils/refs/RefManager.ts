@@ -3,8 +3,15 @@ import { NotFoundError } from "../../errors/NotFoundError.ts"
 import { parsePackedRefs } from './RefParser.ts'
 import { join } from '../GitPath.ts'
 import { dirname } from '../../utils/dirname.ts'
+import { normalizeFs } from '../../utils/normalizeFs.ts'
 import AsyncLock from 'async-lock'
 import type { FsClient } from "../../models/FileSystem.ts"
+
+// Import new refs functions from src/git/refs/
+import { readRef as readRefDirect, resolveRef as resolveRefDirect } from '../../git/refs/readRef.ts'
+import { writeRef as writeRefDirect, writeSymbolicRef as writeSymbolicRefDirect } from '../../git/refs/writeRef.ts'
+import { listRefs as listRefsDirect } from '../../git/refs/listRefs.ts'
+import { deleteRef as deleteRefDirect, deleteRefs as deleteRefsDirect } from '../../git/refs/deleteRef.ts'
 
 // @see https://git-scm.com/docs/git-rev-parse.html#_specifying_revisions
 const refpaths = (ref: string): string[] => [
@@ -32,70 +39,26 @@ const acquireLock = async <T>(ref: string, callback: () => Promise<T>): Promise<
 export class RefManager {
   /**
    * Resolves a ref to its object ID
+   * Delegates to src/git/refs/resolveRef() for direct file operations
    */
   static async resolve({
     fs,
     gitdir,
     ref,
-    depth,
+    depth = 5,
   }: {
     fs: FsClient
     gitdir: string
     ref: string
     depth?: number
   }): Promise<string> {
-    if (depth !== undefined) {
-      depth--
-      if (depth === -1) {
-        return ref
-      }
-    }
-
-    // Is it a ref pointer?
-    if (ref.startsWith('ref: ')) {
-      ref = ref.slice('ref: '.length)
-      return RefManager.resolve({ fs, gitdir, ref, depth })
-    }
-
-    // Is it a complete and valid SHA?
-    if (ref.length === 40 && /[0-9a-f]{40}/.test(ref)) {
-      return ref
-    }
-
-    // We need to alternate between the file system and the packed-refs
-    const packedMap = await RefManager.packedRefs({ fs, gitdir })
-    // Look in all the proper paths, in this order
-    const allpaths = refpaths(ref).filter(p => !GIT_FILES.includes(p)) // exclude git system files
-
-    for (const refPath of allpaths) {
-      const sha = await acquireLock(refPath, async () => {
-        try {
-          const looseRef = await fs.read(join(gitdir, refPath), 'utf8')
-          if (looseRef) {
-            // Handle both string and Buffer returns
-            if (typeof looseRef === 'string') {
-              return looseRef
-            }
-            if (Buffer.isBuffer(looseRef)) {
-              return looseRef.toString('utf8')
-            }
-          }
-        } catch {
-          // File doesn't exist, try packed refs
-        }
-        return packedMap.get(refPath) ?? null
-      })
-      if (sha) {
-        return RefManager.resolve({ fs, gitdir, ref: String(sha).trim(), depth })
-      }
-    }
-
-    // Do we give up?
-    throw new NotFoundError(ref)
+    // Delegate to new resolveRef function
+    return resolveRefDirect({ fs, gitdir, ref, depth })
   }
 
   /**
    * Lists all refs matching a given filepath prefix
+   * Delegates to src/git/refs/listRefs() for direct file operations
    */
   static async listRefs({
     fs,
@@ -106,35 +69,13 @@ export class RefManager {
     gitdir: string
     filepath: string
   }): Promise<string[]> {
-    const packedMap = await RefManager.packedRefs({ fs, gitdir })
-    let files: string[] = []
-
-    try {
-      const readdirResult = await fs.readdirDeep(`${gitdir}/${filepath}`)
-      files = (readdirResult as string[]).map(x => x.replace(`${gitdir}/${filepath}/`, ''))
-    } catch {
-      // Directory doesn't exist, that's okay
-    }
-
-    for (let key of packedMap.keys()) {
-      // filter by prefix
-      if (key.startsWith(filepath)) {
-        // remove prefix
-        key = key.replace(filepath + '/', '')
-        // Don't include duplicates; the loose files have precedence anyway
-        if (!files.includes(key)) {
-          files.push(key)
-        }
-      }
-    }
-
-    // Sort them
-    files.sort()
-    return files
+    // Delegate to new listRefs function
+    return listRefsDirect({ fs, gitdir, filepath })
   }
 
   /**
    * Writes a ref to the file system
+   * Delegates to src/git/refs/writeRef() for direct file operations
    */
   static async writeRef({
     fs,
@@ -151,18 +92,13 @@ export class RefManager {
     if (!value.match(/[0-9a-f]{40}/)) {
       throw new InvalidOidError(value)
     }
-    await acquireLock(ref, async () => {
-      const path = join(gitdir, ref)
-      const refDir = dirname(path)
-      if (refDir && refDir !== gitdir && !(await fs.exists(refDir))) {
-        await fs.mkdir(refDir)
-      }
-      await fs.write(path, `${value.trim()}\n`, 'utf8')
-    })
+    // Delegate to new writeRef function
+    return writeRefDirect({ fs, gitdir, ref, value })
   }
 
   /**
    * Writes a symbolic ref to the file system
+   * Delegates to src/git/refs/writeSymbolicRef() for direct file operations
    */
   static async writeSymbolicRef({
     fs,
@@ -175,18 +111,13 @@ export class RefManager {
     ref: string
     value: string
   }): Promise<void> {
-    await acquireLock(ref, async () => {
-      const path = join(gitdir, ref)
-      const refDir = dirname(path)
-      if (refDir && refDir !== gitdir && !(await fs.exists(refDir))) {
-        await fs.mkdir(refDir)
-      }
-      await fs.write(path, 'ref: ' + `${value.trim()}\n`, 'utf8')
-    })
+    // Delegate to new writeSymbolicRef function
+    return writeSymbolicRefDirect({ fs, gitdir, ref, value })
   }
 
   /**
    * Deletes a single ref
+   * Delegates to src/git/refs/deleteRef() for direct file operations
    */
   static async deleteRef({
     fs,
@@ -197,11 +128,12 @@ export class RefManager {
     gitdir: string
     ref: string
   }): Promise<void> {
-    return RefManager.deleteRefs({ fs, gitdir, refs: [ref] })
+    return deleteRefDirect({ fs, gitdir, ref })
   }
 
   /**
    * Deletes multiple refs
+   * Delegates to src/git/refs/deleteRefs() for direct file operations
    */
   static async deleteRefs({
     fs,
@@ -212,30 +144,7 @@ export class RefManager {
     gitdir: string
     refs: string[]
   }): Promise<void> {
-    // Delete regular refs
-    await Promise.all(refs.map(ref => fs.rm(join(gitdir, ref))))
-
-    // Delete any packed refs
-    let text = await acquireLock('packed-refs', async () => {
-      try {
-        return (await fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })) as string
-      } catch {
-        return ''
-      }
-    })
-    const packed = parsePackedRefs(text)
-    const beforeSize = packed.size
-
-    for (const ref of refs) {
-      packed.delete(ref)
-    }
-
-    if (packed.size < beforeSize) {
-      text = serializePackedRefs(packed).toString('utf8')
-      await acquireLock('packed-refs', async () =>
-        fs.write(`${gitdir}/packed-refs`, text, { encoding: 'utf8' })
-      )
-    }
+    return deleteRefsDirect({ fs, gitdir, refs })
   }
 
   /**

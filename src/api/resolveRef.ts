@@ -1,4 +1,4 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { resolveRef as resolveRefDirect } from "../git/refs/readRef.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -41,7 +41,7 @@ export async function resolveRef({
     assertParameter('gitdir', gitdir)
     assertParameter('ref', ref)
 
-    const oid = await GitRefManager.resolve({
+    const oid = await resolveRefDirect({
       fs: normalizeFs(fs),
       gitdir,
       ref,

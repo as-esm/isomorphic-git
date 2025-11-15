@@ -3,10 +3,11 @@ import { BaseError } from './BaseError.ts'
 export class InvalidOidError extends BaseError {
   static readonly code = 'InvalidOidError' as const
 
-  constructor(value: string) {
-    super(`Expected a 40-char hex object id but saw "${value}".`)
+  constructor(value: string, expectedLength?: number) {
+    const length = expectedLength || (value.length === 64 ? 64 : 40)
+    super(`Expected a ${length}-char hex object id but saw "${value}" (length: ${value.length}).`)
     this.code = this.name = InvalidOidError.code
-    this.data = { value }
+    this.data = { value, expectedLength: length }
   }
 }
 

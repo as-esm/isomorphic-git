@@ -1,4 +1,4 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { deleteRefs } from "../git/refs/deleteRef.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
 /**
@@ -18,6 +18,6 @@ import type { FsClient } from "../models/FileSystem.ts"
  */
 export async function _deleteTag({ fs, gitdir, ref }: { fs: FsClient; gitdir: string; ref: string }): Promise<void> {
   ref = ref.startsWith('refs/tags/') ? ref : `refs/tags/${ref}`
-  await GitRefManager.deleteRef({ fs, gitdir, ref })
+  await deleteRefs({ fs, gitdir, refs: [ref] })
 }
 

@@ -73,12 +73,33 @@ export async function status({
     assertParameter('gitdir', gitdir)
     assertParameter('filepath', filepath)
 
+    // CRITICAL: Get the Repository instance once and reuse it
+    // This ensures getFileStatus uses the same Repository instance (and index state)
+    // as other operations like add() and stash()
+    // IMPORTANT: Pass gitdir to Repository.open() to ensure we get the same instance as add()
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+    
+    // Get worktree context for gitdir resolution
+    let effectiveGitdir = gitdir
+    try {
+      const worktree = repo.getWorktree()
+      if (worktree) {
+        effectiveGitdir = await worktree.getGitdir()
+      } else {
+        effectiveGitdir = await repo.getGitdir()
+      }
+    } catch {
+      // If getGitdir fails, use provided gitdir
+      effectiveGitdir = gitdir
+    }
+
     const fs = normalizeFs(_fs)
 
     // Check if ignored
     const ignored = await IgnoreManager.checkIgnored({
       fs,
-      gitdir,
+      gitdir: effectiveGitdir,
       dir,
       filepath,
     })
@@ -86,13 +107,10 @@ export async function status({
       return 'ignored'
     }
 
-    // Use WorkdirManager to get status
+    // Use WorkdirManager to get status - pass the Repository object directly
     return await WorkdirManager.getFileStatus({
-      fs,
-      dir,
-      gitdir,
+      repo,
       filepath,
-      cache,
     })
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.status'

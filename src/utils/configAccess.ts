@@ -27,12 +27,16 @@ export class ConfigAccess {
 
   /**
    * Gets the UnifiedConfigService instance, loading configs if needed
+   * CRITICAL: Always reload to ensure we have the latest config changes from disk
+   * This is necessary because setConfig() writes to disk, and we need to read the latest state
    */
-  private async getService(): Promise<UnifiedConfigService> {
+  async getService(): Promise<UnifiedConfigService> {
     if (!this._service) {
       this._service = new UnifiedConfigService(this.fs, this.gitdir, this.systemConfigPath, this.globalConfigPath)
-      await this._service.load()
     }
+    // Always reload to ensure we have the latest config from disk
+    // This is critical because setConfig() may have written changes after this instance was created
+    await this._service.reload()
     return this._service
   }
 

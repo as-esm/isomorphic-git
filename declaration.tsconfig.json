@@ -1,10 +1,11 @@
 {
   "include": [
-    "index.js", "index.cjs",
-    "http/web/index.js", "http/web/index.cjs",
-    "http/node/index.js", "http/node/index.cjs",
-    "managers/index.js", "managers/index.cjs",
-    "models/index.js", "models/index.cjs"
+    "src/index.ts",
+    "src/internal-apis.ts",
+    "http/web/index.ts",
+    "http/node/index.ts",
+    "managers/index.ts",
+    "models/index.ts"
   ],
   "exclude": ["node_modules"],
   "compilerOptions": {
@@ -13,6 +14,11 @@
     "allowJs": true,
     "declaration": true,
     "noEmit": false,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "module": "esnext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   }
 }

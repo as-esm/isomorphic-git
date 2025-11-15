@@ -1,5 +1,5 @@
 import { GitPktLine } from "../models/GitPktLine.ts"
-import type { ServerRef } from "../managers/GitRefManager.ts"
+import type { ServerRef } from "../git/refs/types.ts"
 
 export async function parseListRefsResponse(stream: AsyncIterableIterator<Uint8Array>): Promise<ServerRef[]> {
   const read = GitPktLine.streamReader(stream)

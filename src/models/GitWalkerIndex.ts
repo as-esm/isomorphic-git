@@ -1,4 +1,3 @@
-import { GitIndexManager } from "../managers/GitIndexManager.ts"
 import { compareStrings } from "../utils/compareStrings.ts"
 import { flatFileListToDirectoryStructure } from "../utils/flatFileListToDirectoryStructure.ts"
 import { mode2type } from "../utils/mode2type.ts"
@@ -8,9 +7,9 @@ import type { FsClient, Stat } from './FileSystem.ts'
 type StageEntry = {
   _fullpath: string
   _type: false | 'tree' | 'blob' | 'special' | 'commit'
-  _mode: false | number
+  _mode: false | number | undefined
   _stat: false | Stat | undefined
-  _oid: false | string
+  _oid: false | string | undefined
 }
 
 type Inode = {
@@ -25,30 +24,28 @@ type Inode = {
 }
 
 export class GitWalkerIndex {
+  private repo: Awaited<ReturnType<typeof import('../core-utils/Repository.ts').Repository.open>>
   fs: FsClient
   gitdir: string
+  dir?: string
   cache: Record<string, unknown>
-  treePromise: Promise<Map<string, Inode>>
   ConstructEntry: new (fullpath: string) => StageEntry
 
   constructor({
-    fs,
-    gitdir,
-    cache,
+    repo,
   }: {
-    fs: FsClient
-    gitdir: string
-    cache: Record<string, unknown>
+    repo: Awaited<ReturnType<typeof import('../core-utils/Repository.ts').Repository.open>>
   }) {
-    this.fs = fs
-    this.gitdir = gitdir
-    this.cache = cache
-    this.treePromise = GitIndexManager.acquire(
-      { fs, gitdir, cache },
-      async function (index) {
-        return flatFileListToDirectoryStructure(index.entries) as Map<string, Inode>
-      }
-    )
+    this.repo = repo
+    // Store these for backward compatibility with methods that expect them
+    this.fs = repo.fs
+    // Initialize gitdir - will be resolved when first accessed if needed
+    // For now, we can try to get it synchronously if _gitdir is already set
+    this.gitdir = (repo as any)._gitdir || ''
+    this.dir = repo.dir || undefined
+    this.cache = repo.cache
+    // Don't read the index in the constructor - read it lazily when needed
+    // This ensures we always get the latest index state, solving cache synchronization issues
     const walker = this
     this.ConstructEntry = class StageEntry {
       _fullpath: string
@@ -69,7 +66,7 @@ export class GitWalkerIndex {
         return walker.type(this)
       }
 
-      async mode(): Promise<number> {
+      async mode(): Promise<number | undefined> {
         return walker.mode(this)
       }
 
@@ -81,15 +78,38 @@ export class GitWalkerIndex {
         return walker.content(this)
       }
 
-      async oid(): Promise<string> {
+      async oid(): Promise<string | undefined> {
         return walker.oid(this)
       }
     } as new (fullpath: string) => StageEntry
   }
 
+  /**
+   * Lazy getter for the tree structure - reads the index on-demand
+   * Uses the Repository instance passed in the constructor (single source of truth)
+   * This ensures we see the same index state as the command that created this walker
+   */
+  private async getTree(): Promise<Map<string, Inode>> {
+    // Use the Repository instance passed in the constructor
+    // This ensures we see the same index state as add(), status(), etc.
+    const index = await this.repo.readIndexDirect() // Use default force=false to get owned instance
+    
+    // Convert index entries to tree structure
+    return flatFileListToDirectoryStructure(index.entries) as Map<string, Inode>
+  }
+
+  /**
+   * Invalidate the cached tree to force a fresh read on next access
+   * No-op since we always read fresh - kept for API compatibility
+   */
+  invalidateCache(): void {
+    // No-op: we always read fresh from Repository.readIndexDirect()
+    // which has its own mtime-based cache
+  }
+
   async readdir(entry: StageEntry): Promise<string[] | null> {
     const filepath = entry._fullpath
-    const tree = await this.treePromise
+    const tree = await this.getTree()
     const inode = tree.get(filepath)
     if (!inode) return null
     if (inode.type === 'blob') return null
@@ -108,16 +128,16 @@ export class GitWalkerIndex {
     return entry._type as 'tree' | 'blob' | 'special' | 'commit'
   }
 
-  async mode(entry: StageEntry): Promise<number> {
+  async mode(entry: StageEntry): Promise<number | undefined> {
     if (entry._mode === false) {
       await this.stat(entry)
     }
-    return entry._mode as number
+    return entry._mode === false ? undefined : entry._mode
   }
 
   async stat(entry: StageEntry): Promise<Stat | undefined> {
     if (entry._stat === false) {
-      const tree = await this.treePromise
+      const tree = await this.getTree()
       const inode = tree.get(entry._fullpath)
       if (!inode) {
         throw new Error(
@@ -126,7 +146,7 @@ export class GitWalkerIndex {
       }
       if (inode.type === 'tree') {
         entry._type = 'tree'
-        entry._mode = 0o40000
+        entry._mode = undefined
         entry._stat = undefined
       } else {
         const stats = normalizeStats(inode.metadata)
@@ -143,16 +163,20 @@ export class GitWalkerIndex {
     return undefined
   }
 
-  async oid(entry: StageEntry): Promise<string> {
+  async oid(entry: StageEntry): Promise<string | undefined> {
     if (entry._oid === false) {
-      const tree = await this.treePromise
+      const tree = await this.getTree()
       const inode = tree.get(entry._fullpath)
       if (!inode) {
         throw new Error(`ENOENT: no such file or directory, oid '${entry._fullpath}'`)
       }
-      entry._oid = inode.metadata.oid
+      if (inode.type === 'tree') {
+        entry._oid = undefined
+      } else {
+        entry._oid = inode.metadata.oid
+      }
     }
-    return entry._oid
+    return entry._oid === false ? undefined : entry._oid
   }
 }
 

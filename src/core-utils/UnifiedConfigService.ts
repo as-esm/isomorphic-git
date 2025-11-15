@@ -70,12 +70,13 @@ export class UnifiedConfigService {
     }
 
     // Load local config
+    const localConfigPath = join(this.gitdir, 'config')
     try {
-      const localBuffer = await this.fs.read(join(this.gitdir, 'config'))
+      const localBuffer = await this.fs.read(localConfigPath)
       this._localConfig = parseConfig(
         Buffer.isBuffer(localBuffer) ? localBuffer : Buffer.from(localBuffer as string, 'utf8')
       )
-    } catch {
+    } catch (err) {
       // Local config doesn't exist yet
       this._localConfig = parseConfig(Buffer.alloc(0))
     }
@@ -120,7 +121,29 @@ export class UnifiedConfigService {
   }
 
   /**
+   * Gets platform-specific defaults (e.g., Git for Windows defaults)
+   * @private
+   */
+  private _getPlatformDefaults(path: string): unknown {
+    const isWindows = typeof process !== 'undefined' && process.platform === 'win32'
+    
+    if (!isWindows) {
+      return undefined
+    }
+    
+    // Git for Windows compiled-in defaults
+    // These match what Git for Windows uses when config values are not set
+    const windowsDefaults: Record<string, unknown> = {
+      'core.autocrlf': true,  // Git for Windows default: true
+      // Add other Windows-specific defaults here as needed
+    }
+    
+    return windowsDefaults[path]
+  }
+
+  /**
    * Gets a config value with proper precedence (local > global > system)
+   * Returns default values for certain configs to match native git behavior
    */
   async get(path: string): Promise<unknown> {
     if (!this._mergedConfig) {
@@ -135,12 +158,11 @@ export class UnifiedConfigService {
     
     // The merged config's get() method also checks for deletion markers in the file
     const result = this._mergedConfig.get(path)
-    // For boolean configs, return false instead of undefined when not found
-    // BUT: if the config was in the file and got deleted, we can't distinguish that from "never existed"
-    // So we only return false if it's a known boolean config that should default to false
+    
+    // If result is undefined, check for defaults and deletion markers
     if (result === undefined) {
       // First, check if there's a deletion marker in any config source
-      // This must be checked BEFORE the boolean config default logic
+      // This must be checked BEFORE the default logic
       const hasDeletionMarker = 
         this._localConfig?.parsedConfig.some(c => c.path === path + '.deleted') ||
         this._globalConfig?.parsedConfig.some(c => c.path === path + '.deleted') ||
@@ -151,26 +173,38 @@ export class UnifiedConfigService {
         return undefined
       }
       
+      // Check if config exists in any source (as a regular config, not a deletion marker)
+      const existsInLocal = this._localConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
+      const existsInGlobal = this._globalConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
+      const existsInSystem = this._systemConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
+      const existsAnywhere = existsInLocal || existsInGlobal || existsInSystem
+      
+      // If it exists anywhere but result is undefined, it means it was deleted
+      // In that case, return undefined (not default)
+      if (existsAnywhere) {
+        return undefined
+      }
+      
+      // Check for platform-specific defaults (e.g., Git for Windows defaults)
+      const platformDefault = this._getPlatformDefaults(path)
+      if (platformDefault !== undefined) {
+        return platformDefault
+      }
+      
+      // Apply defaults for boolean configs that should default to false when never set
+      // Note: We don't return defaults for configs like merge.ff here because that changes the API
+      // Callers should handle defaults based on their needs (e.g., merge command handles merge.ff default)
       const parts = path.split('.')
       if (parts.length >= 2) {
         const section = parts[0]
         const name = parts.slice(1).join('.')
+        
         // Boolean configs in core section that should default to false when never set
-        const booleanConfigs: Record<string, string[]> = {
+        const booleanConfigsFalse: Record<string, string[]> = {
           core: ['symlinks', 'filemode', 'bare', 'logallrefupdates', 'ignorecase']
         }
-        // Only return false if it's a boolean config AND it doesn't exist in any source
-        if (booleanConfigs[section]?.includes(name)) {
-          // Check if it exists in any source (as a regular config, not a deletion marker)
-          const existsInLocal = this._localConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
-          const existsInGlobal = this._globalConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
-          const existsInSystem = this._systemConfig?.parsedConfig.some(c => c.path === path && c.name && !c.path.endsWith('.deleted')) || false
-          if (!existsInLocal && !existsInGlobal && !existsInSystem) {
-            return false
-          }
-          // If it exists in any source but result is undefined, it means it was deleted
-          // In that case, return undefined (not false)
-          return undefined
+        if (booleanConfigsFalse[section]?.includes(name)) {
+          return false
         }
       }
     }

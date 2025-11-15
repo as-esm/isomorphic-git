@@ -1,4 +1,4 @@
-import { GitRefManager } from "../managers/GitRefManager.ts"
+import { listRefs as listRefsDirect } from "../git/refs/listRefs.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -37,7 +37,7 @@ export async function listRefs({
       throw new Error('gitdir is required')
     }
     assertParameter('gitdir', gitdir)
-    return GitRefManager.listRefs({ fs: normalizeFs(fs) as any, gitdir, filepath })
+    return listRefsDirect({ fs: normalizeFs(fs) as any, gitdir, filepath })
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.listRefs'
     throw err

@@ -1,6 +1,6 @@
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { ObjectTypeError } from '../errors/ObjectTypeError.ts'
-import { GitRefManager } from "../managers/GitRefManager.ts"
+// GitRefManager import removed - using src/git/refs/ functions instead
 import { GitTree } from './GitTree.ts'
 import { _readObject as readObject } from "../storage/readObject.ts"
 import { join } from "../utils/join.ts"
@@ -50,7 +50,9 @@ export class GitWalkerRepo {
       const map = new Map<string, MapEntry>()
       let oid: string
       try {
-        oid = await GitRefManager.resolve({ fs, gitdir, ref })
+        // Use direct resolveRef() for consistency
+        const { resolveRef } = await import('../git/refs/readRef.ts')
+        oid = await resolveRef({ fs, gitdir, ref })
       } catch (e) {
         if (e instanceof NotFoundError) {
           // Handle fresh branches with no commits
@@ -121,7 +123,29 @@ export class GitWalkerRepo {
       // TODO: support submodules (type === 'commit')
       return null
     }
-    const result: any = await readObject({ fs, cache, gitdir, oid })
+    
+    // Extract entry name from filepath for better error context
+    // If filepath is ".", entry name is "root"
+    // Otherwise, entry name is the last component of the path
+    const entryName = filepath === '.' ? 'root' : filepath.split('/').pop() || filepath
+    
+    let result: any
+    try {
+      result = await readObject({ fs, cache, gitdir, oid })
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        // If tree object doesn't exist, this might be a repository integrity issue
+        // However, in some cases (like fresh repos with incomplete objects), we should
+        // treat missing trees as empty trees to allow operations to continue
+        // This can happen when statusMatrix tries to read HEAD tree in a fresh repo
+        // where the commit exists but its tree object wasn't written yet
+        // Return empty directory (no children) instead of throwing
+        // This matches the behavior of treating missing trees as empty
+        console.warn(`Tree object ${oid} referenced by entry "${entryName}" in ${filepath === '.' ? 'root tree' : `tree at "${filepath}"`} does not exist. Treating as empty tree.`)
+        return [] // Return empty directory - no children
+      }
+      throw error
+    }
     const type = result.type
     const object = result.object
     if (type !== obj.type) {

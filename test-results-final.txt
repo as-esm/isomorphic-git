@@ -1,0 +1,1810 @@
+
+> @isomorphic-git/repo@0.0.0-development test
+> node --experimental-strip-types --test tests/**/*.test.ts
+
+ÔûÂ abortMerge
+  Ô£û write conflicted files to index at different stages (1099.2901ms)
+  Ô£û abort merge without touching anything (572.6719ms)
+  Ô£û abort merge after modifying files (610.3605ms)
+  Ô£û workdir != index && index === head (keep our changes) (778.9754ms)
+Ô£û abortMerge (3063.2741ms)
+ÔûÂ add
+  Ô£ö file (696.403ms)
+  Ô£ö multiple files (98.1391ms)
+  Ô£ö multiple files with parallel=false (495.2193ms)
+  Ô£ö multiple files with one failure (normal error) (229.6359ms)
+  Ô£ö multiple files with 2 failures (MultipleGitError) and an ignored file (174.2603ms)
+  Ô£ö multiple files with 1 ignored (127.1561ms)
+  Ô£ö multiple files with 1 ignored and force:true (215.1602ms)
+  Ô£ö symlink (271.7069ms)
+Ô£ö add (2309.5882ms)
+ÔûÂ commit
+  Ô£ö prevent commit if index has unmerged paths (871.3162ms)
+  Ô£ö commit (456.6332ms)
+  Ô£ö Initial commit (188.9602ms)
+  Ô£ö Cannot commit without message (71.3224ms)
+  Ô£ö without updating branch (126.5306ms)
+  Ô£ö dry run (176.0589ms)
+  Ô£ö custom ref (173.5542ms)
+  Ô£ö custom parents and tree (208.1438ms)
+  Ô£ö throw error if missing author (83.8473ms)
+  Ô£ö with timezone (435.6283ms)
+  Ô£ö commit amend (new message) (283.9974ms)
+  Ô£ö commit amend (change author, keep message) (221.2424ms)
+  Ô£ö Cannot amend without an initial commit (267.319ms)
+Ô£ö commit (3567.4185ms)
+ÔûÂ findMergeBase
+  Ô£ö silly edge cases (433.0787ms)
+  Ô£ö no common ancestor scenarios (819.3641ms)
+  Ô£ö fast-forward scenarios (327.8369ms)
+  Ô£ö diverging scenarios (263.1287ms)
+  Ô£ö merge commit scenarios (372.1641ms)
+  Ô£ö recursive merge base scenarios (377.1577ms)
+  Ô£ö fork & rejoin in one branch base scenarios (349.897ms)
+Ô£ö findMergeBase (2944.6118ms)
+ÔûÂ listBranches
+  Ô£ö listBranches (118.6265ms)
+  Ô£ö remote (74.7245ms)
+Ô£ö listBranches (194.9556ms)
+ÔûÂ listFiles
+  Ô£ö index (145.898ms)
+  Ô£ö ref (157.3751ms)
+Ô£ö listFiles (304.3733ms)
+ÔûÂ listRefs
+  Ô£ö listRefs (176.3203ms)
+Ô£ö listRefs (178.1632ms)
+ÔûÂ listTags
+  Ô£ö listTags (142.2841ms)
+Ô£ö listTags (143.4789ms)
+ÔûÂ log
+  Ô£ö HEAD (227.8857ms)
+Ô£ö log (228.8456ms)
+ÔûÂ merge
+  Ô£û prevent merge if index has unmerged paths (498.1646ms)
+  Ô£ö merge master into master (1683.867ms)
+  Ô£ö merge medium into master (1541.0295ms)
+  Ô£ö merge oldest into master (1161.8636ms)
+  Ô£ö merge newest into master (206.5255ms)
+  Ô£ö merge no fast-forward (86.7399ms)
+  Ô£ö merge newest into master --dryRun (no author needed since fastForward) (214.1688ms)
+  Ô£ö merge newest into master --noUpdateBranch (223.1655ms)
+  Ô£ö merge 'add-files' and 'remove-files' (1978.4969ms)
+  Ô£ö merge 'remove-files' and 'add-files' (1688.0128ms)
+
+=== Native Git Config (before merge (dryRun)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£ö merge 'delete-first-half' and 'delete-second-half' (dryRun, missing author) (135.3021ms)
+
+Ô£à Config matches between native git and isomorphic-git (before merge (dryRun))
+
+Tree OID mismatch:
+  Isomorphic-git: 6ef55219ebc95eb4f4fbaea703bb44df35e27608
+  Native git:     31155a4d98a6fa3a05993e75b548b6951d06bc9f
+
+Native git merged tree contents:
+100644 blob e69de29bb2d1d6434b8b29ae775ad8c2e48c5391	.gitkeep
+100644 blob eaeeedced46482bd4281fda5a5f05ce24854151f	file10.txt
+100644 blob 8dc57bcc0891edd46d2e69890fad7a96bd837dca	file6.txt
+100644 blob f8d3a988b4b6abe60fee48ecccad69efa7cf2639	file7.txt
+100644 blob 2e995eb933f07ca377b8dd8a093bf80a83c257a2	file8.txt
+100644 blob d7c9aa1754730abbb4748607f685795968351ea8	file9.txt
+
+
+Isomorphic-git merged tree contents:
+100644 blob e69de29bb2d1d6434b8b29ae775ad8c2e48c5391	.gitkeep
+100644 blob eaeeedced46482bd4281fda5a5f05ce24854151f	file10.txt
+100644 blob 8dc57bcc0891edd46d2e69890fad7a96bd837dca	file6.txt
+100644 blob f8d3a988b4b6abe60fee48ecccad69efa7cf2639	file7.txt
+100644 blob 2e995eb933f07ca377b8dd8a093bf80a83c257a2	file8.txt
+100644 blob d7c9aa1754730abbb4748607f685795968351ea8	file9.txt
+
+=== Native Git Config (before merge (noUpdateBranch)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£û merge 'delete-first-half' and 'delete-second-half' (dryRun) (3933.2728ms)
+
+Ô£à Config matches between native git and isomorphic-git (before merge (noUpdateBranch))
+  Ô£û merge 'delete-first-half' and 'delete-second-half' (noUpdateBranch) (3387.4576ms)
+
+=== Native Git Config (before native merge (file/folder conflict)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£û merge 'delete-first-half' and 'delete-second-half' (2500.0448ms)
+
+Ô£à Config matches between native git and isomorphic-git (before native merge (file/folder conflict))
+
+=== Native Git Config (before isomorphic-git merge (file/folder conflict)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+
+Ô£à Config matches between native git and isomorphic-git (before isomorphic-git merge (file/folder conflict))
+
+=== Native Git Config (before native merge (delete by theirs)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£ö merge 'a-file' and 'a-folder' (3022.0653ms)
+
+Ô£à Config matches between native git and isomorphic-git (before native merge (delete by theirs))
+
+=== Native Git Config (before isomorphic-git merge (delete by theirs)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+
+Ô£à Config matches between native git and isomorphic-git (before isomorphic-git merge (delete by theirs))
+
+=== Native Git Config (before native merge (delete by us)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£ö merge 'g' and 'g-delete-file' (delete by theirs) (2913.6982ms)
+
+Ô£à Config matches between native git and isomorphic-git (before native merge (delete by us))
+
+=== Native Git Config (before isomorphic-git merge (delete by us)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+
+Ô£à Config matches between native git and isomorphic-git (before isomorphic-git merge (delete by us))
+  Ô£ö merge 'g-delete-file' and 'g' (delete by us) (2926.7901ms)
+
+=== Native Git Config (before merge (no conflict)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£ö merge 'i' and 'i-delete-both' (delete by both) (1257.2166ms)
+
+Ô£à Config matches between native git and isomorphic-git (before merge (no conflict))
+
+=== Native Git Config (before merge (file mode change)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£ö merge two branches that modified the same file (no conflict)' (2511.2941ms)
+
+Ô£à Config matches between native git and isomorphic-git (before merge (file mode change))
+
+=== Native Git Config (before native merge (conflict test)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+  Ô£û merge two branches where one modified file and the other modified file mode' (2400.6312ms)
+
+Ô£à Config matches between native git and isomorphic-git (before native merge (conflict test))
+
+=== Native Git Config (before isomorphic-git merge (conflict test)) ===
+Merge-related configs:
+  merge.conflictstyle = (not set)
+  merge.ff = (not set)
+  merge.ours = (not set)
+  merge.theirs = (not set)
+  merge.renormalize = (not set)
+  core.autocrlf = true
+  core.safecrlf = (not set)
+  merge.tool = (not set)
+  merge.keepBackup = (not set)
+  merge.branchdesc = (not set)
+  merge.log = (not set)
+  merge.stat = (not set)
+  merge.verbosity = (not set)
+
+All local configs:
+  core.repositoryformatversion = 0
+  core.filemode = false
+  core.bare = false
+  core.logallrefupdates = true
+  core.symlinks = false
+  core.ignorecase = true
+  user.name = Test User
+  user.email = test@example.com
+  gc.auto = 0
+  gc.autopacklimit = 0
+=== End Config ===
+
+
+Ô£à Config matches between native git and isomorphic-git (before isomorphic-git merge (conflict test))
+  Ô£ö merge two branches that modified the same file, no conflict resolver (should conflict)' (2981.5741ms)
+  Ô£û merge two branches that modified the same file, no conflict resolver, don't update worktree' (123.1569ms)
+  Ô£û merge two branches that modified the same file, custom conflict resolver (prefer our changes)' (173.3815ms)
+Ô£à Repository created by isomorphic-git is fully compatible with native git
+  Ô£ö create repo with isomorphic-git and clone with native git to verify compatibility (1420.9788ms)
+Ô£û merge (38971.7117ms)
+ÔûÂ readBlob
+  Ô£ö test missing (107.5537ms)
+  Ô£ö blob (237.6126ms)
+  Ô£ö peels tags (582.5992ms)
+  Ô£ö with simple filepath to blob (79.5952ms)
+  Ô£ö with deep filepath to blob (348.7028ms)
+  Ô£ö with simple filepath to tree (69.5388ms)
+  Ô£ö with erroneous filepath (directory is a file) (193.4597ms)
+  Ô£ö with erroneous filepath (no such directory) (251.6907ms)
+  Ô£ö with erroneous filepath (leading slash) (178.3799ms)
+  Ô£ö with erroneous filepath (trailing slash) (184.8277ms)
+Ô£ö readBlob (2236.0256ms)
+ÔûÂ readCommit
+  Ô£ö test missing (193.9843ms)
+  Ô£ö parsed (162.4344ms)
+  Ô£ö from packfile (271.5191ms)
+Ô£ö readCommit (629.172ms)
+ÔûÂ readObject
+  Ô£ö test missing (85.4434ms)
+  Ô£ö parsed (186.4215ms)
+  Ô£ö content (189.4337ms)
+  Ô£ö wrapped (111.6655ms)
+  Ô£ö deflated (427.3887ms)
+  Ô£ö blob with encoding (310.4529ms)
+Ô£ö readObject (1312.5014ms)
+ÔûÂ readTag
+  Ô£ö annotated tag (213.3435ms)
+Ô£ö readTag (214.3653ms)
+ÔûÂ readTree
+  Ô£ö read a tree directly (200.8744ms)
+Ô£ö readTree (201.972ms)
+ÔûÂ remove
+  Ô£ö file (83.2061ms)
+  Ô£ö dir (49.5463ms)
+Ô£ö remove (133.8755ms)
+ÔûÂ sparse checkout cone mode
+  Ô£û initialize sparse checkout with cone mode (659.6325ms)
+  Ô£ö set patterns in cone mode and verify checkout (574.1552ms)
+  Ô£ö cone mode with multiple directory patterns (441.251ms)
+  Ô£ö cone mode pattern matching - nested directories (440.8413ms)
+  Ô£û cone mode vs non-cone mode behavior (569.3306ms)
+  Ô£ö list sparse checkout patterns (384.6904ms)
+  Ô£ö cone mode with root-level files (670.5352ms)
+  Ô£ö sparse checkout disabled by default (493.1757ms)
+  Ô£ö negative patterns (! prefix) in cone mode - exclude subdirectory (293.3343ms)
+  Ô£ö negative patterns - exclude nested subdirectory (128.3488ms)
+  Ô£ö negative patterns - multiple exclusions (73.177ms)
+  Ô£ö negative patterns - exclusion without inclusion should exclude everything (56.4798ms)
+  Ô£û negative patterns - preserve ! prefix in file (37.3699ms)
+Ô£û sparse checkout cone mode (4826.0429ms)
+ÔûÂ stash
+  ÔûÂ abort stash
+    Ô£ö stash without user (171.4013ms)
+    Ô£û stash with no changes (449.586ms)
+  Ô£û abort stash (622.5839ms)
+  ÔûÂ stash push
+    Ô£û stash with staged changes (622.8233ms)
+    Ô£û stash with staged and unstaged changes (261.9662ms)
+    Ô£û stash with staged and unstaged changes plus same file changes (371.4327ms)
+  Ô£û stash push (1257.0219ms)
+  ÔûÂ stash create
+    Ô£ö stash create without user (195.87ms)
+    Ô£û stash create with staged changes - returns commit hash without modifying working dir (389.7679ms)
+  Ô£û stash create (586.1958ms)
+  ÔûÂ stash apply
+    Ô£û stash apply with staged changes (386.5378ms)
+  Ô£û stash apply (387.2915ms)
+  ÔûÂ stash list
+    Ô£ö stash list with no stash (164.5913ms)
+    Ô£û stash list with 1 stash (462.2023ms)
+    Ô£û stash list with 2 stashes (587.0612ms)
+  Ô£û stash list (1214.3112ms)
+  ÔûÂ stash drop
+    Ô£ö stash drop with no stash (232.4111ms)
+    Ô£û stash drop with stash (277.8039ms)
+  Ô£û stash drop (510.5678ms)
+  ÔûÂ stash pop
+    Ô£ö stash pop with no stash (54.2823ms)
+    Ô£û stash pop with 1 stash (97.4387ms)
+  Ô£û stash pop (152.0588ms)
+Ô£û stash (4731.033ms)
+ÔûÂ status
+  Ô£ö status (1440.028ms)
+  Ô£ö status in an fresh git repo with no commits (77.5931ms)
+  Ô£ö invalid .git/index - empty file (107.8912ms)
+  Ô£ö invalid .git/index - no magic number (147.1716ms)
+  Ô£ö invalid .git/index - wrong checksum (154.0221ms)
+Ô£ö status (1928.0782ms)
+ÔûÂ statusMatrix
+  Ô£ö statusMatrix (670.4369ms)
+  Ô£ö statusMatrix in an fresh git repo with no commits (128.2671ms)
+  Ô£ö statusMatrix in an fresh git repo with no commits and .gitignore (159.1421ms)
+  Ô£ö does not return ignored files already in the index (43.3689ms)
+  Ô£ö returns ignored files already in the index if ignored:true (36.1906ms)
+Ô£ö statusMatrix (1038.8287ms)
+ÔûÂ walk
+  Ô£ö can walk using WORKDIR, TREE, and STAGE (504.7941ms)
+  Ô£ö can populate type, mode, oid, and content (326.0684ms)
+  Ô£ö autocrlf respected when gitconfig changes (595.7314ms)
+Ô£ö walk (1427.9136ms)
+ÔûÂ config
+  Ô£ö getting (54.647ms)
+  Ô£ö setting (20.429ms)
+Ô£ö config (76.3175ms)
+ÔûÂ findRoot
+  Ô£ö finds git directory (174.5727ms)
+  Ô£ö finds git directory from subdirectory (114.5083ms)
+  Ô£ö filepath has its own .git folder (37.8161ms)
+  Ô£ö filepath has ancestor with a .git folder (98.9978ms)
+Ô£ö findRoot (428.0982ms)
+ÔûÂ init
+  Ô£ö init creates repository (197.4572ms)
+  Ô£ö init (152.1161ms)
+  Ô£ö init --bare (167.5406ms)
+  Ô£ö init does not overwrite existing config (98.6683ms)
+Ô£ö init (617.4245ms)
+ÔûÂ unicode filepath support
+  Ô£ö write/read index µùÑµ£¼Þ¬× (201.7776ms)
+  Ô£ö write/read index docs/µùÑµ£¼Þ¬× (190.5229ms)
+  Ô£ö write/read commit µùÑµ£¼Þ¬× (150.8369ms)
+  Ô£ö write/read tree µùÑµ£¼Þ¬× (76.4994ms)
+  Ô£ö checkout µùÑµ£¼Þ¬× (283.498ms)
+  Ô£ö checkout docs/µùÑµ£¼Þ¬× (320.6095ms)
+Ô£ö unicode filepath support (1225.8567ms)
+ÔûÂ AlreadyExistsError
+  Ô£ö creates error for branch (0.8874ms)
+  Ô£ö creates error for tag (0.2054ms)
+Ô£ö AlreadyExistsError (2.2535ms)
+ÔûÂ InternalError
+  Ô£ö creates error with message (0.8057ms)
+  Ô£ö creates error with message in data (0.1953ms)
+Ô£ö InternalError (2.0791ms)
+ÔûÂ InvalidOidError
+  Ô£ö creates error with value (0.6739ms)
+  Ô£ö extends BaseError (0.1918ms)
+Ô£ö InvalidOidError (1.8078ms)
+ÔûÂ InvalidRefNameError
+  Ô£ö creates error with ref name and suggestion (0.7148ms)
+Ô£ö InvalidRefNameError (1.5283ms)
+ÔûÂ MissingParameterError
+  Ô£ö creates error with parameter name (0.7258ms)
+  Ô£ö extends BaseError (0.1637ms)
+Ô£ö MissingParameterError (1.8671ms)
+ÔûÂ NoRefspecError
+  Ô£ö creates error with remote name (0.8012ms)
+Ô£ö NoRefspecError (7.1754ms)
+ÔûÂ NotFoundError
+  Ô£ö creates error with ref name (0.6674ms)
+  Ô£ö creates error with custom message (0.1735ms)
+Ô£ö NotFoundError (1.7937ms)
+ÔûÂ SmartHttpError
+  Ô£ö creates error with correct message and code (1.4065ms)
+  Ô£ö supports error chaining with cause (0.2242ms)
+Ô£ö SmartHttpError (3.7202ms)
+ÔûÂ UnsafeFilepathError
+  Ô£ö creates error with filepath (0.9769ms)
+Ô£ö UnsafeFilepathError (2.1193ms)
+[Git Protocol] Starting clone operation from https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Starting fetch operation, requesting protocol version 1
+[Git Protocol] Requesting protocol version 1 for git-upload-pack at https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Using protocol version 1 with 2189 refs and 19 capabilities
+[Git Protocol] Protocol negotiation successful: requested v1, got v1
+[Git Protocol] Fetch using protocol v1, found 2189 refs
+[Packfile Index] Starting listpack on packfile of size 51523 bytes
+[Packfile Index] listpack completed. Found 131 objects in packfile. Total object count: 130
+[Packfile Index] Computing CRCs for 131 objects
+[Packfile Index] CRC computation completed. Starting delta resolution.
+[Packfile Index] Pass 1: Resolved 131 objects. Total resolved: 131/130
+[Packfile Index] fetchHead e10ebb90d03eaacca84de1af0a59b444232da99e found in index at offset 12
+ÔûÂ clone
+  Ô£ö clone with noCheckout (860.093ms)
+[Git Protocol] Starting clone operation from https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Starting fetch operation, requesting protocol version 1
+[Git Protocol] Requesting protocol version 1 for git-upload-pack at https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Using protocol version 1 with 2189 refs and 19 capabilities
+[Git Protocol] Protocol negotiation successful: requested v1, got v1
+[Git Protocol] Fetch using protocol v1, found 2189 refs
+[Packfile Index] Starting listpack on packfile of size 2523 bytes
+[Packfile Index] listpack completed. Found 6 objects in packfile. Total object count: 5
+[Packfile Index] Computing CRCs for 6 objects
+[Packfile Index] CRC computation completed. Starting delta resolution.
+[Packfile Index] Pass 1: Resolved 6 objects. Total resolved: 6/5
+[Packfile Index] fetchHead 1e40fdfba1cf17f3c9f9f3d6b392b1865e5147b9 found in index at offset 12
+  Ô£ö clone a tag (577.0221ms)
+[Git Protocol] Starting clone operation from https://gitlab.com/gitlab-org/gitlab-test.git
+[Git Protocol] Starting fetch operation, requesting protocol version 1
+[Git Protocol] Requesting protocol version 1 for git-upload-pack at https://gitlab.com/gitlab-org/gitlab-test.git
+[Git Protocol] Using protocol version 1 with 203 refs and 19 capabilities
+[Git Protocol] Protocol negotiation successful: requested v1, got v1
+[Git Protocol] Fetch using protocol v1, found 203 refs
+[Packfile Index] Starting listpack on packfile of size 1530133 bytes
+[Packfile Index] listpack completed. Found 177 objects in packfile. Total object count: 176
+[Packfile Index] Computing CRCs for 177 objects
+[Packfile Index] CRC computation completed. Starting delta resolution.
+[Packfile Index] Pass 1: Resolved 177 objects. Total resolved: 177/176
+[Packfile Index] fetchHead ddd0f15ae83993f5cb66a927a28673882e99100b found in index at offset 1250
+  Ô£ö clone from GitLab repository (1807.3852ms)
+[Git Protocol] Starting clone operation from https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Starting fetch operation, requesting protocol version 1
+[Git Protocol] Requesting protocol version 1 for git-upload-pack at https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Using protocol version 1 with 2189 refs and 19 capabilities
+[Git Protocol] Protocol negotiation successful: requested v1, got v1
+[Git Protocol] Fetch using protocol v1, found 2189 refs
+[Packfile Index] Starting listpack on packfile of size 46691117 bytes
+[Packfile Index] listpack completed. Found 17655 objects in packfile. Total object count: 17654
+[Packfile Index] Computing CRCs for 17655 objects
+[Packfile Index] CRC computation completed. Starting delta resolution.
+[Packfile Index] Pass 1: Resolved 17655 objects. Total resolved: 17655/17654
+[Packfile Index] fetchHead e10ebb90d03eaacca84de1af0a59b444232da99e found in index at offset 846999
+  Ô£ö clone with noTags (8990.0887ms)
+[Git Protocol] Starting clone operation from https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Starting fetch operation, requesting protocol version 1
+[Git Protocol] Requesting protocol version 1 for git-upload-pack at https://github.com/isomorphic-git/isomorphic-git.git
+[Git Protocol] Using protocol version 1 with 2189 refs and 19 capabilities
+[Git Protocol] Protocol negotiation successful: requested v1, got v1
+[Git Protocol] Fetch using protocol v1, found 2189 refs
+[Packfile Index] Starting listpack on packfile of size 51523 bytes
+[Packfile Index] listpack completed. Found 131 objects in packfile. Total object count: 130
+[Packfile Index] Computing CRCs for 131 objects
+[Packfile Index] CRC computation completed. Starting delta resolution.
+[Packfile Index] Pass 1: Resolved 131 objects. Total resolved: 131/130
+[Packfile Index] fetchHead e10ebb90d03eaacca84de1af0a59b444232da99e found in index at offset 12
+  Ô£ö clone and verify working directory (460.0519ms)
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+Switched to a new branch 'feature-branch'
+warning: in the working copy of 'file1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'file2.txt', LF will be replaced by CRLF the next time Git touches it
+Switched to branch 'main'
+  Ô£ö clone from local git repository (735.9193ms)
+[Git Protocol] Starting clone operation from https://gitlab.com/gitlab-org/gitlab-test.git
+[Git Protocol] Starting fetch operation, requesting protocol version 2
+[Git Protocol] Requesting protocol version 2 for git-upload-pack at https://gitlab.com/gitlab-org/gitlab-test.git
+[Git Protocol] Detected protocol version 2 in second line
+[Git Protocol] Using protocol version 2 with 5 capabilities
+[Git Protocol] Protocol negotiation successful: requested v2, got v2
+[Git Protocol] Server responded with v2, fetching refs separately using ls-refs command
+[Git Protocol] Fetched 200 refs via protocol v2 ls-refs command
+  Ô£ö clone from GitLab using protocol v2 (1045.3106ms)
+Ô£ö clone (14478.8349ms)
+ÔûÂ GitConfigManager
+  Ô£ö get reads config from file (27.6641ms)
+  Ô£ö save writes config to file (15.4799ms)
+  Ô£ö get throws error if config file does not exist (44.4751ms)
+Ô£ö GitConfigManager (89.2806ms)
+ÔûÂ GitIgnoreManager
+  Ô£ö isIgnored returns false for non-ignored files (38.1119ms)
+  Ô£ö isIgnored returns true for ignored files (18.09ms)
+  Ô£ö always ignores .git folders (15.7835ms)
+  Ô£ö never ignores root directory (16.4569ms)
+  Ô£ö respects parent directory exclusion (27.7109ms)
+Ô£ö GitIgnoreManager (118.1448ms)
+ÔûÂ GitAnnotatedTag
+  Ô£ö parse (2.1312ms)
+  Ô£ö render (1.3682ms)
+Ô£ö GitAnnotatedTag (4.7043ms)
+ÔûÂ GitConfig
+  ÔûÂ get value
+    Ô£ö simple (foo) (1.2449ms)
+    Ô£ö simple (bar) (0.2414ms)
+    Ô£ö implicit boolean value (0.2046ms)
+    Ô£ö section case insensitive (0.1647ms)
+    Ô£ö subsection case sensitive (1.1364ms)
+    Ô£ö variable name insensitive (0.2129ms)
+    Ô£ö last (when several) (0.1866ms)
+    Ô£ö multiple (0.8566ms)
+    Ô£ö multiple (case insensitive) (0.2634ms)
+    Ô£ö subsection (0.2421ms)
+  Ô£ö get value (6.5955ms)
+  ÔûÂ handle comments
+    Ô£ö lines starting with # or ; (0.1469ms)
+    Ô£ö variable lines with # or ; at the end (get) (0.2218ms)
+    Ô£ö variable lines with # or ; at the end (set) (0.45ms)
+    Ô£ö ignore quoted # or ; (0.1771ms)
+  Ô£ö handle comments (1.4089ms)
+  ÔûÂ handle quotes
+    Ô£ö simple (0.1174ms)
+    Ô£ö escaped (0.1001ms)
+    Ô£ö multiple (0.1497ms)
+    Ô£ö odd number of quotes (0.1208ms)
+    Ô£ö # in quoted values (0.1094ms)
+    Ô£ö ; in quoted values (0.1018ms)
+    Ô£ö # after quoted values (0.0959ms)
+    Ô£ö ; after quoted values (0.0853ms)
+  Ô£ö handle quotes (1.4676ms)
+  ÔûÂ get cast value
+    Ô£ö using schema (0.2777ms)
+    Ô£ö special boolean (0.1553ms)
+    Ô£ö numeric suffix (0.1361ms)
+  Ô£ö get cast value (0.8489ms)
+  ÔûÂ insert new value
+    Ô£ö existing section (0.1977ms)
+    Ô£ö existing section (case insensitive) (0.1377ms)
+    Ô£ö existing subsection (0.1456ms)
+    Ô£ö existing subsection (case insensitive) (0.1029ms)
+    Ô£ö existing subsection with dots in key (0.126ms)
+    Ô£ö new section (0.1371ms)
+    Ô£ö new subsection (0.1552ms)
+    Ô£ö new subsection with dots in key (0.1391ms)
+    Ô£ö new value with # (0.1114ms)
+    Ô£ö new value with ; (0.0962ms)
+  Ô£ö insert new value (2.0503ms)
+  ÔûÂ replace value
+    Ô£ö simple (0.1866ms)
+    Ô£ö simple (case insensitive) (0.1063ms)
+    Ô£ö simple (case sensitive key) (0.0895ms)
+    Ô£ö last (when several) (0.1113ms)
+    Ô£ö subsection (0.1146ms)
+  Ô£ö replace value (1.0494ms)
+  ÔûÂ append a value to existing key
+    Ô£ö simple (0.153ms)
+    Ô£ö simple (case insensitive) (0.1322ms)
+    Ô£ö subsection (0.1491ms)
+  Ô£ö append a value to existing key (0.7679ms)
+  ÔûÂ remove value
+    Ô£ö simple (0.1211ms)
+    Ô£ö simple (case insensitive) (0.1045ms)
+    Ô£ö last (when several) (0.0936ms)
+    Ô£ö subsection (0.0885ms)
+  Ô£ö remove value (0.7597ms)
+  ÔûÂ handle errors
+    Ô£ö get unknown key (0.9266ms)
+    Ô£ö get unknown section (0.1655ms)
+    Ô£ö get unknown subsection (0.1052ms)
+    Ô£ö section is only alphanum _ and . (get) (0.1758ms)
+    Ô£ö section is only alphanum _ and . (set) (0.1026ms)
+    Ô£ö variable name is only alphanum _ (get) (0.1218ms)
+    Ô£ö variable name is only alphanum _ (set) (0.1004ms)
+  Ô£ö handle errors (2.2586ms)
+  ÔûÂ get subsections
+    Ô£ö simple (0.204ms)
+  Ô£ö get subsections (0.9401ms)
+  ÔûÂ delete section
+    Ô£ö simple (0.1637ms)
+    Ô£ö subsection (0.3447ms)
+  Ô£ö delete section (0.8186ms)
+Ô£ö GitConfig (20.4845ms)
+ÔûÂ GitPktLine
+  Ô£ö encode string to pkt-line (0.7372ms)
+  Ô£ö encode Buffer to pkt-line (0.2267ms)
+  Ô£ö flush returns flush packet (0.2079ms)
+  Ô£ö delim returns delimiter packet (0.1507ms)
+  Ô£ö streamReader reads pkt-lines (1.3346ms)
+  Ô£ö streamReader handles end of stream (0.4549ms)
+Ô£ö GitPktLine (4.7088ms)
+ÔûÂ GitRefSpecSet
+  Ô£ö fetch = +refs/heads/*:refs/remotes/origin/* (2.4712ms)
+  Ô£ö fetch = refs/heads/master:refs/foo/master (0.3661ms)
+  Ô£ö weird HEAD implicit rule (0.1837ms)
+Ô£ö GitRefSpecSet (4.4321ms)
+ÔûÂ GitRemoteManager
+  Ô£ö getRemoteHelperFor (http) (2.2105ms)
+  Ô£ö getRemoteHelperFor (http override) (0.3097ms)
+  Ô£ö getRemoteHelperFor (https) (0.1702ms)
+  Ô£ö getRemoteHelperFor (unknown) (0.2423ms)
+  Ô£ö getRemoteHelperFor (unknown override) (0.1566ms)
+  Ô£ö getRemoteHelperFor (unparseable) (0.2133ms)
+Ô£ö GitRemoteManager (4.4539ms)
+ÔûÂ GitSideBand
+  Ô£ö demux - packetlines, packfile, and progress (2.2516ms)
+  Ô£ö demux - error line (0.681ms)
+Ô£ö GitSideBand (5.0183ms)
+ÔûÂ addNote
+  Ô£ö to a commit (364.2608ms)
+  Ô£ö to a tree (124.9074ms)
+  Ô£ö to a blob (325.6519ms)
+  Ô£ö consecutive notes accumulate (443.9017ms)
+  Ô£ö can add a note to a different branch (289.5909ms)
+  Ô£ö throws if note already exists (428.3432ms)
+  Ô£ö replaces existing note with --force (499.6574ms)
+Ô£ö addNote (2479.2767ms)
+ÔûÂ listNotes
+  Ô£ö from default branch (425.4123ms)
+  Ô£ö from alternate branch (308.5411ms)
+  Ô£ö from non-existant branch (275.6861ms)
+Ô£ö listNotes (1011.9672ms)
+ÔûÂ readNote
+  Ô£ö to a commit (163.2357ms)
+  Ô£ö to a tree (524.112ms)
+  Ô£ö to a blob (342.8464ms)
+  Ô£ö from an alternate branch (479.0372ms)
+Ô£ö readNote (1513.0439ms)
+ÔûÂ removeNote
+  Ô£ö from default branch (594.2908ms)
+  Ô£ö from alternate branch (255.7425ms)
+Ô£ö removeNote (851.2102ms)
+ÔûÂ writeBlob
+  Ô£ö empty blob (62.8152ms)
+  Ô£ö blob (57.4279ms)
+Ô£ö writeBlob (121.6554ms)
+ÔûÂ writeCommit
+  Ô£ö parsed (90.1281ms)
+Ô£ö writeCommit (91.4354ms)
+ÔûÂ writeObject
+  Ô£ö parsed (93.7477ms)
+  Ô£ö content (53.1988ms)
+Ô£ö writeObject (148.2187ms)
+ÔûÂ writeTag
+  Ô£ö annotated tag (81.9685ms)
+Ô£ö writeTag (83.0406ms)
+ÔûÂ writeTree
+  Ô£ö tree (67.5718ms)
+  Ô£ö tree entries sorted correctly (53.9787ms)
+Ô£ö writeTree (123.0433ms)
+ÔûÂ branch
+  Ô£ö branch (136.1611ms)
+  Ô£ö branch with start point (312.6995ms)
+  Ô£ö branch force (122.4874ms)
+  Ô£ö branch with start point force (284.5604ms)
+  Ô£ö branch --checkout (41.9337ms)
+  Ô£ö invalid branch name (136.8731ms)
+  Ô£ö missing ref argument (306.4425ms)
+  Ô£ö empty repo (204.673ms)
+  Ô£ö create branch with same name as a remote (140.375ms)
+  Ô£ö create branch named "HEAD" (96.0329ms)
+Ô£ö branch (1786.2816ms)
+ÔûÂ currentBranch
+  Ô£ö resolve HEAD to master (46.5669ms)
+  Ô£ö resolve HEAD to refs/heads/master (166.6609ms)
+  Ô£ö returns undefined if HEAD is detached (198.3614ms)
+Ô£ö currentBranch (413.0765ms)
+ÔûÂ deleteBranch
+  Ô£ö delete branch (61.7253ms)
+  Ô£ö deletes the branch when an identically named tag exists (199.2229ms)
+  Ô£ö branch not exist (242.0132ms)
+  Ô£ö missing ref argument (153.9638ms)
+  Ô£ö checked out branch (209.3731ms)
+  Ô£ö delete branch and its entry in config (370.6918ms)
+Ô£ö deleteBranch (1239.4627ms)
+ÔûÂ deleteRef
+  Ô£ö deletes a loose tag (176.3005ms)
+  Ô£ö deletes a packed tag (291.3888ms)
+  Ô£ö deletes a packed and loose tag (238.875ms)
+Ô£ö deleteRef (708.127ms)
+ÔûÂ expandOid
+  Ô£ö expand short oid (79.4852ms)
+  Ô£ö expand short oid (not found) (244.3122ms)
+  Ô£ö expand short oid (ambiguous) (222.0725ms)
+  Ô£ö expand short oid from packfile (69.076ms)
+  Ô£ö expand short oid from packfile and loose (195.9058ms)
+Ô£ö expandOid (812.9849ms)
+ÔûÂ renameBranch
+  Ô£ö branch already exists (173.9634ms)
+  Ô£ö invalid new branch name (155.6114ms)
+  Ô£ö invalid old branch name (152.0414ms)
+  Ô£ö missing ref argument (267.8041ms)
+  Ô£ö missing oldref argument (266.8842ms)
+  Ô£ö rename branch (174.8762ms)
+  Ô£ö rename branch and checkout (77.9195ms)
+  Ô£ö rename current branch (82.7967ms)
+Ô£ö renameBranch (1355.5915ms)
+ÔûÂ resolveRef
+  Ô£ö 1e40fdfba1cf17f3c9f9f3d6b392b1865e5147b9 (95.3418ms)
+  Ô£ö test-branch (189.0649ms)
+  Ô£ö config (355.9316ms)
+  Ô£ö test-tag (256.9602ms)
+  Ô£ö HEAD (115.6466ms)
+  Ô£ö HEAD depth (111.1639ms)
+  Ô£ö packed-refs (68.9894ms)
+  Ô£ö non-existant refs (47.5671ms)
+Ô£ö resolveRef (1243.3544ms)
+ÔûÂ writeRef
+  Ô£ö writes a tag ref to HEAD (79.2854ms)
+  Ô£ö sets current branch to another (159.0432ms)
+Ô£ö writeRef (240.0382ms)
+ÔûÂ addRemote
+  Ô£ö addRemote (51.3221ms)
+  Ô£ö missing argument (7.9228ms)
+  Ô£ö invalid remote name (7.573ms)
+Ô£ö addRemote (68.2885ms)
+ÔûÂ deleteRemote
+  Ô£ö deleteRemote (53.7623ms)
+  Ô£ö missing argument (7.9238ms)
+Ô£ö deleteRemote (62.8026ms)
+ÔûÂ listRemotes
+  Ô£ö listRemotes (25.8501ms)
+Ô£ö listRemotes (27.019ms)
+ÔûÂ annotatedTag
+  Ô£ö creates an annotated tag to HEAD (434.739ms)
+  Ô£ö creates an annotated tag pointing to a blob (231.7535ms)
+  Ô£ö creates a signed tag to HEAD (179.2001ms)
+Ô£ö annotatedTag (847.7479ms)
+ÔûÂ deleteTag
+  Ô£ö deletes the latest tag to HEAD (328.1387ms)
+  Ô£ö missing ref argument (186.0729ms)
+Ô£ö deleteTag (520.3745ms)
+ÔûÂ tag
+  Ô£ö creates a lightweight tag to HEAD (221.3802ms)
+  Ô£ö fails if tag already exists (129.0063ms)
+  Ô£ö fails if tag already exists (packed) (116.2947ms)
+  Ô£ö force overwrite (46.7411ms)
+  Ô£ö force overwrite (packed) (47.5066ms)
+Ô£ö tag (563.1236ms)
+ÔûÂ abbreviateRef
+  Ô£ö abbreviates refs/heads/branch (0.7413ms)
+  Ô£ö abbreviates refs/tags/tag (0.1634ms)
+  Ô£ö abbreviates refs/remotes/remote/branch (0.1441ms)
+  Ô£ö abbreviates refs/remotes/remote/HEAD (0.1176ms)
+  Ô£ö returns original for non-refs paths (0.3036ms)
+Ô£ö abbreviateRef (2.8974ms)
+ÔûÂ arrayRange
+  Ô£ö creates range from start to end (1.3707ms)
+  Ô£ö handles single element range (0.2134ms)
+  Ô£ö handles empty range (0.1686ms)
+  Ô£ö handles negative start (0.1622ms)
+Ô£ö arrayRange (3.3182ms)
+ÔûÂ assertParameter
+  Ô£ö does not throw for valid values (0.745ms)
+  Ô£ö throws MissingParameterError for undefined (0.5063ms)
+  Ô£ö does not throw for null (null is a valid value) (0.1705ms)
+Ô£ö assertParameter (2.7009ms)
+ÔûÂ assignDefined
+  Ô£ö assigns defined properties (1.8624ms)
+  Ô£ö skips undefined properties (0.1825ms)
+  Ô£ö includes null properties (only skips undefined) (0.1551ms)
+  Ô£ö handles empty objects (0.1356ms)
+  Ô£ö overwrites with later values (0.1281ms)
+Ô£ö assignDefined (4.3837ms)
+ÔûÂ comparePath
+  Ô£ö compares paths correctly (1.7327ms)
+  Ô£ö handles directory vs file (0.2723ms)
+  Ô£ö handles nested paths (0.216ms)
+Ô£ö comparePath (5.8685ms)
+ÔûÂ compareStrings
+  Ô£ö compares strings correctly (1.2273ms)
+  Ô£ö handles case sensitivity (0.2283ms)
+  Ô£ö handles empty strings (0.1731ms)
+  Ô£ö handles numeric strings (0.1213ms)
+Ô£ö compareStrings (3.094ms)
+ÔûÂ dirname
+  Ô£ö returns parent directory for Unix path (0.6812ms)
+  Ô£ö returns parent directory for Windows path (0.1778ms)
+  Ô£ö handles relative paths (0.1685ms)
+  Ô£ö handles root paths (0.1853ms)
+  Ô£ö handles single component paths (0.1574ms)
+  Ô£ö handles mixed separators (0.2263ms)
+Ô£ö dirname (3.7246ms)
+ÔûÂ flat
+  Ô£ö flattens nested arrays (3.1507ms)
+  Ô£ö handles empty arrays (0.2001ms)
+  Ô£ö handles single level arrays (0.1711ms)
+  Ô£ö handles mixed types (0.8071ms)
+Ô£ö flat (6.0424ms)
+ÔûÂ hashBlob
+  Ô£ö object as Uint8Array (9.0678ms)
+  Ô£ö object as String (3.8251ms)
+Ô£ö hashBlob (16.0814ms)
+ÔûÂ isBinary
+  Ô£ö .gz is binary (52.2336ms)
+  Ô£ö .zip is binary (16.7333ms)
+  Ô£ö .gif is binary (89.4418ms)
+  Ô£ö .png is binary (71.0545ms)
+  Ô£ö .xml is NOT binary (63.4926ms)
+  Ô£ö .json is NOT binary (14.9689ms)
+Ô£ö isBinary (310.2104ms)
+ÔûÂ isIgnored
+  Ô£ö should check .gitignore (49.2507ms)
+  Ô£ö should check .gitignore in sub directory (38.2869ms)
+Ô£ö isIgnored (89.213ms)
+ÔûÂ isValidRef
+  Ô£ö validates ref names with slashes (0.7312ms)
+  Ô£ö rejects invalid ref names (0.1472ms)
+  Ô£ö handles onelevel parameter for single-level refs (0.1253ms)
+  Ô£ö rejects refs with invalid characters (0.1181ms)
+Ô£ö isValidRef (2.2927ms)
+ÔûÂ join
+  ÔûÂ when "internal join" generates paths the same as "path.join"
+    Ô£ö "["/foo/bar","baz"]" should join to "/foo/bar/baz" (0.7494ms)
+    Ô£ö "["foo/bar","baz"]" should join to "foo/bar/baz" (0.1526ms)
+    Ô£ö "["foo","bar","baz"]" should join to "foo/bar/baz" (0.1219ms)
+    Ô£ö "["/","foo","bar","baz"]" should join to "/foo/bar/baz" (0.113ms)
+    Ô£ö "[".","foo"]" should join to "foo" (0.1208ms)
+    Ô£ö "["foo","."]" should join to "foo" (0.1019ms)
+    Ô£ö "[".","."]" should join to "." (0.112ms)
+    Ô£ö "[".","foo","."]" should join to "foo" (0.119ms)
+    Ô£ö "[".",".","."]" should join to "." (0.9881ms)
+    Ô£ö "["/","."]" should join to "/" (0.1536ms)
+    Ô£ö "["/",".git"]" should join to "/.git" (0.0848ms)
+    Ô£ö "[".",".git"]" should join to ".git" (0.0671ms)
+    Ô£ö "[]" should join to "." (0.0513ms)
+    Ô£ö "["foo/x","./bar"]" should join to "foo/x/bar" (0.0514ms)
+    Ô£ö "["foo/x/","./bar"]" should join to "foo/x/bar" (0.0843ms)
+    Ô£ö "["foo/x/",".","bar"]" should join to "foo/x/bar" (0.0575ms)
+    Ô£ö "[".",".","."]" should join to "." (0.0493ms)
+    Ô£ö "[".","./","."]" should join to "." (0.0799ms)
+    Ô£ö "[".","/./","."]" should join to "." (0.105ms)
+    Ô£ö "[".","/////./","."]" should join to "." (0.0614ms)
+    Ô£ö "["."]" should join to "." (0.0549ms)
+    Ô£ö "["","."]" should join to "." (0.0769ms)
+    Ô£ö "["foo","/bar"]" should join to "foo/bar" (0.0697ms)
+    Ô£ö "["foo",""]" should join to "foo" (0.1568ms)
+    Ô£ö "["foo","","/bar"]" should join to "foo/bar" (0.0532ms)
+    Ô£ö "["/"]" should join to "/" (0.0317ms)
+    Ô£ö "["/","."]" should join to "/" (0.0285ms)
+    Ô£ö "[""]" should join to "." (0.0319ms)
+    Ô£ö "["",""]" should join to "." (0.0256ms)
+    Ô£ö "["","foo"]" should join to "foo" (0.0301ms)
+    Ô£ö "["","","foo"]" should join to "foo" (0.0283ms)
+    Ô£ö "[" /foo"]" should join to " /foo" (0.0438ms)
+    Ô£ö "[" ","foo"]" should join to " /foo" (0.0341ms)
+    Ô£ö "[" ","."]" should join to " " (0.0304ms)
+    Ô£ö "[" ",""]" should join to " " (0.0295ms)
+    Ô£ö "["/","/foo"]" should join to "/foo" (0.0594ms)
+    Ô£ö "["/","//foo"]" should join to "/foo" (0.0876ms)
+    Ô£ö "["/","","/foo"]" should join to "/foo" (0.0492ms)
+  Ô£ö when "internal join" generates paths the same as "path.join" (7.5396ms)
+Ô£ö join (8.1033ms)
+ÔûÂ mergeFile
+  Ô£ö mergeFile a o b (86.0338ms)
+  Ô£ö mergeFile a o c (23.6209ms)
+Ô£ö mergeFile (110.7735ms)
+ÔûÂ normalizeAuthorObject
+  Ô£ö return author if all properties are populated (34.7562ms)
+  Ô£ö return commit author when no author was provided (22.1844ms)
+  Ô£ö return config values and new timestamp if no author or commit was provided (16.3071ms)
+  Ô£ö return undefined if no value can be retrieved (12.7007ms)
+Ô£ö normalizeAuthorObject (87.5175ms)
+ÔûÂ normalizeCommitterObject
+  Ô£ö return committer if all properties are populated (26.2037ms)
+  Ô£ö return author values if no committer was provided (12.995ms)
+  Ô£ö return commit committer when no author or committer was provided (13.0204ms)
+  Ô£ö return config values and new timestamp if no author or committer was provided (13.7332ms)
+  Ô£ö return undefined if no value can be retrieved (8.4337ms)
+Ô£ö normalizeCommitterObject (75.6841ms)
+ÔûÂ normalizeFs
+  Ô£ö wraps raw fs module (0.9126ms)
+  Ô£ö returns same instance if already FileSystem (0.2446ms)
+  Ô£ö normalized fs has FileSystem methods (0.1618ms)
+Ô£ö normalizeFs (2.4694ms)
+ÔûÂ isPromiseLike
+  Ô£ö identifies promises (0.8742ms)
+  Ô£ö rejects non-promises (0.2741ms)
+  Ô£ö rejects thenables without proper structure (0.2454ms)
+Ô£ö isPromiseLike (2.9502ms)
+ÔûÂ version
+  Ô£ö version (0.3502ms)
+Ô£ö version (0.7974ms)
+Ôä╣ tests 506
+Ôä╣ suites 36
+Ôä╣ pass 481
+Ôä╣ fail 25
+Ôä╣ cancelled 0
+Ôä╣ skipped 0
+Ôä╣ todo 0
+Ôä╣ duration_ms 40138.4402
+
+Ô£û failing tests:
+
+test at tests\commands\abortMerge.test.ts:19:3
+Ô£û write conflicted files to index at different stages (1099.2901ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof Errors.MergeConflictError || (error       ).code === Errors.MergeConflictError.code)
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/abortMerge.test.ts:60:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1518:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\abortMerge.test.ts:112:3
+Ô£û abort merge without touching anything (572.6719ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof Errors.MergeConflictError || (error       ).code === Errors.MergeConflictError.code)
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/abortMerge.test.ts:138:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\abortMerge.test.ts:166:3
+Ô£û abort merge after modifying files (610.3605ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof Errors.MergeConflictError || (error       ).code === Errors.MergeConflictError.code)
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/abortMerge.test.ts:192:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\abortMerge.test.ts:228:3
+Ô£û workdir != index && index === head (keep our changes) (778.9754ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof Errors.MergeConflictError || (error       ).code === Errors.MergeConflictError.code)
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/abortMerge.test.ts:273:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:99:3
+Ô£û prevent merge if index has unmerged paths (498.1646ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof Errors.UnmergedPathsError || (error       ).code === Errors.UnmergedPathsError.code)
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/merge.test.ts:124:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1518:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:574:3
+Ô£û merge 'delete-first-half' and 'delete-second-half' (dryRun) (3933.2728ms)
+  AssertionError [ERR_ASSERTION]: Tree OIDs should match native git
+  + actual - expected
+  
+  + '6ef55219ebc95eb4f4fbaea703bb44df35e27608'
+  - '31155a4d98a6fa3a05993e75b548b6951d06bc9f'
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/merge.test.ts:731:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '6ef55219ebc95eb4f4fbaea703bb44df35e27608',
+    expected: '31155a4d98a6fa3a05993e75b548b6951d06bc9f',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:751:3
+Ô£û merge 'delete-first-half' and 'delete-second-half' (noUpdateBranch) (3387.4576ms)
+  AssertionError [ERR_ASSERTION]: Tree OIDs should match native git
+  + actual - expected
+  
+  + '6ef55219ebc95eb4f4fbaea703bb44df35e27608'
+  - '31155a4d98a6fa3a05993e75b548b6951d06bc9f'
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/merge.test.ts:872:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '6ef55219ebc95eb4f4fbaea703bb44df35e27608',
+    expected: '31155a4d98a6fa3a05993e75b548b6951d06bc9f',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:892:3
+Ô£û merge 'delete-first-half' and 'delete-second-half' (2500.0448ms)
+  AssertionError [ERR_ASSERTION]: Report should have tree OID
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/merge.test.ts:1008:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:1566:3
+Ô£û merge two branches where one modified file and the other modified file mode' (2400.6312ms)
+  AssertionError [ERR_ASSERTION]: Report should have tree OID
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/merge.test.ts:1674:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:1825:3
+Ô£û merge two branches that modified the same file, no conflict resolver, don't update worktree' (123.1569ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(error instanceof Errors.MergeConflictError || (error       ).code === Errors.MergeConflictError.code)
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/merge.test.ts:1859:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\merge.test.ts:1862:3
+Ô£û merge two branches that modified the same file, custom conflict resolver (prefer our changes)' (173.3815ms)
+  Error [MergeConflictError]: Automatic merge failed with one or more merge conflicts in the following files: o.txt. Fix conflicts then commit the result.
+      at mergeTree (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/utils/mergeTree.ts:435:12)
+      at async file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/merge.ts:263:23
+      at async file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitIndexManager.ts:130:16 {
+    cause: undefined,
+    code: 'MergeConflictError',
+    data: { filepaths: [ 'o.txt' ], bothModified: [ 'o.txt' ], deleteByUs: [], deleteByTheirs: [] },
+    caller: 'git.merge'
+  }
+
+test at tests\commands\sparseCheckout.test.ts:17:11
+Ô£û initialize sparse checkout with cone mode (659.6325ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/sparseCheckout.test.ts:49:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/sparseCheckout.test.ts:17:3)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\sparseCheckout.test.ts:162:11
+Ô£û cone mode vs non-cone mode behavior (569.3306ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(files.includes('src/file.js'))
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/sparseCheckout.test.ts:191:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/sparseCheckout.test.ts:162:3)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\sparseCheckout.test.ts:388:11
+Ô£û negative patterns - preserve ! prefix in file (37.3699ms)
+  AssertionError [ERR_ASSERTION]: Sparse-checkout file should exist and have content
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/sparseCheckout.test.ts:405:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/sparseCheckout.test.ts:388:3)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:102:5
+Ô£û stash with no changes (449.586ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'MissingNameError'
+  - 'NotFoundError'
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:117:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'MissingNameError',
+    expected: 'NotFoundError',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:123:5
+Ô£û stash with staged changes (622.8233ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:125:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Promise.all (index 0)
+  +     at async Suite.run (node:internal/test_runner/test:1518:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:125:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1518:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:125:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Promise.all (index 0)
+        at async Suite.run (node:internal/test_runner/test:1518:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:128:5
+Ô£û stash with staged and unstaged changes (261.9662ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:130:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:130:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:130:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:133:5
+Ô£û stash with staged and unstaged changes plus same file changes (371.4327ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:135:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:135:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:135:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:156:5
+Ô£û stash create with staged changes - returns commit hash without modifying working dir (389.7679ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashCreate (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:229:27)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:175:27)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:180:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashCreate (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:229:27)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:175:27)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:204:5
+Ô£û stash apply with staged changes (386.5378ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:207:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Promise.all (index 0)
+  +     at async Suite.run (node:internal/test_runner/test:1518:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:207:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1518:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:207:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Promise.all (index 0)
+        at async Suite.run (node:internal/test_runner/test:1518:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:237:5
+Ô£û stash list with 1 stash (462.2023ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:240:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:240:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:240:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:246:5
+Ô£û stash list with 2 stashes (587.0612ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:249:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:249:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:249:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:271:5
+Ô£û stash drop with stash (277.8039ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:274:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:274:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:274:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\commands\stash.test.ts:303:5
+Ô£û stash pop with 1 stash (97.4387ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + MissingNameError: No name was provided for author in the argument or in the .git/config file.
+  +     at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+  +     at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+  +     at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+  +     at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+  +     at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+  +     at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:306:7)
+  +     at async Test.run (node:internal/test_runner/test:1113:7)
+  +     at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+  +   caller: 'git.stash',
+  +   cause: undefined,
+  +   code: 'MissingNameError',
+  +   data: {
+  +     role: 'author'
+  +   }
+  + }
+  - null
+  
+      at stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:75:10)
+      at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:306:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: MissingNameError: No name was provided for author in the argument or in the .git/config file.
+        at GitStashManager.getAuthor (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/managers/GitStashManager.ts:77:26)
+        at async _createStashCommit (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:30:3)
+        at async _stashPush (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/commands/stash.ts:118:55)
+        at async stash (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/src/api/stash.ts:154:14)
+        at async stashChanges (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:65:5)
+        at async TestContext.<anonymous> (file:///C:/Users/frank_lemanschik/isomorphic-git/isomorphic-git/tests/commands/stash.test.ts:306:7)
+        at async Test.run (node:internal/test_runner/test:1113:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:788:7) {
+      [cause]: undefined
+    },
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

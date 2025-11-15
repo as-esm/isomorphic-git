@@ -2,15 +2,12 @@ import { arrayRange } from "../utils/arrayRange.ts"
 import { flat } from "../utils/flat.ts"
 import { GitWalkSymbol } from "../utils/symbols.ts"
 import { unionOfIterators } from "../utils/unionOfIterators.ts"
-import type { FsClient } from "../models/FileSystem.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 import type { Walker, WalkerMap, WalkerReduce, WalkerIterate, WalkerEntry } from "../models/Walker.ts"
 
 /**
  * @param {object} args
- * @param {import('../types.ts').FsClient} args.fs
- * @param {object} args.cache
- * @param {string} [args.dir]
- * @param {string} [args.gitdir=join(dir,'.git')]
+ * @param {Repository} args.repo - Repository instance (ensures state consistency)
  * @param {Walker[]} args.trees
  * @param {WalkerMap} [args.map]
  * @param {WalkerReduce} [args.reduce]
@@ -22,10 +19,7 @@ import type { Walker, WalkerMap, WalkerReduce, WalkerIterate, WalkerEntry } from
  *
  */
 export async function _walk({
-  fs,
-  cache,
-  dir,
-  gitdir,
+  repo,
   trees,
   map = async (_: string, entry: WalkerEntry[]) => entry,
   // The default reducer is a flatmap that filters out undefineds.
@@ -37,17 +31,14 @@ export async function _walk({
   // The default iterate function walks all children concurrently
   iterate = (walk: (root: string[]) => Promise<unknown>, children: IterableIterator<WalkerEntry[]>) => Promise.all([...children].map(walk)),
 }: {
-  fs: FsClient
-  cache: Record<string, unknown>
-  dir?: string
-  gitdir?: string
+  repo: Repository
   trees: Walker[]
   map?: WalkerMap
   reduce?: WalkerReduce
   iterate?: WalkerIterate
 }): Promise<unknown> {
-  const walkers = trees.map(proxy =>
-    proxy[GitWalkSymbol]({ fs, dir, gitdir, cache })
+  const walkers = await Promise.all(
+    trees.map(proxy => proxy[GitWalkSymbol]({ repo }))
   )
 
   const root = new Array(walkers.length).fill('.')

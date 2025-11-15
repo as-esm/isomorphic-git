@@ -247,11 +247,13 @@ export async function walk({
     assertParameter('gitdir', gitdir)
     assertParameter('trees', trees)
 
+    // CRITICAL: Get the Repository instance and pass it to _walk
+    // This ensures all walkers use the same Repository instance
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    
     return await _walk({
-      fs: normalizeFs(fs),
-      cache,
-      dir,
-      gitdir,
+      repo,
       trees,
       map,
       reduce,
