@@ -1,4 +1,3 @@
-import { _pull } from './pull.ts'
 import { MissingNameError } from "../errors/MissingNameError.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
@@ -6,6 +5,10 @@ import { join } from "../utils/join.ts"
 import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
 import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
 import { Repository } from "../core-utils/Repository.ts"
+import { _fetch } from "./fetch.ts"
+import { _merge } from "./merge.ts"
+import { _currentBranch } from "./currentBranch.ts"
+import { RefManager } from "../core-utils/refs/RefManager.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
@@ -169,5 +172,106 @@ export async function pull({
   }
 }
 
-// Re-export _pull for internal use
-export { _pull }
+/**
+ * Internal pull implementation
+ * @internal - Exported for use by other commands (e.g., fastForward)
+ */
+export async function _pull({
+  fs,
+  cache,
+  http,
+  onProgress,
+  onMessage,
+  onAuth,
+  onAuthSuccess,
+  onAuthFailure,
+  dir,
+  gitdir,
+  ref: _ref,
+  remote,
+  remoteRef,
+  url,
+  fastForward = true,
+  fastForwardOnly = false,
+  corsProxy,
+  singleBranch,
+  headers = {},
+  author,
+  committer,
+  signingKey,
+  prune = false,
+  pruneTags = false,
+}: {
+  fs: FsClient
+  cache: Record<string, unknown>
+  http: HttpClient
+  onProgress?: ProgressCallback
+  onMessage?: MessageCallback
+  onAuth?: AuthCallback
+  onAuthSuccess?: AuthSuccessCallback
+  onAuthFailure?: AuthFailureCallback
+  dir?: string
+  gitdir: string
+  ref?: string
+  remote?: string
+  remoteRef?: string
+  url?: string
+  fastForward?: boolean
+  fastForwardOnly?: boolean
+  corsProxy?: string
+  singleBranch?: boolean
+  headers?: Record<string, string>
+  author: Author
+  committer: Author
+  signingKey?: string
+  prune?: boolean
+  pruneTags?: boolean
+}): Promise<void> {
+  const ref = _ref || (await _currentBranch({ fs, gitdir }))
+  if (typeof ref === 'undefined') {
+    throw new MissingNameError('ref')
+  }
+
+  // Use Repository for consistent state
+  const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+
+  // Step 1: Fetch from remote
+  await _fetch({
+    fs,
+    cache,
+    http,
+    onProgress,
+    onMessage,
+    onAuth,
+    onAuthSuccess,
+    onAuthFailure,
+    gitdir,
+    ref,
+    remote,
+    remoteRef,
+    url,
+    corsProxy,
+    singleBranch,
+    headers,
+    prune,
+    pruneTags,
+  })
+
+  // Step 2: Determine the remote tracking branch to merge
+  const remoteTrackingRef = remoteRef || `refs/remotes/${remote || 'origin'}/${ref.replace('refs/heads/', '')}`
+  
+  // Resolve the remote tracking branch OID
+  const theirOid = await RefManager.resolve({ fs, gitdir, ref: remoteTrackingRef })
+  
+  // Step 3: Merge the fetched changes
+  await _merge({
+    repo,
+    theirs: theirOid,
+    fastForward,
+    fastForwardOnly,
+    author,
+    committer,
+    signingKey,
+    allowUnrelatedHistories: false,
+  })
+}

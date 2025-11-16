@@ -1,0 +1,163 @@
+import { RefManager } from "../core-utils/refs/RefManager.ts"
+import { readObject } from "../git/objects/readObject.ts"
+import { writeObject } from "../git/objects/writeObject.ts"
+import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
+import { mergeTrees } from "../core-utils/algorithms/MergeManager.ts"
+import { StateManager } from "../core-utils/StateManager.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
+import { Repository } from "../core-utils/Repository.ts"
+import type { FsClient } from "../models/FileSystem.ts"
+import type { CommitObject } from "../models/GitCommit.ts"
+
+// ============================================================================
+// CHERRY-PICK TYPES
+// ============================================================================
+
+/**
+ * Cherry-pick operation result
+ */
+export type CherryPickResult = {
+  oid: string
+  conflicts?: string[]
+}
+
+/**
+ * Applies the changes introduced by some existing commits
+ * Similar to `git cherry-pick`
+ */
+export async function cherryPick({
+  fs: _fs,
+  dir = "",
+  gitdir = join(dir, '.git'),
+  commit,
+  noCommit = false,
+  cache = {},
+}: {
+  fs: FsClient
+  dir?: string
+  gitdir?: string
+  commit: string
+  noCommit?: boolean
+  cache?: Record<string, unknown>
+}): Promise<CherryPickResult> {
+  try {
+    assertParameter('fs', _fs)
+    assertParameter('gitdir', gitdir)
+    assertParameter('commit', commit)
+
+    const fs = normalizeFs(_fs)
+
+    // CRITICAL: Use Repository to ensure state consistency
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+    const effectiveGitdir = await repo.getGitdir()
+
+    // Resolve commit to OID
+    const commitOid = await repo.resolveRef(commit)
+    
+    // Read the commit to cherry-pick
+    const commitResult = await readObject({ fs, cache, gitdir: effectiveGitdir, oid: commitOid, format: 'content' })
+    if (commitResult.type !== 'commit') {
+      throw new Error(`Object ${commitOid} is not a commit`)
+    }
+    const commitObj = parseCommit(commitResult.object) as CommitObject
+
+    // Get current HEAD
+    const headRef = await repo.resolveRef('HEAD')
+    const headResult = await readObject({ fs, cache, gitdir: effectiveGitdir, oid: headRef, format: 'content' })
+    if (headResult.type !== 'commit') {
+      throw new Error(`HEAD ${headRef} is not a commit`)
+    }
+    const headCommit = parseCommit(headResult.object) as CommitObject
+
+    // Find merge base (the parent of the commit being cherry-picked)
+    // For cherry-pick, we use the commit's first parent as the base
+    const baseOid = commitObj.parent && commitObj.parent.length > 0 ? commitObj.parent[0] : null
+    
+    if (!baseOid) {
+      throw new Error('Cannot cherry-pick a commit with no parent (root commit)')
+    }
+
+    // Get tree OIDs
+    const ourTreeOid = headCommit.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904' // empty tree
+    const theirTreeOid = commitObj.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+    
+    // Get base tree from the commit's parent
+    let baseTreeOid = '4b825dc642cb6eb9a060e54bf8d69288fbee4904' // empty tree
+    if (baseOid) {
+      const baseResult = await readObject({ fs, cache, gitdir: effectiveGitdir, oid: baseOid, format: 'content' })
+      if (baseResult.type === 'commit') {
+        const baseCommit = parseCommit(baseResult.object) as CommitObject
+        baseTreeOid = baseCommit.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+      }
+    }
+
+    // Perform three-way merge
+    const mergeResult = await mergeTrees({
+      fs,
+      cache,
+      gitdir: effectiveGitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+
+    if (mergeResult.conflicts.length > 0 && !noCommit) {
+      // Set CHERRY_PICK_HEAD for conflict resolution
+      const stateManager = new StateManager(fs, effectiveGitdir)
+      await stateManager.setCherryPickHead(commitOid)
+      throw new Error(`Cherry-pick conflict: ${mergeResult.conflicts.join(', ')}`)
+    }
+
+    if (noCommit) {
+      // Update index with merged tree
+      // Note: In a full implementation, we would:
+      // 1. Read the merged tree
+      // 2. Recursively walk the tree and update index entries
+      // 3. Remove entries that are no longer in the tree
+      // 4. Add new entries from the tree
+      // 5. Mark conflict entries appropriately
+      // For now, the index will be updated when the commit is made
+      
+      return {
+        oid: mergeResult.mergedTreeOid,
+        conflicts: mergeResult.conflicts.length > 0 ? mergeResult.conflicts : undefined,
+      }
+    }
+
+    // Create new commit with merged tree
+    const newCommit: CommitObject = {
+      tree: mergeResult.mergedTreeOid,
+      parent: [headRef],
+      author: commitObj.author,
+      committer: commitObj.committer,
+      message: commitObj.message,
+    }
+
+    // Write commit object
+    const commitBuffer = serializeCommit(newCommit)
+    const newCommitOid = await writeObject({
+      fs,
+      gitdir: effectiveGitdir,
+      type: 'commit',
+      object: commitBuffer,
+      format: 'content',
+    })
+
+    // Update HEAD
+    await repo.writeRef('HEAD', newCommitOid)
+
+    // Clear CHERRY_PICK_HEAD if it was set
+    const stateManager = new StateManager(fs, effectiveGitdir)
+    await stateManager.clearCherryPickHead()
+
+    return {
+      oid: newCommitOid,
+    }
+  } catch (err) {
+    ;(err as { caller?: string }).caller = 'git.cherryPick'
+    throw err
+  }
+}
+

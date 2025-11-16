@@ -55,7 +55,7 @@ export type { MergeDriverParams, MergeDriverCallback } from "./core-utils/algori
 // API operation result types
 export type { MessageCallback, PrePushParams, PrePushCallback, PushResult } from './commands/push.ts'
 export type { FetchResult } from './commands/fetch.ts'
-export type { MergeResult } from './api/merge.ts'
+export type { MergeResult } from './commands/merge.ts'
 export type { CherryPickResult } from './api/cherryPick.ts'
 export type { RebaseResult } from './api/rebase.ts'
 export type { DiffEntry, DiffResult } from './commands/diff.ts'
