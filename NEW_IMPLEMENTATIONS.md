@@ -334,7 +334,9 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 
 ### 9.1 Object Database (ODB) Utilities
 
-#### 9.1.1 ObjectReader (`src/core-utils/odb/ObjectReader.ts`)
+#### 9.1.1 ObjectReader (`src/core-utils/odb/ObjectReader.ts`) ⚠️ DEPRECATED
+
+**Status**: Deprecated - use `readObject` from `src/git/objects/readObject.ts` instead
 
 **Purpose**: Reads Git objects from object database
 
@@ -344,7 +346,11 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 - Handles all object types: commit, tree, blob, tag
 - Efficient lookup across all storage backends
 
-#### 9.1.2 ObjectWriter (`src/core-utils/odb/ObjectWriter.ts`)
+**Migration**: All direct usages have been migrated to `src/git/objects/readObject.ts`
+
+#### 9.1.2 ObjectWriter (`src/core-utils/odb/ObjectWriter.ts`) ⚠️ DEPRECATED
+
+**Status**: Deprecated - use `writeObject` from `src/git/objects/writeObject.ts` instead
 
 **Purpose**: Writes Git objects to object database
 
@@ -354,7 +360,11 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 - Object type validation
 - SHA-1 hash computation
 
-#### 9.1.3 PackfileReader (`src/core-utils/odb/PackfileReader.ts`)
+**Migration**: All direct usages have been migrated to `src/git/objects/writeObject.ts`
+
+#### 9.1.3 PackfileReader (`src/core-utils/odb/PackfileReader.ts`) ⚠️ DEPRECATED
+
+**Status**: Deprecated - use `read`/`loadIndex` from `src/git/objects/pack.ts` instead
 
 **Purpose**: Reads objects from packfiles
 
@@ -363,6 +373,8 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 - MIDX integration for multi-packfile lookups
 - Packfile index caching
 - Efficient object retrieval
+
+**Migration**: Functionality migrated to `src/git/objects/pack.ts`
 
 #### 9.1.4 PackfileWriter (`src/core-utils/odb/PackfileWriter.ts`)
 
@@ -374,7 +386,9 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 - Index generation
 - Progress tracking
 
-#### 9.1.5 LooseObjectManager (`src/core-utils/odb/LooseObjectManager.ts`)
+#### 9.1.5 LooseObjectManager (`src/core-utils/odb/LooseObjectManager.ts`) ⚠️ DEPRECATED
+
+**Status**: Deprecated - use `read`/`write` from `src/git/objects/loose.ts` instead
 
 **Purpose**: Manages loose (unpacked) Git objects
 
@@ -383,6 +397,8 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 - Retrieval by OID
 - Directory structure management (two-level sharding)
 - Object existence checking
+
+**Migration**: Functionality migrated to `src/git/objects/loose.ts`
 
 #### 9.1.6 DeltaResolver (`src/core-utils/odb/DeltaResolver.ts`)
 
@@ -648,9 +664,9 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
 - Index version handling
 - Direct file operations (no intermediate caching layers)
 
-**Legacy Location** (being phased out):
-- `src/core-utils/index/Index.ts` - Index parser (to be removed)
-- `src/models/GitIndex.ts` - Index model (moved to `src/git/index/`)
+**Legacy Locations** (removed):
+- `src/core-utils/index/Index.ts` - Legacy index parser (✅ removed - all usages migrated)
+- `src/models/GitIndex.ts` - Index model (✅ moved to `src/git/index/GitIndex.ts`)
 
 ### 9.8 Network and Protocol
 
@@ -729,37 +745,89 @@ For detailed migration status and plans, see [PROJECT_STATE.md](./PROJECT_STATE.
   - `writeIndex.ts` - Write to `.git/index`
   - `GitIndex.ts` - Index model (moved from `src/models/`)
 - **Status**: Fully migrated, Repository methods updated
+- **Note**: Legacy `src/core-utils/index/Index.ts` removed - all usages migrated to `GitIndex`
+
+#### Refs Operations ✅ (Partial)
+- **Location**: `src/git/refs/`
+- **Files**: 
+  - `readRef.ts` - Read refs from `.git/refs/`
+  - `writeRef.ts` - Write refs to `.git/refs/`
+  - `listRefs.ts` - List refs matching patterns
+  - `deleteRef.ts` - Delete refs
+- **Status**: Core ref operations migrated, some managers still use old code
 
 ### Planned Migrations
 
-#### Refs Operations ⏳
-- **Target Location**: `src/git/refs/`
+#### Refs Operations ⏳ (Remaining)
+- **Target Location**: `src/git/refs/` and `src/git/logs/`
 - **Current Location**: `src/core-utils/refs/`
 - **Files to Migrate**:
-  - `RefManager.ts` → `src/git/refs/readRef.ts`, `writeRef.ts`, `listRefs.ts`
   - `ReflogManager.ts` → `src/git/logs/readLog.ts`, `writeLog.ts`
   - `ShallowManager.ts` → `src/git/shallow.ts`
   - `NotesManager.ts` → `src/git/refs/notes/`
+- **Status**: Core ref operations complete, remaining are specialized managers
 
-#### Object Database ⏳
+#### Object Database ✅ (Core Functions Migrated)
 - **Target Location**: `src/git/objects/`
 - **Current Location**: `src/core-utils/odb/`
-- **Files to Migrate**:
-  - `LooseObjectManager.ts` → `src/git/objects/loose/`
-  - `PackfileReader.ts` → `src/git/objects/pack/readPack.ts`
-  - `PackfileWriter.ts` → `src/git/objects/pack/writePack.ts`
-  - `MultiPackIndexWriter.ts` → `src/git/objects/info/multi-pack-index.ts`
+- **Files Migrated**:
+  - ✅ `LooseObjectManager.ts` → `src/git/objects/loose.ts`
+  - ✅ `PackfileReader.ts` → `src/git/objects/pack.ts`
+  - ✅ `ObjectReader.ts` → `src/git/objects/readObject.ts` (deprecated)
+  - ✅ `ObjectWriter.ts` → `src/git/objects/writeObject.ts` (deprecated)
+- **Files Remaining**:
+  - ⏳ `PackfileWriter.ts` → `src/git/objects/pack/writePack.ts` (if needed)
+  - ⏳ `MultiPackIndexWriter.ts` → `src/git/objects/info/multi-pack-index.ts` (if needed)
 
-#### Configuration ⏳
+#### Configuration ✅
 - **Target Location**: `src/git/config.ts`
 - **Current Location**: `src/core-utils/UnifiedConfigService.ts`, `src/managers/GitConfigManager.ts`
-- **Migration**: Consolidate config operations into single `src/git/config.ts` module
+- **Status**: ✅ Migrated - Config functions created in `src/git/config.ts`
+- **Migration**: `GitConfigManager` now delegates to new functions
 
 #### State Files ⏳
 - **Target Location**: `src/git/state/`
 - **Current Location**: `src/core-utils/StateManager.ts`
 - **Files to Create**:
   - `MERGE_HEAD.ts`, `CHERRY_PICK_HEAD.ts`, `ORIG_HEAD.ts`, etc.
+
+## Cleanup and Deprecation Status
+
+### Deprecated Components
+
+#### StagingArea (`src/core-utils/StagingArea.ts`) ✅ REMOVED
+- **Status**: Removed - migration complete
+- **Replacement**: Use `Repository.readIndexDirect()` and `Repository.writeIndexDirect()` directly
+- **Migration**: All usages migrated, `Worktree` is now stateless and delegates to `Repository`
+- **See**: [CLEANUP_PLAN.md](./CLEANUP_PLAN.md) Phase 2
+
+#### Legacy Index Parser (`src/core-utils/index/Index.ts`) ✅ REMOVED
+- **Status**: Removed - migration complete
+- **Replacement**: Use `GitIndex` from `src/git/index/GitIndex.ts`
+- **Migration**: All usages migrated to `GitIndex.fromBuffer()` and `GitIndex.toBuffer()`
+- **See**: [CLEANUP_PLAN.md](./CLEANUP_PLAN.md) Phase 1
+
+#### Manager Classes (`src/managers/`) ⚠️ UNDER REVIEW
+- **Status**: Most managers have been migrated to `src/git/` structure
+- **Classes**:
+  - `GitConfigManager` - ✅ **DEPRECATED** - Delegates to `src/git/config.ts` functions
+  - `GitIgnoreManager` - ✅ **DEPRECATED** - Delegates to `src/git/info/isIgnored.ts` function
+  - `GitShallowManager` - ✅ **DEPRECATED** - Delegates to `src/git/shallow.ts` functions
+  - `GitRemoteManager` - ✅ **DEPRECATED** - Delegates to `src/git/remote/getRemoteHelper.ts` function
+  - `GitStashManager` - ✅ **DEPRECATED** - Delegates to `src/git/refs/stash.ts` functions
+- **See**: [CLEANUP_PLAN.md](./CLEANUP_PLAN.md) Phase 3/4
+
+### Cleanup Plan
+
+A comprehensive cleanup plan has been created to guide the removal of legacy code and elimination of duplication. See [CLEANUP_PLAN.md](./CLEANUP_PLAN.md) for detailed phases and action items.
+
+**Key Cleanup Areas**:
+1. Legacy index parser migration
+2. Deprecated StagingArea removal
+3. Manager classes assessment and migration
+4. Storage directory consolidation
+5. Duplicate code elimination
+6. API layer cleanup (per PLAN_GEMINI_3.md)
 
 ## Summary
 
