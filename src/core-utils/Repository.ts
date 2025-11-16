@@ -357,11 +357,11 @@ export class Repository {
   async getObjectReader(): Promise<ObjectReaderWrapper> {
     if (!this._objectReader) {
       const gitdir = await this.getGitdir()
-      const { read } = await import('./odb/ObjectReader.ts')
-      // ObjectReader exports functions, we'll create a wrapper
+      const { readObject } = await import('../git/objects/readObject.ts')
+      // Use new readObject function from src/git/objects/
       this._objectReader = {
         read: async (params) => {
-          return read({
+          return readObject({
             ...params,
             fs: this.fs,
             gitdir,
@@ -379,11 +379,11 @@ export class Repository {
   async getObjectWriter(): Promise<ObjectWriterWrapper> {
     if (!this._objectWriter) {
       const gitdir = await this.getGitdir()
-      const { write } = await import('./odb/ObjectWriter.ts')
-      // ObjectWriter exports functions, we'll create a wrapper
+      const { writeObject } = await import('../git/objects/writeObject.ts')
+      // Use new writeObject function from src/git/objects/
       this._objectWriter = {
         write: async (params) => {
-          return write({
+          return writeObject({
             ...params,
             fs: this.fs,
             gitdir,

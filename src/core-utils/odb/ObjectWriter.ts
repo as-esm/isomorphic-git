@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use writeObject from '../../git/objects/writeObject.ts' instead
+ * This file is kept for backward compatibility and will be removed in a future version.
+ * 
+ * The new implementation provides the same functionality with better integration
+ * into the unified object database structure.
+ */
 import { GitObject } from "../../models/GitObject.ts"
 import { write as writeLoose } from './LooseObjectManager.ts'
 import { deflate } from '../Zlib.ts'

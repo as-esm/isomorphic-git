@@ -1,5 +1,5 @@
 import { GitCommit } from "../../models/GitCommit.ts"
-import { read as readObject } from '../odb/ObjectReader.ts'
+import { readObject } from '../../git/objects/readObject.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { CommitObject } from "../../models/GitCommit.ts"
 

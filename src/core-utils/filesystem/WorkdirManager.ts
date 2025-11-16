@@ -1,6 +1,6 @@
 import { InternalError } from "../../errors/InternalError.ts"
 import { CheckoutConflictError } from "../../errors/CheckoutConflictError.ts"
-import { ObjectReader } from '../odb/ObjectReader.ts'
+import { readObject } from '../../git/objects/readObject.ts'
 import { parse as parseTree } from '../parsers/Tree.ts'
 import { parse as parseCommit } from '../parsers/Commit.ts'
 import { SparseCheckoutManager } from './SparseCheckoutManager.ts'
@@ -48,7 +48,7 @@ export const analyzeCheckout = async ({
   
   // Helper to recursively walk tree and build a map of all entries
   const buildTreeMap = async (treeOid: string, prefix = '', map: Map<string, { oid: string; mode: string; type: 'blob' | 'tree' }> = new Map()): Promise<Map<string, { oid: string; mode: string; type: 'blob' | 'tree' }>> => {
-    const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: treeOid })
+    const { object: treeObject } = await readObject({ fs, cache, gitdir, oid: treeOid })
     const entries = parseTree(treeObject as Buffer)
 
     for (const entry of entries) {
@@ -304,7 +304,7 @@ export const executeCheckout = async ({
       const fullPath = join(dir, filepath)
       
       // Read the blob
-      const { object: blobObject } = await ObjectReader.read({ fs, cache, gitdir, oid: oid as string })
+      const { object: blobObject } = await readObject({ fs, cache, gitdir, oid: oid as string })
 
       // Ensure directory exists
       const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'))
@@ -419,7 +419,7 @@ export const getFileStatus = async ({
   try {
     // Use repo.resolveRef() to ensure we use the same gitdir as checkout
     const headOid = await repo.resolveRef('HEAD')
-    const { object: commitObject } = await ObjectReader.read({ fs, cache, gitdir, oid: headOid })
+    const { object: commitObject } = await readObject({ fs, cache, gitdir, oid: headOid })
     const commit = parseCommit(commitObject as Buffer | string)
     headTreeOid = commit.tree
   } catch (err) {
@@ -435,7 +435,7 @@ export const getFileStatus = async ({
   if (headTreeOid) {
     try {
       // First try parseTree for root-level files (more efficient)
-      const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: headTreeOid })
+      const { object: treeObject } = await readObject({ fs, cache, gitdir, oid: headTreeOid })
       const treeEntries = parseTree(treeObject as Buffer)
       const rootEntry = treeEntries.find(e => e.path === filepath)
       if (rootEntry) {

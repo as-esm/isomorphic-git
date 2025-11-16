@@ -1,6 +1,6 @@
 // RefManager import removed - using Repository.resolveRef/writeRef methods instead
 import { WorkdirManager } from './filesystem/WorkdirManager.ts'
-import { ObjectReader } from './odb/ObjectReader.ts'
+import { readObject } from '../git/objects/readObject.ts'
 import { parse as parseCommit } from './parsers/Commit.ts'
 import { SparseCheckoutManager } from './filesystem/SparseCheckoutManager.ts'
 import { CheckoutConflictError } from '../errors/CheckoutConflictError.ts'
@@ -162,7 +162,7 @@ export class Worktree {
     }
 
     // Get commit to get tree OID
-    const { object: commitObject } = await ObjectReader.read({ fs: this.repo.fs, cache: this.repo.cache, gitdir, oid })
+    const { object: commitObject } = await readObject({ fs: this.repo.fs, cache: this.repo.cache, gitdir, oid })
     const commit = parseCommit(commitObject)
     const treeOid = commit.tree
 
