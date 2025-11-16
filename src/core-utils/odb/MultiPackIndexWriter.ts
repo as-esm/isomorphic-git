@@ -4,7 +4,7 @@ import { shasum } from "../../utils/shasum.ts"
 import { join } from '../GitPath.ts'
 import { GitPackIndex } from "../../models/GitPackIndex.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
-import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
+import type { ProgressCallback } from "../../git/remote/GitRemoteHTTP.ts"
 
 // MIDX chunk IDs
 const CHUNK_ID_PACKNAMES = 0x504e414d // 'PNAM'

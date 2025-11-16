@@ -25,7 +25,7 @@ export type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from "./managers/GitRemoteHTTP.ts"
+} from "./git/remote/GitRemoteHTTP.ts"
 
 // Git Object types
 export type { ObjectType } from "./models/GitObject.ts"

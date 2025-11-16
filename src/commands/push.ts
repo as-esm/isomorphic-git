@@ -29,7 +29,7 @@ import type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from "../managers/GitRemoteHTTP.ts"
+} from "../git/remote/GitRemoteHTTP.ts"
 import type { ClientRef } from "../git/refs/types.ts"
 import type { RefUpdateStatus } from "../git/refs/types.ts"
 

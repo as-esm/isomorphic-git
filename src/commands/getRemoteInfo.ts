@@ -5,7 +5,7 @@ import type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from "../managers/GitRemoteHTTP.ts"
+} from "../git/remote/GitRemoteHTTP.ts"
 
 /**
  * The object returned has the following schema:

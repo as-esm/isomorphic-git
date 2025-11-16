@@ -6,11 +6,15 @@ export * from './commands/listObjects.ts'
 export * from './commands/pack.ts'
 export * from './commands/uploadPack.ts'
 
-export * from './managers/GitConfigManager.ts'
-export * from './managers/GitIgnoreManager.ts'
-export * from './managers/GitRemoteHTTP.ts'
-export * from './managers/GitRemoteManager.ts'
-export * from './managers/GitShallowManager.ts'
+// @deprecated Manager classes - REMOVED in Phase 9.3
+// All manager classes have been removed. Use src/git/ functions instead:
+// - GitConfigManager → use src/git/config.ts functions (getConfig, setConfig, etc.)
+// - GitIgnoreManager → use src/git/info/isIgnored.ts function
+// - GitRemoteManager → use src/git/remote/getRemoteHelper.ts function
+// - GitShallowManager → use src/git/shallow.ts functions
+// - GitStashManager → use src/git/refs/stash.ts functions
+// - GitRemoteHTTP → moved to src/git/remote/GitRemoteHTTP.ts
+export * from './git/remote/GitRemoteHTTP.ts'
 
 export * from './models/FileSystem.ts'
 export * from './models/GitAnnotatedTag.ts'

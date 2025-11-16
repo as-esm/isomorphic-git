@@ -11,7 +11,7 @@ import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
-import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
+import type { ProgressCallback } from "../git/remote/GitRemoteHTTP.ts"
 
 // ============================================================================
 // CHECKOUT TYPES

@@ -2,7 +2,7 @@ import { GitPackIndex } from "../../models/GitPackIndex.ts"
 import { GitMultiPackIndex } from "../../models/GitMultiPackIndex.ts"
 import { join } from '../../core-utils/GitPath.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
-import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
+import type { ProgressCallback } from "../../git/remote/GitRemoteHTTP.ts"
 
 const PackfileCache = Symbol('PackfileCache')
 const MultiPackIndexCache = Symbol('MultiPackIndexCache')

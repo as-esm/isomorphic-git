@@ -9,7 +9,7 @@ import type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from "../managers/GitRemoteHTTP.ts"
+} from "../git/remote/GitRemoteHTTP.ts"
 import type { MessageCallback } from './push.ts'
 import type { Author } from "../models/GitCommit.ts"
 

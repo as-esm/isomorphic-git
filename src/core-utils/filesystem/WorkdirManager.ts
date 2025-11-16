@@ -11,7 +11,7 @@ import { normalizeStats } from "../../utils/normalizeStats.ts"
 import { normalizeFs } from "../../utils/normalizeFs.ts"
 // GitIndexManager import removed - using Repository.readIndexDirect/writeIndexDirect instead
 import type { FsClient } from "../../models/FileSystem.ts"
-import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
+import type { ProgressCallback } from "../../git/remote/GitRemoteHTTP.ts"
 
 type CheckoutOperation = ['create' | 'update' | 'delete' | 'delete-index' | 'mkdir' | 'conflict' | 'keep', string, ...unknown[]]
 

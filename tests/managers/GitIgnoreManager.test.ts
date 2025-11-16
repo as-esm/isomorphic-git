@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
-import { GitIgnoreManager } from '../../src/managers/GitIgnoreManager.ts'
+import { isIgnored } from '../../src/git/info/isIgnored.ts'
 import { makeFixture } from '../helpers/fixture.ts'
 import * as path from 'path'
 
@@ -8,7 +8,7 @@ test('GitIgnoreManager', async (t) => {
   await t.test('isIgnored returns false for non-ignored files', async () => {
     const { fs, dir, gitdir } = await makeFixture('test-isIgnored')
     
-    const ignored = await GitIgnoreManager.isIgnored({
+    const ignored = await isIgnored({
       fs,
       dir,
       gitdir,
@@ -24,7 +24,7 @@ test('GitIgnoreManager', async (t) => {
     // Create a .gitignore file
     await fs.write(path.join(dir, '.gitignore'), '*.log\nnode_modules/\n', 'utf8')
     
-    const ignored = await GitIgnoreManager.isIgnored({
+    const ignored = await isIgnored({
       fs,
       dir,
       gitdir,
@@ -37,7 +37,7 @@ test('GitIgnoreManager', async (t) => {
   await t.test('always ignores .git folders', async () => {
     const { fs, dir, gitdir } = await makeFixture('test-isIgnored')
     
-    const ignored = await GitIgnoreManager.isIgnored({
+    const ignored = await isIgnored({
       fs,
       dir,
       gitdir,
@@ -50,7 +50,7 @@ test('GitIgnoreManager', async (t) => {
   await t.test('never ignores root directory', async () => {
     const { fs, dir, gitdir } = await makeFixture('test-isIgnored')
     
-    const ignored = await GitIgnoreManager.isIgnored({
+    const ignored = await isIgnored({
       fs,
       dir,
       gitdir,
@@ -69,7 +69,7 @@ test('GitIgnoreManager', async (t) => {
     // Even if we try to un-ignore a file in excluded directory, it should still be ignored
     await fs.write(path.join(dir, 'excluded', '.gitignore'), '!file.txt\n', 'utf8')
     
-    const ignored = await GitIgnoreManager.isIgnored({
+    const ignored = await isIgnored({
       fs,
       dir,
       gitdir,

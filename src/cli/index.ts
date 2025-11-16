@@ -2,7 +2,7 @@ import { ArgumentParser } from './ArgumentParser.ts'
 import { CommandRouter } from './CommandRouter.ts'
 import { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
-import type { HttpClient } from "../managers/GitRemoteHTTP.ts"
+import type { HttpClient } from "../git/remote/GitRemoteHTTP.ts"
 
 /**
  * Options for CLI

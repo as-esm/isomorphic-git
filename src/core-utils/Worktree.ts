@@ -6,7 +6,7 @@ import { SparseCheckoutManager } from './filesystem/SparseCheckoutManager.ts'
 import { CheckoutConflictError } from '../errors/CheckoutConflictError.ts'
 // StagingArea removed - use Repository.readIndexDirect/writeIndexDirect directly
 import type { Repository } from './Repository.ts'
-import type { ProgressCallback } from '../managers/GitRemoteHTTP.ts'
+import type { ProgressCallback } from '../git/remote/GitRemoteHTTP.ts'
 
 /**
  * Worktree - Represents a working tree (linked worktrees support)

@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { Errors } from 'isomorphic-git'
-import { GitRemoteManager } from '../../src/managers/GitRemoteManager.ts'
-import { GitRemoteHTTP } from '../../src/managers/GitRemoteHTTP.ts'
+import { getRemoteHelperFor } from '../../src/git/remote/getRemoteHelper.ts'
+import { GitRemoteHTTP } from '../../src/git/remote/GitRemoteHTTP.ts'
 
 describe('GitRemoteManager', () => {
   it('getRemoteHelperFor (http)', async () => {
@@ -10,7 +10,7 @@ describe('GitRemoteManager', () => {
     let helper = null
     let error = null
     try {
-      helper = await GitRemoteManager.getRemoteHelperFor({
+      helper = getRemoteHelperFor({
         url: 'http://github.com/isomorphic-git-isomorphic-git',
       })
     } catch (err) {
@@ -25,7 +25,7 @@ describe('GitRemoteManager', () => {
     let helper = null
     let error = null
     try {
-      helper = await GitRemoteManager.getRemoteHelperFor({
+      helper = getRemoteHelperFor({
         url: 'http::https://github.com/isomorphic-git-isomorphic-git',
       })
     } catch (err) {
@@ -40,7 +40,7 @@ describe('GitRemoteManager', () => {
     let helper = null
     let error = null
     try {
-      helper = await GitRemoteManager.getRemoteHelperFor({
+      helper = getRemoteHelperFor({
         url: 'https://github.com/isomorphic-git-isomorphic-git',
       })
     } catch (err) {
@@ -55,7 +55,7 @@ describe('GitRemoteManager', () => {
     let helper = null
     let error = null
     try {
-      helper = await GitRemoteManager.getRemoteHelperFor({
+      helper = getRemoteHelperFor({
         url: 'hypergit://5701a1c08ae15dba17e181b1a9a28bdfb8b95200d77a25be6051bb018e25439a',
       })
     } catch (err) {
@@ -70,7 +70,7 @@ describe('GitRemoteManager', () => {
     let helper = null
     let error = null
     try {
-      helper = await GitRemoteManager.getRemoteHelperFor({
+      helper = getRemoteHelperFor({
         url: 'oid::c3c2a92aa2bda58d667cb57493270b83bd14d1ed',
       })
     } catch (err) {
@@ -85,7 +85,7 @@ describe('GitRemoteManager', () => {
     let helper = null
     let error = null
     try {
-      helper = await GitRemoteManager.getRemoteHelperFor({
+      helper = getRemoteHelperFor({
         url: 'oid:c3c2a92aa2bda58d667cb57493270b83bd14d1ed',
       })
     } catch (err) {

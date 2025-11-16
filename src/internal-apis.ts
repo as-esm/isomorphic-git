@@ -6,18 +6,19 @@ export * from './commands/listObjects.ts'
 export * from './commands/pack.ts'
 export * from './commands/uploadPack.ts'
 
-// @deprecated Manager classes - use src/git/ functions instead
-// GitConfigManager - use src/git/config.ts functions
-export * from './managers/GitConfigManager.ts'
-// GitIgnoreManager - use src/git/info/isIgnored.ts function
-export * from './managers/GitIgnoreManager.ts'
-export * from './managers/GitRemoteHTTP.ts'
-// GitRemoteManager - use src/git/remote/getRemoteHelper.ts function
-export * from './managers/GitRemoteManager.ts'
-// GitShallowManager - use src/git/shallow.ts functions
-export * from './managers/GitShallowManager.ts'
-// GitStashManager - use src/git/refs/stash.ts functions
-// Note: GitStashManager is exported via managers/index.ts, not here
+// @deprecated Manager classes - REMOVED in Phase 9.3
+// All manager classes have been removed. Use src/git/ functions instead:
+// - GitConfigManager → use src/git/config.ts functions (getConfig, setConfig, etc.)
+// - GitIgnoreManager → use src/git/info/isIgnored.ts function
+// - GitRemoteManager → use src/git/remote/getRemoteHelper.ts function
+// - GitShallowManager → use src/git/shallow.ts functions
+// - GitStashManager → use src/git/refs/stash.ts functions
+// - GitRemoteHTTP → use src/http/ functions directly
+
+// @deprecated RefManager - use src/git/refs/ functions instead
+// GitRefManager was removed and replaced with RefManager in src/core-utils/refs/RefManager.ts
+// For backward compatibility, export RefManager as GitRefManager
+export { RefManager as GitRefManager } from './core-utils/refs/RefManager.ts'
 
 export * from './models/FileSystem.ts'
 export * from './models/GitAnnotatedTag.ts'

@@ -6,7 +6,7 @@ import type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from "../managers/GitRemoteHTTP.ts"
+} from "../git/remote/GitRemoteHTTP.ts"
 import type { ServerRef } from "../git/refs/types.ts"
 
 /**

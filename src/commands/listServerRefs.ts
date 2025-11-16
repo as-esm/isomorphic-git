@@ -1,4 +1,4 @@
-import { GitRemoteHTTP } from "../managers/GitRemoteHTTP.ts"
+import { GitRemoteHTTP } from "../git/remote/GitRemoteHTTP.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { formatInfoRefs } from "../utils/formatInfoRefs.ts"
 import { parseListRefsResponse } from "../wire/parseListRefsResponse.ts"
@@ -8,7 +8,7 @@ import type {
   AuthCallback,
   AuthFailureCallback,
   AuthSuccessCallback,
-} from "../managers/GitRemoteHTTP.ts"
+} from "../git/remote/GitRemoteHTTP.ts"
 import type { ServerRef } from "../git/refs/types.ts"
 
 /**

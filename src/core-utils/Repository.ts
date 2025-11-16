@@ -994,7 +994,7 @@ export class Repository {
       noUpdateHead?: boolean
       dryRun?: boolean
       sparsePatterns?: string[]
-      onProgress?: import('../managers/GitRemoteHTTP.ts').ProgressCallback
+      onProgress?: import('../git/remote/GitRemoteHTTP.ts').ProgressCallback
       remote?: string
       track?: boolean
     } = {}

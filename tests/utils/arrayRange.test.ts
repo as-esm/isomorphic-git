@@ -3,24 +3,35 @@ import assert from 'node:assert'
 import { arrayRange } from '../../src/utils/arrayRange.ts'
 
 test('arrayRange', async (t) => {
-  await t.test('creates range from start to end', () => {
+  await t.test('creates range from start to end-1', () => {
     const result = arrayRange(0, 5)
     assert.deepStrictEqual(result, [0, 1, 2, 3, 4])
   })
 
-  await t.test('handles single element range', () => {
+  await t.test('creates empty array when start equals end', () => {
+    const result = arrayRange(5, 5)
+    assert.deepStrictEqual(result, [])
+  })
+
+  await t.test('creates single element array', () => {
     const result = arrayRange(0, 1)
     assert.deepStrictEqual(result, [0])
   })
 
-  await t.test('handles empty range', () => {
-    const result = arrayRange(0, 0)
-    assert.deepStrictEqual(result, [])
+  await t.test('handles non-zero start', () => {
+    const result = arrayRange(5, 10)
+    assert.deepStrictEqual(result, [5, 6, 7, 8, 9])
   })
 
   await t.test('handles negative start', () => {
     const result = arrayRange(-2, 2)
     assert.deepStrictEqual(result, [-2, -1, 0, 1])
   })
-})
 
+  await t.test('handles large numbers', () => {
+    const result = arrayRange(0, 10)
+    assert.strictEqual(result.length, 10)
+    assert.strictEqual(result[0], 0)
+    assert.strictEqual(result[9], 9)
+  })
+})

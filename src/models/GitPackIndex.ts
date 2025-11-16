@@ -8,7 +8,7 @@ import { listpack } from "../utils/git-list-pack.ts"
 import { inflate } from "../utils/inflate.ts"
 import pako from 'pako'
 import { shasum } from "../utils/shasum.ts"
-import type { ProgressCallback } from "../managers/GitRemoteHTTP.ts"
+import type { ProgressCallback } from "../git/remote/GitRemoteHTTP.ts"
 
 function decodeVarInt(reader: BufferCursor): number {
   const bytes: number[] = []

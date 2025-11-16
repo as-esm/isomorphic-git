@@ -1,7 +1,7 @@
 import { UnknownTransportError } from '../../errors/UnknownTransportError.ts'
 import { UrlParseError } from '../../errors/UrlParseError.ts'
 import { translateSSHtoHTTP } from "../../utils/translateSSHtoHTTP.ts"
-import { GitRemoteHTTP } from '../../managers/GitRemoteHTTP.ts'
+import { GitRemoteHTTP } from './GitRemoteHTTP.ts'
 
 type ParsedRemoteUrl = {
   transport: string
