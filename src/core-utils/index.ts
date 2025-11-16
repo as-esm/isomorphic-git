@@ -6,7 +6,7 @@ export * from './Signing.ts'
 export * from './UnifiedConfigService.ts'
 export * from './StateManager.ts'
 export * from './Repository.ts'
-export * from './StagingArea.ts'
+// StagingArea removed - use Repository.readIndexDirect/writeIndexDirect directly
 export * from './Worktree.ts'
 export * from './MergeStream.ts'
 export * from './StateMutationStream.ts'

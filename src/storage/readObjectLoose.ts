@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use `read` from '../git/objects/loose.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ * 
+ * The new implementation provides the same functionality with better integration
+ * into the unified object database structure.
+ */
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 

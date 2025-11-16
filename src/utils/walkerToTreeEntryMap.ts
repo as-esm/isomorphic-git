@@ -7,7 +7,7 @@ import { _walk } from '../commands/walk.ts'
 import { _writeTree } from '../commands/writeTree.ts'
 import { InternalError } from '../errors/InternalError.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
-import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
+import { isIgnored as isIgnoredInternal } from "../git/info/isIgnored.ts"
 // GitIndexManager import removed - using Repository.readIndexDirect/writeIndexDirect instead
 import { readObject } from "../git/objects/readObject.ts"
 import { read as readLoose } from "../git/objects/loose.ts"
@@ -276,7 +276,7 @@ export async function writeTreeChanges({
   const map = async (filepath: string, [head, stage]: (WalkerEntry | null)[]): Promise<TreeEntry | undefined> => {
     if (
       filepath === '.' ||
-      (await GitIgnoreManager.isIgnored({ fs, dir, gitdir, filepath }))
+      (await isIgnoredInternal({ fs, dir, gitdir, filepath }))
     ) {
       return undefined
     }
@@ -629,7 +629,7 @@ export async function applyTreeChanges({
     map: async (filepath: string, [parent, stash]: (WalkerEntry | null)[]): Promise<{ method: string; filepath: string; oid?: string } | undefined> => {
       if (
         filepath === '.' ||
-        (await GitIgnoreManager.isIgnored({ fs, dir, gitdir, filepath }))
+        (await isIgnoredInternal({ fs, dir, gitdir, filepath }))
       ) {
         return undefined
       }

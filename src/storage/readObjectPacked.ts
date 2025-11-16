@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use `read` from '../git/objects/pack.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ * 
+ * The new implementation provides the same functionality with better integration
+ * into the unified object database structure, including multi-pack-index support.
+ */
 import { InternalError } from '../errors/InternalError.ts'
 import { iteratePackfiles } from './packfileIterator.ts'
 import type { FsClient } from "../models/FileSystem.ts"

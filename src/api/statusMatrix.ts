@@ -2,7 +2,7 @@ import { STAGE } from '../commands/STAGE.ts'
 import { TREE } from '../commands/TREE.ts'
 import { WORKDIR } from '../commands/WORKDIR.ts'
 import { _walk } from '../commands/walk.ts'
-import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
+import { isIgnored as isIgnoredInternal } from "../git/info/isIgnored.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -232,7 +232,7 @@ export async function statusMatrix({
         // Ignore ignored files, but only if they are not already tracked.
         if (!head && !stage && workdir) {
           if (!shouldIgnore) {
-            const isIgnored = await GitIgnoreManager.isIgnored({
+            const isIgnored = await isIgnoredInternal({
               fs,
               dir: effectiveDir,
               filepath,

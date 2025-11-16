@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use `loadIndex` from '../git/objects/pack.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ * 
+ * The new implementation provides the same functionality with better integration
+ * into the unified object database structure.
+ */
 import { GitPackIndex } from "../models/GitPackIndex.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 

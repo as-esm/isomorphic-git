@@ -1,4 +1,4 @@
-import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
+import { isIgnored as isIgnoredInternal } from "../git/info/isIgnored.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -36,7 +36,7 @@ export async function isIgnored({
     assertParameter('gitdir', gitdir)
     assertParameter('filepath', filepath)
 
-    return GitIgnoreManager.isIgnored({
+    return isIgnoredInternal({
       fs: normalizeFs(fs),
       dir,
       gitdir,
