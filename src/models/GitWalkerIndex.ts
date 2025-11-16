@@ -152,9 +152,12 @@ export class GitWalkerIndex {
       const tree = await this.getTree()
       const inode = tree.get(entry._fullpath)
       if (!inode) {
-        throw new Error(
-          `ENOENT: no such file or directory, lstat '${entry._fullpath}'`
-        )
+        // File doesn't exist in index - return undefined instead of throwing
+        // This allows walk() to handle files that exist in other trees (e.g., HEAD) but not in index
+        entry._stat = undefined
+        entry._type = false
+        entry._mode = false
+        return undefined
       }
       if (inode.type === 'tree') {
         entry._type = 'tree'
@@ -180,7 +183,10 @@ export class GitWalkerIndex {
       const tree = await this.getTree()
       const inode = tree.get(entry._fullpath)
       if (!inode) {
-        throw new Error(`ENOENT: no such file or directory, oid '${entry._fullpath}'`)
+        // File doesn't exist in index - return undefined instead of throwing
+        // This allows walk() to handle files that exist in other trees (e.g., HEAD) but not in index
+        entry._oid = undefined
+        return undefined
       }
       if (inode.type === 'tree') {
         entry._oid = undefined

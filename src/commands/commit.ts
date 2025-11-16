@@ -2,10 +2,10 @@ import { MissingNameError } from "../errors/MissingNameError.ts"
 import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { NoCommitError } from "../errors/NoCommitError.ts"
 import { UnmergedPathsError } from "../errors/UnmergedPathsError.ts"
-import { parse as parseIndex, serialize as serializeIndex } from "../core-utils/index/Index.ts"
+import { GitIndex } from "../git/index/GitIndex.ts"
 // RefManager import removed - using Repository.resolveRef/writeRef methods instead
 import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
-import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
+import { writeObject } from "../git/objects/writeObject.ts"
 import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
 import { parse as parseTree, serialize as serializeTree } from "../core-utils/parsers/Tree.ts"
 import { signCommit } from "../core-utils/Signing.ts"
@@ -13,7 +13,7 @@ import { formatAuthor } from "../utils/formatAuthor.ts"
 import { flatFileListToDirectoryStructure } from "../utils/flatFileListToDirectoryStructure.ts"
 import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
 import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { Repository } from "../core-utils/Repository.ts"
 import { join } from "../utils/join.ts"
 import AsyncLock from 'async-lock'
@@ -187,16 +187,12 @@ export async function _commit({
           // Index doesn't exist yet
         }
         if (indexBuffer.length === 0) {
-          index = {
-            entries: new Map(),
-            unmergedPaths: new Set(),
-            version: 2,
-          }
+          index = new GitIndex(null, null, 2)
         } else {
-          index = await parseIndex(indexBuffer)
+          index = await GitIndex.fromBuffer(indexBuffer)
         }
-        if (index.unmergedPaths.size > 0) {
-          throw new UnmergedPathsError(Array.from(index.unmergedPaths))
+        if (index.unmergedPaths.length > 0) {
+          throw new UnmergedPathsError(index.unmergedPaths)
         }
       }
     } else {
@@ -212,23 +208,19 @@ export async function _commit({
       // Handle empty index - create an empty index object instead of parsing
       if (indexBuffer.length === 0) {
         // Empty index - create a minimal index object with default version
-        index = {
-          entries: new Map(),
-          unmergedPaths: new Set(),
-          version: 2, // Default index version
-        }
+        index = new GitIndex(null, null, 2)
       } else {
-        index = await parseIndex(indexBuffer)
+        index = await GitIndex.fromBuffer(indexBuffer)
       }
 
       // Check for unmerged paths
-      if (index.unmergedPaths.size > 0) {
-        throw new UnmergedPathsError(Array.from(index.unmergedPaths))
+      if (index.unmergedPaths.length > 0) {
+        throw new UnmergedPathsError(index.unmergedPaths)
       }
     }
 
     // Build tree from index
-    const entries = Array.from(index.entries.values()).flatMap(entry => {
+    const entries = index.entries.flatMap(entry => {
       // Get the main entry (stage 0) or the first stage
       const mainEntry = entry.stages.length > 0 ? entry.stages[0] : entry
       return mainEntry ? [mainEntry] : []

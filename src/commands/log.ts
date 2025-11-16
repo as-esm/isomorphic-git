@@ -1,6 +1,6 @@
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
 import type { FsClient } from "../models/FileSystem.ts"
@@ -61,7 +61,7 @@ export async function _log({
   
   // Helper to read commit
   async function readCommit(commitOid: string): Promise<ReadCommitResult> {
-    const { object: commitObject } = await ObjectReader.read({ fs, cache, gitdir, oid: commitOid })
+    const { object: commitObject } = await readObject({ fs, cache, gitdir, oid: commitOid })
     const commit = parseCommit(commitObject)
     return {
       oid: commitOid,
@@ -76,7 +76,7 @@ export async function _log({
     let currentTreeOid = treeOid
     
     for (const part of parts) {
-      const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: currentTreeOid })
+      const { object: treeObject } = await readObject({ fs, cache, gitdir, oid: currentTreeOid })
       const treeEntries = parseTree(treeObject)
       const entry = treeEntries.find(e => e.path === part)
       if (!entry) return null

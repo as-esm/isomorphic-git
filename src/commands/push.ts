@@ -11,7 +11,7 @@ import { UserCanceledError } from "../errors/UserCanceledError.ts"
 import { ConfigAccess } from "../utils/configAccess.ts"
 import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { findMergeBase } from "../core-utils/algorithms/CommitGraphWalker.ts"
-import { GitRemoteManager } from "../managers/GitRemoteManager.ts"
+import { getRemoteHelperFor } from "../git/remote/getRemoteHelper.ts"
 import { GitSideBand } from "../models/GitSideBand.ts"
 import { filterCapabilities } from "../utils/filterCapabilities.ts"
 import { forAwait } from "../utils/forAwait.ts"
@@ -112,7 +112,7 @@ export async function _push({
     ? '0000000000000000000000000000000000000000'
     : await RefManager.resolve({ fs, gitdir, ref: fullRef })
 
-  const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url })
+  const GitRemoteHTTP = getRemoteHelperFor({ url })
   const httpRemote = await GitRemoteHTTP.discover({
     http,
     onAuth,

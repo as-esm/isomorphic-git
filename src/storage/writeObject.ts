@@ -1,9 +1,13 @@
-import { GitObject } from "../models/GitObject.ts"
-import { writeObjectLoose } from './writeObjectLoose.ts'
-import { deflate } from "../utils/deflate.ts"
-import { shasum } from "../utils/shasum.ts"
+/**
+ * @deprecated Use writeObject from '../git/objects/writeObject.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ */
+import { writeObject as writeObjectNew } from '../git/objects/writeObject.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
+/**
+ * @deprecated Use writeObject from '../git/objects/writeObject.ts' instead
+ */
 export async function _writeObject({
   fs,
   gitdir,
@@ -21,27 +25,7 @@ export async function _writeObject({
   oid?: string
   dryRun?: boolean
 }): Promise<string> {
-  let resultObject: Buffer
-  let resultOid: string | undefined = oid
-  if (format !== 'deflated') {
-    if (format !== 'wrapped') {
-      const objectBuffer = Buffer.isBuffer(object) ? object : Buffer.from(object)
-      const wrapped = GitObject.wrap({ type, object: objectBuffer })
-      resultObject = Buffer.from(wrapped)
-    } else {
-      resultObject = Buffer.isBuffer(object) ? object : Buffer.from(object)
-    }
-    resultOid = await shasum(resultObject)
-    resultObject = Buffer.from(await deflate(resultObject))
-  } else {
-    resultObject = Buffer.isBuffer(object) ? object : Buffer.from(object)
-    if (!resultOid) {
-      throw new Error('oid is required when format is deflated')
-    }
-  }
-  if (!dryRun) {
-    await writeObjectLoose({ fs, gitdir, object: resultObject, format: 'deflated', oid: resultOid })
-  }
-  return resultOid
+  // Delegate to the new implementation
+  return await writeObjectNew({ fs, gitdir, type, object, format, oid, dryRun })
 }
 

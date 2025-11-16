@@ -1,4 +1,4 @@
-import { GitRemoteManager } from "../managers/GitRemoteManager.ts"
+import { getRemoteHelperFor } from "../git/remote/getRemoteHelper.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { formatInfoRefs } from "../utils/formatInfoRefs.ts"
 import type {
@@ -85,7 +85,7 @@ export async function getRemoteInfo2({
     assertParameter('http', http)
     assertParameter('url', url)
 
-    const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url })
+    const GitRemoteHTTP = getRemoteHelperFor({ url })
     const remote = await GitRemoteHTTP.discover({
       http,
       onAuth,

@@ -1,10 +1,8 @@
-import { InternalError } from '../errors/InternalError.ts'
-import { NotFoundError } from '../errors/NotFoundError.ts'
-import { GitObject } from "../models/GitObject.ts"
-import { readObjectLoose } from './readObjectLoose.ts'
-import { readObjectPacked, type ReadObjectPackedResult } from './readObjectPacked.ts'
-import { inflate } from "../utils/inflate.ts"
-import { shasum } from "../utils/shasum.ts"
+/**
+ * @deprecated Use readObject from '../git/objects/readObject.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ */
+import { readObject as readObjectNew } from '../git/objects/readObject.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
 export type ReadObjectResult = {
@@ -15,6 +13,9 @@ export type ReadObjectResult = {
   oid?: string
 }
 
+/**
+ * @deprecated Use readObject from '../git/objects/readObject.ts' instead
+ */
 export async function _readObject({
   fs,
   cache,
@@ -28,81 +29,14 @@ export async function _readObject({
   oid: string
   format?: 'content' | 'wrapped' | 'deflated'
 }): Promise<ReadObjectResult> {
-  // Curry the current read method so that the packfile un-deltification
-  // process can acquire external ref-deltas.
-  const getExternalRefDelta = async (oid: string): Promise<{ type: string; object: Buffer }> => {
-    const result = await _readObject({ fs, cache, gitdir, oid })
-    return {
-      type: result.type || '',
-      object: result.object,
-    }
+  // Delegate to the new implementation
+  const result = await readObjectNew({ fs, cache, gitdir, oid, format })
+  return {
+    object: result.object,
+    type: result.type,
+    format: result.format as 'content' | 'wrapped' | 'deflated',
+    source: result.source,
+    oid,
   }
-
-  let result: ReadObjectResult | null = null
-  // Empty tree - hard-coded so we can use it as a shorthand.
-  // Note: I think the canonical git implementation must do this too because
-  // `git cat-file -t 4b825dc642cb6eb9a060e54bf8d69288fbee4904` prints "tree" even in empty repos.
-  if (oid === '4b825dc642cb6eb9a060e54bf8d69288fbee4904') {
-    result = { format: 'wrapped', object: Buffer.from(`tree 0\x00`) }
-  }
-  // Look for it in the loose object directory.
-  if (!result) {
-    result = await readObjectLoose({ fs, gitdir, oid })
-  }
-  // Check to see if it's in a packfile.
-  if (!result) {
-    const packedResult = await readObjectPacked({
-      fs,
-      cache,
-      gitdir,
-      oid,
-      getExternalRefDelta,
-    })
-
-    if (!packedResult) {
-      throw new NotFoundError(oid)
-    }
-
-    // Directly return packed result, as specified: packed objects always return the 'content' format.
-    return {
-      object: packedResult.object,
-      type: packedResult.type,
-      format: packedResult.format as 'content',
-      source: packedResult.source,
-      oid: packedResult.oid,
-    }
-  }
-
-  // Loose objects are always deflated, return early
-  if (format === 'deflated') {
-    return result
-  }
-
-  // All loose objects are deflated but the hard-coded empty tree is `wrapped` so we have to check if we need to inflate the object.
-  if (result.format === 'deflated') {
-    result.object = Buffer.from(await inflate(result.object))
-    result.format = 'wrapped'
-  }
-
-  if (format === 'wrapped') {
-    return result
-  }
-
-  const sha = await shasum(result.object)
-  if (sha !== oid) {
-    throw new InternalError(
-      `SHA check failed! Expected ${oid}, computed ${sha}`
-    )
-  }
-  const { object, type } = GitObject.unwrap(result.object)
-  result.type = type
-  result.object = object
-  result.format = 'content'
-
-  if (format === 'content') {
-    return result
-  }
-
-  throw new InternalError(`invalid requested format "${format}"`)
 }
 

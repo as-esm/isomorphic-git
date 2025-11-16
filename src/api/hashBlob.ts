@@ -1,4 +1,4 @@
-import { hashObject } from "../storage/hashObject.ts"
+import { hashObject } from "../git/objects/hashObject.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 
 /**

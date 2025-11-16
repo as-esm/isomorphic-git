@@ -1,6 +1,12 @@
-import { GitObject } from "../models/GitObject.ts"
-import { shasum } from "../utils/shasum.ts"
+/**
+ * @deprecated Use hashObject from '../git/objects/hashObject.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ */
+import { hashObject as hashObjectNew } from '../git/objects/hashObject.ts'
 
+/**
+ * @deprecated Use hashObject from '../git/objects/hashObject.ts' instead
+ */
 export async function hashObject({
   type,
   object,
@@ -12,23 +18,7 @@ export async function hashObject({
   format?: 'content' | 'wrapped' | 'deflated'
   oid?: string
 }): Promise<{ oid: string; object: Buffer }> {
-  let resultObject: Buffer
-  let resultOid: string | undefined = oid
-  if (format !== 'deflated') {
-    if (format !== 'wrapped') {
-      const objectBuffer = Buffer.isBuffer(object) ? object : Buffer.from(object)
-      const wrapped = GitObject.wrap({ type, object: objectBuffer })
-      resultObject = Buffer.from(wrapped)
-    } else {
-      resultObject = Buffer.isBuffer(object) ? object : Buffer.from(object)
-    }
-    resultOid = await shasum(resultObject)
-  } else {
-    resultObject = Buffer.isBuffer(object) ? object : Buffer.from(object)
-  }
-  if (!resultOid) {
-    throw new Error('oid is required when format is deflated')
-  }
-  return { oid: resultOid, object: resultObject }
+  // Delegate to the new implementation
+  return await hashObjectNew({ type, object, format, oid })
 }
 

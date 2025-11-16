@@ -1,10 +1,13 @@
-import { AmbiguousError } from '../errors/AmbiguousError.ts'
-import { NotFoundError } from '../errors/NotFoundError.ts'
-import { expandOidLoose } from './expandOidLoose.ts'
-import { expandOidPacked } from './expandOidPacked.ts'
-import { _readObject as readObject } from './readObject.ts'
+/**
+ * @deprecated Use expandOid from '../git/objects/expandOid.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ */
+import { expandOid as expandOidNew } from '../git/objects/expandOid.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
+/**
+ * @deprecated Use expandOid from '../git/objects/expandOid.ts' instead
+ */
 export async function _expandOid({
   fs,
   cache,
@@ -16,37 +19,7 @@ export async function _expandOid({
   gitdir: string
   oid: string
 }): Promise<string> {
-  // Curry the current read method so that the packfile un-deltification
-  // process can acquire external ref-deltas.
-  const getExternalRefDelta = async (oid: string): Promise<{ type: string; object: Buffer }> => {
-    const result = await readObject({ fs, cache, gitdir, oid })
-    return {
-      type: result.type || '',
-      object: result.object,
-    }
-  }
-
-  const results = await expandOidLoose({ fs, gitdir, oid: short })
-  const packedOids = await expandOidPacked({
-    fs,
-    cache,
-    gitdir,
-    oid: short,
-    getExternalRefDelta,
-  })
-  // Objects can exist in a pack file as well as loose, make sure we only get a list of unique oids.
-  for (const packedOid of packedOids) {
-    if (results.indexOf(packedOid) === -1) {
-      results.push(packedOid)
-    }
-  }
-
-  if (results.length === 1) {
-    return results[0]
-  }
-  if (results.length > 1) {
-    throw new AmbiguousError('oids', short, results)
-  }
-  throw new NotFoundError(`an object matching "${short}"`)
+  // Delegate to the new implementation
+  return await expandOidNew({ fs, cache, gitdir, oid: short })
 }
 

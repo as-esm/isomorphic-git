@@ -1,6 +1,6 @@
 import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
 import { resolveRef } from "../git/refs/readRef.ts"
-import { GitShallowManager } from "../managers/GitShallowManager.ts"
+import { readShallow } from "../git/shallow.ts"
 import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { _readObject as readObject } from "../storage/readObject.ts"
@@ -32,7 +32,7 @@ export async function listCommitsAndTags({
   start: Iterable<string>
   finish: Iterable<string>
 }): Promise<Set<string>> {
-  const shallows = await GitShallowManager.read({ fs, gitdir })
+  const shallows = await readShallow({ fs, gitdir })
   const startingSet = new Set<string>()
   const finishingSet = new Set<string>()
   for (const ref of start) {

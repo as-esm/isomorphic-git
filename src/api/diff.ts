@@ -1,8 +1,8 @@
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
-import { parse as parseIndex } from "../core-utils/index/Index.ts"
+import { GitIndex } from "../git/index/GitIndex.ts"
 import { resolveTree } from "../utils/resolveTree.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -99,8 +99,8 @@ export async function diff({
       // Read index for treeB
       try {
         const indexBuffer = await normalizedFs.read(join(resolvedGitdir, 'index'))
-        const index = await parseIndex(Buffer.isBuffer(indexBuffer) ? indexBuffer : Buffer.from(indexBuffer as string | Uint8Array))
-        treeB = Array.from(index.entries.values())
+        const index = await GitIndex.fromBuffer(Buffer.isBuffer(indexBuffer) ? indexBuffer : Buffer.from(indexBuffer as string | Uint8Array))
+        treeB = index.entries
           .filter(entry => entry.flags.stage === 0) // Only stage 0 entries
           .map(entry => ({
             path: entry.path,

@@ -1,6 +1,6 @@
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
-import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
+import { readObject } from "../git/objects/readObject.ts"
+import { writeObject } from "../git/objects/writeObject.ts"
 import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
 import { mergeTrees } from "../core-utils/algorithms/MergeManager.ts"
 import { StateManager } from "../core-utils/StateManager.ts"

@@ -4,7 +4,7 @@ import { join } from './GitPath.ts'
 import { UnifiedConfigService } from './UnifiedConfigService.ts'
 import { StateManager } from './StateManager.ts'
 // RefManager import removed - using src/git/refs/ functions directly
-import { StagingArea } from './StagingArea.ts'
+// StagingArea removed - use readIndexDirect/writeIndexDirect directly
 import { Worktree } from './Worktree.ts'
 import { GitIndex } from '../git/index/GitIndex.ts'
 import { normalizeFs } from '../utils/normalizeFs.ts'
@@ -395,29 +395,48 @@ export class Repository {
   }
 
   /**
-   * Gets the staging area instance for the current worktree
+   * Gets the staging area (index) for this worktree
    * Each worktree has its own staging area bound to its gitdir
+   * 
+   * @deprecated Use readIndexDirect/writeIndexDirect directly. This method is kept for backward compatibility.
    */
-  getStagingArea(): StagingArea {
+  getStagingArea(): { read: () => Promise<GitIndex>, write: (index?: GitIndex) => Promise<void> } {
     const worktree = this.getWorktree()
     if (!worktree) {
       throw new Error('Cannot get staging area for bare repository')
     }
-    return worktree.getStagingArea()
+    // Return a simple object that delegates to Repository methods
+    return {
+      read: async () => {
+        const gitdir = await worktree.getGitdir()
+        return await this.readIndexDirect(false, true, gitdir)
+      },
+      write: async (index?: GitIndex) => {
+        const gitdir = await worktree.getGitdir()
+        if (index) {
+          await this.writeIndexDirect(index, gitdir)
+        } else {
+          const currentIndex = await this.readIndexDirect(false, true, gitdir)
+          await this.writeIndexDirect(currentIndex, gitdir)
+        }
+      }
+    }
   }
 
   /**
    * Gets the staging area as a property
+   * 
+   * @deprecated Use readIndexDirect/writeIndexDirect directly
    */
-  get stagingArea(): StagingArea {
+  get stagingArea(): { read: () => Promise<GitIndex>, write: (index?: GitIndex) => Promise<void> } {
     return this.getStagingArea()
   }
 
   /**
    * Gets the parsed index from the Repository's owned instance
    * Note: The returned index is a reference to the cached index owned by this Repository instance.
-   * To modify the index, use stagingArea.acquire() or use writeIndex().
-   * @deprecated Use stagingArea.read() instead
+   * To modify the index, use readIndexDirect/writeIndexDirect directly.
+   * @deprecated Use readIndexDirect() instead
    */
   async getIndex(): Promise<GitIndex> {
     return this.getStagingArea().read()
@@ -427,7 +446,7 @@ export class Repository {
    * Writes the index back to disk and updates the Repository's owned instance
    * If a GitIndex is provided, its state will be copied to the cached index and marked as dirty.
    * If no index is provided, the cached index will be marked as dirty if it has been modified.
-   * @deprecated Use stagingArea.write() instead
+   * @deprecated Use writeIndexDirect() instead
    */
   async writeIndex(index?: GitIndex): Promise<void> {
     return this.getStagingArea().write(index)
@@ -441,8 +460,8 @@ export class Repository {
    * @param useCache - Whether to use cache (default: true)
    * @param allowUnmerged - Whether to allow unmerged paths (default: true). If false, throws UnmergedPathsError if index has unmerged paths.
    */
-  async readIndexDirect(force: boolean = false, allowUnmerged: boolean = true): Promise<GitIndex> {
-    const gitdir = await this.getGitdir()
+  async readIndexDirect(force: boolean = false, allowUnmerged: boolean = true, gitdirOverride?: string): Promise<GitIndex> {
+    const gitdir = gitdirOverride || await this.getGitdir()
     const normalizedFs = normalizeFs(this.fs)
     const { join } = await import('./GitPath.ts')
     const indexPath = join(gitdir, 'index')
@@ -603,8 +622,8 @@ export class Repository {
    * 
    * Delegates to src/git/index/writeIndex.ts for the actual write operation.
    */
-  async writeIndexDirect(index: GitIndex): Promise<void> {
-    const gitdir = await this.getGitdir()
+  async writeIndexDirect(index: GitIndex, gitdirOverride?: string): Promise<void> {
+    const gitdir = gitdirOverride || await this.getGitdir()
     const normalizedFs = normalizeFs(this.fs)
     const { join } = await import('./GitPath.ts')
     const { writeIndex } = await import('../git/index/writeIndex.ts')
@@ -946,11 +965,9 @@ export class Repository {
     
     // Ensure index is synchronized before analysis
     // This ensures that any staged changes are visible to analyzeCheckout
-    await this.getStagingArea().acquire(async (index) => {
-      // Index is loaded and will be written if dirty
-      // Access index to ensure it's loaded into cache
-      const _ = index.entriesMap.size
-    })
+    // Read index to ensure it's loaded into cache
+    const index = await this.readIndexDirect(false, true, gitdir)
+    const _ = index.entriesMap.size
     
     return await WorkdirManager.analyzeCheckout({
       fs: this.fs,

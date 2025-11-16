@@ -9,7 +9,7 @@ import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { findMergeBase } from "../core-utils/algorithms/CommitGraphWalker.ts"
 // mergeTree is now used via MergeStream
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { Repository } from "../core-utils/Repository.ts"
 import { UnifiedConfigService } from "../core-utils/UnifiedConfigService.ts"
 import { abbreviateRef } from "../utils/abbreviateRef.ts"

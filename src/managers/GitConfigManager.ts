@@ -1,12 +1,24 @@
+/**
+ * @deprecated Use functions from '../git/config.ts' instead
+ * This class is kept for backward compatibility and will be removed in a future version.
+ * 
+ * For reading config: use `readConfig()` from '../git/config.ts'
+ * For writing config: use `writeConfig()` from '../git/config.ts'
+ * For getting/setting values: use `getConfig()`, `setConfig()`, `getConfigAll()` from '../git/config.ts'
+ */
 import { GitConfig } from "../models/GitConfig.ts"
+import { readConfig, writeConfig } from "../git/config.ts"
+import { serialize as serializeConfig, parse as parseConfig } from "../core-utils/ConfigParser.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 
 /**
+ * @deprecated Use functions from '../git/config.ts' instead
  * Manages access to the Git configuration file, providing methods to read and save configurations.
  */
 export class GitConfigManager {
   /**
+   * @deprecated Use `readConfig()` from '../git/config.ts' instead
    * Reads the Git configuration file from the specified `.git` directory.
    */
   static async get({
@@ -16,21 +28,23 @@ export class GitConfigManager {
     fs: FsClient
     gitdir: string
   }): Promise<GitConfig> {
-    // We can improve efficiency later if needed.
-    // TODO: read from full list of git config files
+    // Delegate to the new implementation
     const normalizedFs = normalizeFs(fs)
+    // Check if config file exists (for backward compatibility - old behavior threw error)
     const configPath = `${gitdir}/config`
     if (!(await normalizedFs.exists(configPath))) {
       throw new Error('Failed to read config file')
     }
-    const text = await normalizedFs.read(configPath, { encoding: 'utf8' })
-    if (text === null || typeof text !== 'string') {
-      throw new Error('Failed to read config file')
-    }
-    return GitConfig.from(text)
+    const config = await readConfig({ fs: normalizedFs, gitdir })
+    // Convert ConfigObject to GitConfig
+    // serializeConfig returns a Buffer, but GitConfig.from() expects a string
+    const serialized = serializeConfig(config)
+    const configString = Buffer.isBuffer(serialized) ? serialized.toString('utf8') : serialized.toString()
+    return GitConfig.from(configString)
   }
 
   /**
+   * @deprecated Use `writeConfig()` from '../git/config.ts' instead
    * Saves the provided Git configuration to the specified `.git` directory.
    */
   static async save({
@@ -42,12 +56,11 @@ export class GitConfigManager {
     gitdir: string
     config: GitConfig
   }): Promise<void> {
-    // We can improve efficiency later if needed.
-    // TODO: handle saving to the correct global/user/repo location
+    // Delegate to the new implementation
     const normalizedFs = normalizeFs(fs)
-    await normalizedFs.write(`${gitdir}/config`, config.toString(), {
-      encoding: 'utf8',
-    })
+    // Convert GitConfig to ConfigObject
+    const configObject = parseConfig(Buffer.from(config.toString(), 'utf8'))
+    await writeConfig({ fs: normalizedFs, gitdir, config: configObject })
   }
 }
 

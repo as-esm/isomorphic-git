@@ -1,6 +1,6 @@
 import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { readReflog } from "../core-utils/refs/ReflogManager.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import type { FsClient } from "../models/FileSystem.ts"

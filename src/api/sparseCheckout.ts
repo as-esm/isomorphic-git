@@ -1,7 +1,7 @@
 import { SparseCheckoutManager } from "../core-utils/filesystem/SparseCheckoutManager.ts"
 import { WorkdirManager } from "../core-utils/filesystem/WorkdirManager.ts" // <--- IMPORT
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
@@ -71,7 +71,7 @@ export async function sparseCheckout({
     const reapplyCheckout = async (patterns: string[], isCone: boolean) => {
       try {
         const headOid = await repo.resolveRef('HEAD')
-        const { object: commitObject } = await ObjectReader.read({ fs, cache, gitdir: await repo.getGitdir(), oid: headOid })
+        const { object: commitObject } = await readObject({ fs, cache, gitdir: await repo.getGitdir(), oid: headOid })
         const commit = parseCommit(commitObject)
         
         // FIX: Use the correct low-level WorkdirManager.checkout which accepts a treeOid.

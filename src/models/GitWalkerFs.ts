@@ -1,4 +1,4 @@
-import { ConfigAccess } from "../utils/configAccess.ts"
+// ConfigAccess import removed - using Repository.getConfig() directly
 import { compareStats } from "../utils/compareStats.ts"
 import { join } from "../utils/join.ts"
 import { normalizeStats } from "../utils/normalizeStats.ts"
@@ -22,13 +22,10 @@ type WorkdirEntry = {
 
 export class GitWalkerFs {
   private repo: Repository
-  configAccess: ConfigAccess | null = null
   ConstructEntry: new (fullpath: string) => WorkdirEntry
 
   constructor({ repo }: { repo: Repository }) {
     this.repo = repo
-
-    this.configAccess = null
     const walker = this
     this.ConstructEntry = class WorkdirEntry {
       _fullpath: string
@@ -128,8 +125,10 @@ export class GitWalkerFs {
       if ((await this.type(entry)) === 'tree') {
         entry._content = undefined
       } else {
-        const configAccess = await this._getConfigAccess(this.repo.fs, gitdir)
-        const autocrlf = (await configAccess.getConfigValue('core.autocrlf')) as string | undefined
+        // CRITICAL: Use Repository's config service directly instead of cached ConfigAccess
+        // This ensures we always get the latest config values, even after setConfig() calls
+        const configService = await this.repo.getConfig()
+        const autocrlf = (await configService.get('core.autocrlf')) as string | undefined
         const content = await normalizedFs.read(`${dir}/${entry._fullpath}`, { autocrlf })
         if (content) {
           const contentBuffer = Buffer.isBuffer(content) ? content : Buffer.from(content as string | Uint8Array)
@@ -157,9 +156,10 @@ export class GitWalkerFs {
       if (!stats) {
         oid = undefined
       } else {
-        const gitdir = await this.repo.getGitdir()
-        const configAccess = await this._getConfigAccess(this.repo.fs, gitdir)
-        const filemode = (await configAccess.getConfigValue('core.filemode')) as boolean | undefined
+        // CRITICAL: Use Repository's config service directly instead of cached ConfigAccess
+        // This ensures we always get the latest config values, even after setConfig() calls
+        const configService = await this.repo.getConfig()
+        const filemode = (await configService.get('core.filemode')) as boolean | undefined
         const trustino =
           typeof process !== 'undefined'
             ? !(process.platform === 'win32')
@@ -200,11 +200,5 @@ export class GitWalkerFs {
     return entry._oid
   }
 
-  async _getConfigAccess(fs: any, gitdir: string): Promise<ConfigAccess> {
-    if (!this.configAccess) {
-      this.configAccess = new ConfigAccess(fs, gitdir)
-    }
-    return this.configAccess
-  }
 }
 

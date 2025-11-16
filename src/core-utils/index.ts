@@ -13,7 +13,7 @@ export * from './StateMutationStream.ts'
 export * from './parsers/index.ts'
 export * from './odb/index.ts'
 export * from './refs/index.ts'
-export * from './index/index.ts'
+// Legacy index parser removed - use GitIndex from src/git/index/GitIndex.ts instead
 export * from './filesystem/index.ts'
 export * from './network/index.ts'
 export * from './algorithms/index.ts'

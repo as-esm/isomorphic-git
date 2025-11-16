@@ -1,7 +1,7 @@
 import { MaxDepthError } from "../errors/MaxDepthError.ts"
 import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { ObjectTypeError } from "../errors/ObjectTypeError.ts"
-import { GitShallowManager } from "../managers/GitShallowManager.ts"
+import { readShallow } from "../git/shallow.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { _readObject } from "../storage/readObject.ts"
 import type { FsClient } from "../models/FileSystem.ts"
@@ -24,7 +24,7 @@ export async function _isDescendent({
   ancestor: string
   depth: number
 }): Promise<boolean> {
-  const shallows = await GitShallowManager.read({ fs, gitdir })
+  const shallows = await readShallow({ fs, gitdir })
   if (!oid) {
     throw new MissingParameterError('oid')
   }

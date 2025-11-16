@@ -9,9 +9,9 @@ import { InternalError } from '../errors/InternalError.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { GitIgnoreManager } from "../managers/GitIgnoreManager.ts"
 // GitIndexManager import removed - using Repository.readIndexDirect/writeIndexDirect instead
-import { _readObject } from "../storage/readObject.ts"
-import { readObjectLoose } from "../storage/readObjectLoose.ts"
-import { _writeObject } from "../storage/writeObject.ts"
+import { readObject } from "../git/objects/readObject.ts"
+import { read as readLoose } from "../git/objects/loose.ts"
+import { writeObject } from "../git/objects/writeObject.ts"
 import { join } from './join.ts'
 import { posixifyPathBuffer } from './posixifyPathBuffer.ts'
 import { normalizeFs } from './normalizeFs.ts'
@@ -49,8 +49,7 @@ async function checkAndWriteBlob(
   // If OID is provided, first check if the object exists in the object store (loose or packed)
   if (oid) {
     try {
-      const { _readObject } = await import('../storage/readObject.ts')
-      const objResult = await _readObject({ fs, cache, gitdir, oid, format: 'content' })
+      const objResult = await readObject({ fs, cache, gitdir, oid, format: 'content' })
       if (objResult) {
         // Object exists in the store, return the OID
         return oid
@@ -106,7 +105,7 @@ async function checkAndWriteBlob(
     if (object === null) throw new NotFoundError(currentFilepath)
 
     const objectBuffer = Buffer.isBuffer(object) ? object : Buffer.from(object as string | Uint8Array)
-    retOid = await _writeObject({ fs, gitdir, type: 'blob', object: objectBuffer })
+    retOid = await writeObject({ fs, gitdir, type: 'blob', object: objectBuffer })
   })
 
   return retOid
@@ -730,7 +729,7 @@ export async function applyTreeChanges({
               break
             }
             try {
-              const { object } = await _readObject({
+              const { object } = await readObject({
                 fs,
                 cache,
                 gitdir,

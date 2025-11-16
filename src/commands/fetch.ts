@@ -3,11 +3,11 @@ import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { RemoteCapabilityError } from "../errors/RemoteCapabilityError.ts"
 import { ConfigAccess } from "../utils/configAccess.ts"
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { ShallowManager } from "../core-utils/refs/ShallowManager.ts"
-import { GitRemoteManager } from "../managers/GitRemoteManager.ts"
+import { readShallow, writeShallow } from "../git/shallow.ts"
+import { getRemoteHelperFor } from "../git/remote/getRemoteHelper.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { GitPackIndex } from "../models/GitPackIndex.ts"
-import { hasObject } from "../storage/hasObject.ts"
+import { hasObject } from "../git/objects/hasObject.ts"
 import { _readObject as readObject } from "../storage/readObject.ts"
 import { abbreviateRef } from "../utils/abbreviateRef.ts"
 import { collect } from "../utils/collect.ts"
@@ -113,7 +113,7 @@ export async function _fetch({
     corsProxy = (await configService.get('http.corsProxy')) as string | undefined
   }
 
-  const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url })
+  const GitRemoteHTTP = getRemoteHelperFor({ url })
   console.log(`[Git Protocol] Starting fetch operation, requesting protocol version ${protocolVersion}`)
   const remoteHTTP = await GitRemoteHTTP.discover({
     http,
@@ -276,7 +276,7 @@ export async function _fetch({
   }
   haves = [...new Set(haves)]
   
-  const oids = await ShallowManager.read({ fs, gitdir })
+  const oids = await readShallow({ fs, gitdir })
   const shallows = capabilities.has('shallow') ? [...oids] : []
   
   const packstream = writeUploadPackRequest({
@@ -334,7 +334,7 @@ export async function _fetch({
     oids.delete(oid)
   }
   
-  await ShallowManager.write({ fs, gitdir, oids })
+  await writeShallow({ fs, gitdir, oids })
   
   // Update local remote refs
   if (singleBranch) {

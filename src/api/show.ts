@@ -1,5 +1,5 @@
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
 import { parse as parseTag } from "../core-utils/parsers/Tag.ts"

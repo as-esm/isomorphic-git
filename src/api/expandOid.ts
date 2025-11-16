@@ -1,5 +1,5 @@
 import { normalizeFs } from "../utils/normalizeFs.ts"
-import { _expandOid } from "../storage/expandOid.ts"
+import { expandOid as expandOidInternal } from "../git/objects/expandOid.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
@@ -38,7 +38,7 @@ export async function expandOid({
     assertParameter('fs', fs)
     assertParameter('gitdir', gitdir!)
     assertParameter('oid', oid)
-    return await _expandOid({
+    return await expandOidInternal({
       fs: normalizeFs(fs) as any,
       cache,
       gitdir: gitdir!,

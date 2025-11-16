@@ -6,7 +6,7 @@ import { parse as parseCommit } from '../parsers/Commit.ts'
 import { SparseCheckoutManager } from './SparseCheckoutManager.ts'
 import { join } from '../GitPath.ts'
 // RefManager import removed - using src/git/refs/ functions instead
-import { parse as parseIndex, serialize as serializeIndex, type IndexObject, type IndexEntry } from '../index/Index.ts'
+// Legacy index parser removed - using GitIndex from src/git/index/GitIndex.ts instead
 import { normalizeStats } from "../../utils/normalizeStats.ts"
 import { normalizeFs } from "../../utils/normalizeFs.ts"
 // GitIndexManager import removed - using Repository.readIndexDirect/writeIndexDirect instead

@@ -4,7 +4,7 @@ import { ObjectReader } from './odb/ObjectReader.ts'
 import { parse as parseCommit } from './parsers/Commit.ts'
 import { SparseCheckoutManager } from './filesystem/SparseCheckoutManager.ts'
 import { CheckoutConflictError } from '../errors/CheckoutConflictError.ts'
-import { StagingArea } from './StagingArea.ts'
+// StagingArea removed - use Repository.readIndexDirect/writeIndexDirect directly
 import type { Repository } from './Repository.ts'
 import type { ProgressCallback } from '../managers/GitRemoteHTTP.ts'
 
@@ -18,7 +18,7 @@ export class Worktree {
   public readonly dir: string
   private _gitdir: string | null
   private _name: string | null
-  private _stagingArea: StagingArea | null = null
+  // StagingArea removed - Worktree is now stateless, delegates to Repository
 
   constructor(
     repo: Repository,
@@ -80,12 +80,27 @@ export class Worktree {
   /**
    * Gets the staging area (index) for this worktree
    * Each worktree has its own staging area bound to its gitdir
+   * 
+   * @deprecated Use Repository.readIndexDirect/writeIndexDirect directly with worktree's gitdir
+   * This method is kept for backward compatibility but delegates to Repository methods.
    */
-  getStagingArea(): StagingArea {
-    if (!this._stagingArea) {
-      this._stagingArea = new StagingArea(this)
+  async getStagingArea(): Promise<{ read: () => Promise<import('../git/index/GitIndex.ts').GitIndex>, write: (index?: import('../git/index/GitIndex.ts').GitIndex) => Promise<void> }> {
+    const gitdir = await this.getGitdir()
+    // Return a simple object that delegates to Repository methods
+    return {
+      read: async () => {
+        // Use the worktree's gitdir for index operations
+        return await this.repo.readIndexDirect(false, true, gitdir)
+      },
+      write: async (index?: import('../git/index/GitIndex.ts').GitIndex) => {
+        if (index) {
+          await this.repo.writeIndexDirect(index, gitdir)
+        } else {
+          const currentIndex = await this.repo.readIndexDirect(false, true, gitdir)
+          await this.repo.writeIndexDirect(currentIndex, gitdir)
+        }
+      }
     }
-    return this._stagingArea
   }
 
   /**

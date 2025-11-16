@@ -42,19 +42,39 @@ function parseCacheEntryFlags(bits: number): CacheEntryFlags {
   }
 }
 
-function renderCacheEntryFlags(entry: IndexEntry): number {
+function renderCacheEntryFlags(entry: IndexEntry, version: number = 2): { flags: number; extendedFlags?: number; pathLengthBytes?: number } {
   const flags = entry.flags
-  // 1-bit extended flag (must be zero in version 2)
-  flags.extended = false
-  // 12-bit name length if the length is less than 0xFFF; otherwise 0xFFF
-  // is stored in this field.
-  flags.nameLength = Math.min(Buffer.from(entry.path).length, 0xfff)
-  return (
+  const pathBytes = Buffer.from(entry.path)
+  const pathLength = pathBytes.length
+  
+  // For large pathnames (>4095), use 0xFFF as marker and store actual length separately
+  const nameLength = pathLength > 0xfff ? 0xfff : pathLength
+  const needsExtendedPathLength = pathLength > 0xfff
+  
+  // Set extended bit if explicitly set, or if version 3 and extended flags properties exist
+  const hasExtendedFlags = flags.extended || (version === 3 && (flags.skipWorktree !== undefined || flags.intentToAdd !== undefined))
+  const baseFlags = (
     (flags.assumeValid ? 0b1000000000000000 : 0) +
-    (flags.extended ? 0b0100000000000000 : 0) +
+    (hasExtendedFlags ? 0b0100000000000000 : 0) +
     ((flags.stage & 0b11) << 12) +
-    (flags.nameLength & 0b111111111111)
+    (nameLength & 0b111111111111)
   )
+  
+  let extendedFlags: number | undefined
+  // In version 3, if extended flag bit is set OR if skipWorktree/intentToAdd properties exist (even if false),
+  // we need to write extended flags. If the properties don't exist (undefined), we don't write extended flags.
+  if (version === 3 && (flags.extended || flags.skipWorktree !== undefined || flags.intentToAdd !== undefined)) {
+    extendedFlags = (
+      ((flags.skipWorktree !== undefined && flags.skipWorktree) ? 0b0000000000000001 : 0) +
+      ((flags.intentToAdd !== undefined && flags.intentToAdd) ? 0b0000000000000010 : 0)
+    )
+  }
+  
+  return {
+    flags: baseFlags,
+    extendedFlags,
+    pathLengthBytes: needsExtendedPathLength ? pathLength : undefined,
+  }
 }
 
 export class GitIndex {
@@ -367,16 +387,107 @@ export class GitIndex {
     return written
   }
 
-  async toObject(): Promise<Buffer> {
-    // Use the serialize function from Index.ts to ensure proper version 3 support
-    // Convert GitIndex to IndexObject format
-    const { serialize } = await import('../../core-utils/index/Index.ts')
-    const indexObject = {
-      entries: this._entries,
-      unmergedPaths: this._unmergedPaths,
-      version: this._version,
+  /**
+   * Serializes the GitIndex to a buffer matching the .git/index file format
+   */
+  async toBuffer(): Promise<Buffer> {
+    const version = this._version || 2
+    const header = Buffer.alloc(12)
+    const writer = new BufferCursor(header)
+    writer.write('DIRC', 4, 'utf8')
+    writer.writeUInt32BE(version)
+    
+    // Flatten entries (include all stages)
+    const entriesFlat: IndexEntry[] = []
+    for (const entry of this._entries.values()) {
+      entriesFlat.push(entry)
+      if (entry.stages.length > 1) {
+        for (const stage of entry.stages) {
+          if (stage && stage !== entry) {
+            entriesFlat.push(stage)
+          }
+        }
+      }
     }
-    return await serialize(indexObject)
+    
+    writer.writeUInt32BE(entriesFlat.length)
+
+    const entryBuffers: Buffer[] = []
+    for (const entry of entriesFlat) {
+      const bpath = Buffer.from(entry.path)
+      const flagInfo = renderCacheEntryFlags(entry, version)
+      
+      // Calculate entry size: base (62 includes flags) + extended flags (2 if version 3) + path length (2 if large) + path + null + padding
+      let baseSize = 62 // ctime, mtime, dev, ino, mode, uid, gid, size, oid, flags (62 bytes total)
+      if (version === 3 && flagInfo.extendedFlags !== undefined) {
+        baseSize += 2 // extended flags
+      }
+      // Path length bytes are written when pathLength > 0xFFF (matches parse logic which reads when nameLength === 0xfff)
+      if (flagInfo.pathLengthBytes !== undefined) {
+        baseSize += 2 // path length for large paths
+      }
+      const totalSize = baseSize + bpath.length + 1 // +1 for null terminator
+      const length = Math.ceil(totalSize / 8) * 8 // Align to 8 bytes
+      
+      const written = Buffer.alloc(length)
+      const entryWriter = new BufferCursor(written)
+      const stat = normalizeStats(entry as Partial<Stat>)
+      entryWriter.writeUInt32BE(stat.ctimeSeconds)
+      entryWriter.writeUInt32BE(stat.ctimeNanoseconds)
+      entryWriter.writeUInt32BE(stat.mtimeSeconds)
+      entryWriter.writeUInt32BE(stat.mtimeNanoseconds)
+      entryWriter.writeUInt32BE(stat.dev)
+      entryWriter.writeUInt32BE(stat.ino)
+      entryWriter.writeUInt32BE(stat.mode)
+      entryWriter.writeUInt32BE(stat.uid)
+      entryWriter.writeUInt32BE(stat.gid)
+      entryWriter.writeUInt32BE(stat.size)
+      entryWriter.write(entry.oid, 20, 'hex')
+      entryWriter.writeUInt16BE(flagInfo.flags)
+      
+      // Version 3: Write extended flags if needed
+      if (version === 3 && flagInfo.extendedFlags !== undefined) {
+        entryWriter.writeUInt16BE(flagInfo.extendedFlags)
+      }
+      
+      // Write path length for large paths (when pathLength > 0xFFF)
+      // This must match the parse logic which reads path length when nameLength === 0xfff
+      if (flagInfo.pathLengthBytes !== undefined) {
+        entryWriter.writeUInt16BE(flagInfo.pathLengthBytes)
+      }
+      
+      // Write path as bytes directly to ensure exact byte count
+      entryWriter.copy(bpath, 0, bpath.length)
+      entryWriter.writeUInt8(0) // Null terminator
+      
+      // Verify we're at the expected position before padding
+      const currentPos = entryWriter.tell()
+      const expectedPos = totalSize
+      if (currentPos !== expectedPos) {
+        throw new InternalError(
+          `Index entry size mismatch: expected position ${expectedPos} but got ${currentPos} for path ${entry.path}`
+        )
+      }
+      
+      // Pad to 8-byte boundary
+      const padding = length - totalSize
+      for (let i = 0; i < padding; i++) {
+        entryWriter.writeUInt8(0)
+      }
+      entryBuffers.push(written)
+    }
+
+    const body = Buffer.concat(entryBuffers)
+    const main = Buffer.concat([header, body])
+    const sum = await shasum(main)
+    return Buffer.concat([main, Buffer.from(sum, 'hex')])
+  }
+
+  /**
+   * @deprecated Use toBuffer() instead. This method is kept for backward compatibility.
+   */
+  async toObject(): Promise<Buffer> {
+    return this.toBuffer()
   }
 }
 

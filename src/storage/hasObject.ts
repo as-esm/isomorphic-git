@@ -1,8 +1,13 @@
-import { hasObjectLoose } from './hasObjectLoose.ts'
-import { hasObjectPacked } from './hasObjectPacked.ts'
-import { _readObject as readObject } from './readObject.ts'
+/**
+ * @deprecated Use hasObject from '../git/objects/hasObject.ts' instead
+ * This function is kept for backward compatibility and will be removed in a future version.
+ */
+import { hasObject as hasObjectNew } from '../git/objects/hasObject.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 
+/**
+ * @deprecated Use hasObject from '../git/objects/hasObject.ts' instead
+ */
 export async function hasObject({
   fs,
   cache,
@@ -16,29 +21,7 @@ export async function hasObject({
   oid: string
   format?: string
 }): Promise<boolean> {
-  // Curry the current read method so that the packfile un-deltification
-  // process can acquire external ref-deltas.
-  const getExternalRefDelta = async (oid: string): Promise<{ type: string; object: Buffer }> => {
-    const result = await readObject({ fs, cache, gitdir, oid })
-    return {
-      type: result.type || '',
-      object: result.object,
-    }
-  }
-
-  // Look for it in the loose object directory.
-  let result = await hasObjectLoose({ fs, gitdir, oid })
-  // Check to see if it's in a packfile.
-  if (!result) {
-    result = await hasObjectPacked({
-      fs,
-      cache,
-      gitdir,
-      oid,
-      getExternalRefDelta,
-    })
-  }
-  // Finally
-  return result
+  // Delegate to the new implementation
+  return await hasObjectNew({ fs, cache, gitdir, oid, format })
 }
 

@@ -2,7 +2,7 @@ import { _readTree } from '../commands/readTree.ts'
 import { Repository } from "../core-utils/Repository.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
-import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { hashObject } from '../core-utils/ShaHasher.ts'
 import { StateManager } from '../core-utils/StateManager.ts'
 import type { FsClient } from "../models/FileSystem.ts"
@@ -178,7 +178,7 @@ export async function abortMerge({
     for (const op of operations) {
       const fullPath = join(dir, op.path)
       if (op.op === 'update') {
-        const { object } = await ObjectReader.read({ fs, cache, gitdir: effectiveGitdir, oid: op.oid! })
+        const { object } = await readObject({ fs, cache, gitdir: effectiveGitdir, oid: op.oid! })
         const modeNum = parseInt(op.mode!, 8)
         
         // Ensure directory exists

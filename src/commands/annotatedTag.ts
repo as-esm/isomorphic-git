@@ -1,7 +1,7 @@
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { read as readObject } from "../core-utils/odb/ObjectReader.ts"
-import { write as writeObject } from "../core-utils/odb/ObjectWriter.ts"
+import { readObject } from "../git/objects/readObject.ts"
+import { writeObject } from "../git/objects/writeObject.ts"
 import { parse as parseTag, serialize as serializeTag } from "../core-utils/parsers/Tag.ts"
 import { signTag, extractSignature } from "../core-utils/Signing.ts"
 import type { FsClient } from "../models/FileSystem.ts"

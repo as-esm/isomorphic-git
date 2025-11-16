@@ -25,8 +25,10 @@ export * from './models/GitRefSpecSet.ts'
 export * from './models/GitSideBand.ts'
 export * from './models/GitTree.ts'
 
+// Legacy storage exports - these now delegate to src/git/objects/
 export * from './storage/readObject.ts'
 export * from './storage/writeObject.ts'
+// readObjectPacked is deprecated - use src/git/objects/pack.ts instead
 export * from './storage/readObjectPacked.ts'
 
 export * from './utils/calculateBasicAuthHeader.ts'
