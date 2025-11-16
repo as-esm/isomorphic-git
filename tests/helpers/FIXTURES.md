@@ -31,7 +31,7 @@ test('my test', async () => {
 
 ### How `makeFixture` Works
 
-1. **Location**: `tests/helpers/fixture.ts` wraps `makeNodeFixture` from `__tests__/__helpers__/FixtureFS/makeNodeFixture.js`
+1. **Location**: `tests/helpers/fixture.ts` wraps `makeNodeFixture` from `tests/helpers/makeNodeFixture.ts`
 
 2. **Fixture Resolution**: 
    - Uses `findUp` to search for `__fixtures__/test-name` starting from `tests/` directory (with fallback to `__tests__/`)

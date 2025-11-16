@@ -1,5 +1,5 @@
-import { makeNodeFixture } from '../../__tests__/__helpers__/FixtureFS/makeNodeFixture.js'
-import { resetToCommit as gitResetToCommit } from '../../src/api/reset.ts'
+import { makeNodeFixture } from './makeNodeFixture.ts'
+import { resetToCommit as gitResetToCommit } from '../../src/commands/reset.ts'
 import type { FsClient } from 'isomorphic-git/models'
 import type * as fs from 'fs'
 

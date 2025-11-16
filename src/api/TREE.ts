@@ -1,6 +1,8 @@
 import type { Walker } from "../models/Walker.ts"
 
 /**
+ * @deprecated Use `TREE` from 'isomorphic-git/commands' instead
+ * 
  * Get a git commit `Walker`
  *
  * See [walk](./walk.md)

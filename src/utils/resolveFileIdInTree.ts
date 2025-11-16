@@ -1,6 +1,6 @@
 // @ts-check
 import { GitTree } from "../models/GitTree.ts"
-import { _readObject as readObject } from "../storage/readObject.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { join } from './join.ts'
 import { resolveTree } from './resolveTree.ts'
 import type { FsClient } from "../models/FileSystem.ts"

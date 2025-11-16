@@ -6,11 +6,14 @@ export const forAwait = async <T>(
   cb: (value: T) => Promise<void> | void
 ): Promise<void> => {
   const iter = getIterator(iterable)
-  while (true) {
-    const { value, done } = await iter.next()
-    if (value) await cb(value)
-    if (done) break
+  try {
+    while (true) {
+      const { value, done } = await iter.next()
+      if (done) break
+      if (value) await cb(value)
+    }
+  } finally {
+    if (iter.return) await iter.return()
   }
-  if (iter.return) await iter.return()
 }
 

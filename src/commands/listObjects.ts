@@ -1,7 +1,7 @@
 import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { GitTree } from "../models/GitTree.ts"
-import { _readObject as readObject } from "../storage/readObject.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 

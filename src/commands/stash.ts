@@ -4,7 +4,16 @@ import { readCommit } from './readCommit.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { UnmergedPathsError } from '../errors/UnmergedPathsError.ts'
 // GitRefManager import removed - using src/git/refs/ functions instead
-import { GitStashManager } from "../managers/GitStashManager.ts"
+import {
+  getStashAuthor,
+  readStashCommit,
+  readStashReflogs,
+  getStashRefPath,
+  getStashReflogsPath,
+  writeStashCommit,
+  writeStashRef,
+  writeStashReflogEntry,
+} from "../git/refs/stash.ts"
 // GitIndexManager import removed - using Repository.readIndexDirect/writeIndexDirect instead
 import {
   writeTreeChanges,
@@ -190,9 +199,8 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
   // This matches git's behavior where it checks for author before checking for changes
   // DO NOT call repo.getGitdir() or any other repo methods before this check
   // Use the provided gitdir directly to avoid any HEAD resolution or other operations
-  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
   try {
-    await stashMgr.getAuthor() // ensure there is an author
+    await getStashAuthor({ fs, gitdir, repo }) // ensure there is an author
   } catch (err) {
     // If author check fails, throw immediately (don't check for changes, don't resolve HEAD, etc.)
     throw err
@@ -206,10 +214,6 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
     // If getGitdir fails, this shouldn't happen but handle it gracefully
     effectiveGitdir = gitdir // Fallback to provided gitdir
   }
-  // Create a new stashMgr with the resolved gitdir if it changed
-  const effectiveStashMgr = effectiveGitdir !== gitdir 
-    ? new GitStashManager({ fs, dir, gitdir: effectiveGitdir, repo })
-    : stashMgr
 
   // Use Repository's cache and gitdir if available
   // IMPORTANT: Use the provided cache directly - Repository uses the same cache instance if provided
@@ -334,10 +338,13 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
   if (indexTree) {
     // Create index commit: tree = index state, parent = [HEAD]
     // This commit's tree represents the INDEX state
-    indexCommitOid = await effectiveStashMgr.writeStashCommit({
+    indexCommitOid = await writeStashCommit({
+      fs,
+      gitdir: effectiveGitdir,
       message: `index on ${branch}`,
       tree: indexTree,
       parent: [headCommit],
+      repo,
     })
     stashCommitParents.push(indexCommitOid)
   }
@@ -356,22 +363,24 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
   // (This matches git's behavior when only staged changes exist)
   const stashCommitTree = worktreeTree || indexTree!
 
-  const stashCommit = await effectiveStashMgr.writeStashCommit({
+  const stashCommit = await writeStashCommit({
+    fs,
+    gitdir: effectiveGitdir,
     message: stashMsg,
     tree: stashCommitTree,
     parent: stashCommitParents,
+    repo,
   })
 
-  return { stashCommit, stashMsg, branch, stashMgr: effectiveStashMgr }
+  return { stashCommit, stashMsg, branch }
 }
 
 export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; message?: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<string> {
   // CRITICAL: Check for author FIRST - before any other operations
   // This ensures we throw MissingNameError before any other errors (NotFoundError, etc.)
   // This matches git's behavior where it checks for author before checking for changes
-  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
   try {
-    await stashMgr.getAuthor() // ensure there is an author
+    await getStashAuthor({ fs, gitdir, repo }) // ensure there is an author
   } catch (err) {
     // If author check fails, throw immediately (don't check for unmerged paths, don't read index, etc.)
     throw err
@@ -396,7 +405,7 @@ export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, re
     }
   }
   
-  const { stashCommit, stashMsg, branch, stashMgr: createdStashMgr } = await _createStashCommit({
+  const { stashCommit, stashMsg, branch } = await _createStashCommit({
     fs,
     dir,
     gitdir: effectiveGitdir,
@@ -406,12 +415,15 @@ export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, re
   })
 
   // next, write this commit into .git/refs/stash:
-  await createdStashMgr.writeStashRef(stashCommit)
+  await writeStashRef({ fs, gitdir: effectiveGitdir, stashCommit })
 
   // write the stash commit to the logs
-  await createdStashMgr.writeStashReflogEntry({
+  await writeStashReflogEntry({
+    fs,
+    gitdir: effectiveGitdir,
     stashCommit,
     message: stashMsg,
+    repo,
   })
 
   // Finally, reset worktree and index to HEAD
@@ -460,9 +472,8 @@ export async function _stashCreate({ fs, dir, gitdir, message = '', cache = {}, 
   // CRITICAL: Check for author FIRST - before any other operations
   // This ensures we throw MissingNameError before any other errors (NotFoundError, etc.)
   // This matches git's behavior where it checks for author before checking for changes
-  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
   try {
-    await stashMgr.getAuthor() // ensure there is an author
+    await getStashAuthor({ fs, gitdir, repo }) // ensure there is an author
   } catch (err) {
     // If author check fails, throw immediately (don't check for unmerged paths, don't read index, etc.)
     throw err
@@ -513,10 +524,8 @@ export async function _stashApply({ fs, dir, gitdir, refIdx = 0, cache = {}, rep
     }
   }
   
-  const stashMgr = new GitStashManager({ fs, dir, gitdir: effectiveGitdir, repo })
-
   // get the stash commit object
-  const stashCommit = await stashMgr.readStashCommit(refIdx)
+  const stashCommit = await readStashCommit({ fs, gitdir: effectiveGitdir, refIdx })
   const { parent: stashParents = null, tree: stashCommitTree } = stashCommit.commit
     ? stashCommit.commit
     : { parent: null, tree: null }
@@ -585,13 +594,12 @@ export async function _stashApply({ fs, dir, gitdir, refIdx = 0, cache = {}, rep
 }
 
 export async function _stashDrop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; refIdx?: number; cache?: Record<string, unknown>; repo?: Repository }): Promise<void> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
-  const stashCommit = await stashMgr.readStashCommit(refIdx)
+  const stashCommit = await readStashCommit({ fs, gitdir, refIdx })
   if (!stashCommit.commit) {
     return // no stash found
   }
   // remove stash ref first
-  const stashRefPath = stashMgr.refStashPath
+  const stashRefPath = getStashRefPath(gitdir)
   await acquireLock(stashRefPath, async () => {
     if (await fs.exists(stashRefPath)) {
       await fs.rm(stashRefPath)
@@ -599,7 +607,7 @@ export async function _stashDrop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo
   })
 
   // read from stash reflog and list the stash commits
-  const reflogEntries = await stashMgr.readStashReflogs({ parsed: false })
+  const reflogEntries = await readStashReflogs({ fs, gitdir, parsed: false })
   if (!reflogEntries.length) {
     return // no stash reflog entry
   }
@@ -607,17 +615,17 @@ export async function _stashDrop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo
   // remove the specified stash reflog entry from reflogEntries, then update the stash reflog
   reflogEntries.splice(refIdx, 1)
 
-  const stashReflogPath = stashMgr.refLogsStashPath
-  await acquireLock({ reflogEntries, stashReflogPath, stashMgr }, async () => {
+  const stashReflogPath = getStashReflogsPath(gitdir)
+  await acquireLock({ reflogEntries, stashReflogPath }, async () => {
     if (reflogEntries.length) {
       await fs.write(
         stashReflogPath,
-        reflogEntries.reverse().join('\n') + '\n',
+        (reflogEntries as string[]).reverse().join('\n') + '\n',
         'utf8'
       )
       const lastStashCommit =
-        reflogEntries[reflogEntries.length - 1].split(' ')[1]
-      await stashMgr.writeStashRef(lastStashCommit)
+        (reflogEntries as string[])[reflogEntries.length - 1].split(' ')[1]
+      await writeStashRef({ fs, gitdir, stashCommit: lastStashCommit })
     } else {
       // remove the stash reflog file if no entry left
       await fs.rm(stashReflogPath)
@@ -626,13 +634,11 @@ export async function _stashDrop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo
 }
 
 export async function _stashList({ fs, dir, gitdir, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<unknown[]> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
-  return stashMgr.readStashReflogs({ parsed: true })
+  return readStashReflogs({ fs, gitdir, parsed: true })
 }
 
 export async function _stashClear({ fs, dir, gitdir, cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<void> {
-  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
-  const stashRefPath = [stashMgr.refStashPath, stashMgr.refLogsStashPath]
+  const stashRefPath = [getStashRefPath(gitdir), getStashReflogsPath(gitdir)]
 
   await acquireLock(stashRefPath, async () => {
     await Promise.all(

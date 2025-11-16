@@ -152,8 +152,14 @@ export async function read({
   }
 
   // Fall back to iterating through all .idx files if MIDX doesn't exist or OID not found
-  let list = await fs.readdir(join(gitdir, 'objects/pack'))
-  list = (list as string[]).filter(x => x.endsWith('.idx'))
+  let list: string[] = []
+  try {
+    list = (await fs.readdir(join(gitdir, 'objects/pack'))) as string[]
+    list = list.filter(x => x.endsWith('.idx'))
+  } catch {
+    // Pack directory doesn't exist, no packed objects
+    return null
+  }
 
   for (const filename of list) {
     const indexFile = `${gitdir}/objects/pack/${filename}`
@@ -226,8 +232,14 @@ export async function findPackfile({
   }
 
   // Fall back to iterating through all .idx files
-  let list = await fs.readdir(join(gitdir, 'objects/pack'))
-  list = (list as string[]).filter(x => x.endsWith('.idx'))
+  let list: string[] = []
+  try {
+    list = (await fs.readdir(join(gitdir, 'objects/pack'))) as string[]
+    list = list.filter(x => x.endsWith('.idx'))
+  } catch {
+    // Pack directory doesn't exist, no packed objects
+    return null
+  }
 
   for (const filename of list) {
     const indexFile = `${gitdir}/objects/pack/${filename}`

@@ -4,7 +4,7 @@ import { MergeConflictError } from '../errors/MergeConflictError.ts'
 import { MergeNotSupportedError } from '../errors/MergeNotSupportedError.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { GitTree } from "../models/GitTree.ts"
-import { _writeObject as writeObject } from "../storage/writeObject.ts"
+import { writeObject } from "../git/objects/writeObject.ts"
 import { basename } from './basename.ts'
 import { join } from './join.ts'
 import { mergeFile } from './mergeFile.ts'

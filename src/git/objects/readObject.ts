@@ -5,6 +5,7 @@ import { read as readLoose } from './loose.ts'
 import { read as readPacked } from './pack.ts'
 import { shasum } from '../../core-utils/ShaHasher.ts'
 import { inflate } from '../../core-utils/Zlib.ts'
+import { normalizeFs } from '../../utils/normalizeFs.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 export type ReadResult = {
@@ -39,10 +40,13 @@ export async function readObject({
   oid: string
   format?: ObjectFormat
 }): Promise<ReadResult> {
+  // Normalize fs to ensure consistent behavior
+  const normalizedFs = normalizeFs(fs)
+  
   // Curry the current read method so that the packfile un-deltification
   // process can acquire external ref-deltas.
   const getExternalRefDelta = (oid: string): Promise<ReadResult> =>
-    readObject({ fs, cache, gitdir, oid, format: 'content' })
+    readObject({ fs: normalizedFs, cache, gitdir, oid, format: 'content' })
 
   let result: ReadResult | null = null
 
@@ -55,13 +59,13 @@ export async function readObject({
 
   // Look for it in the loose object directory.
   if (!result) {
-    result = await readLoose({ fs, gitdir, oid, format })
+    result = await readLoose({ fs: normalizedFs, gitdir, oid, format })
   }
 
   // Check to see if it's in a packfile.
   if (!result) {
     result = await readPacked({
-      fs,
+      fs: normalizedFs,
       cache,
       gitdir,
       oid,

@@ -3,7 +3,7 @@ import { InvalidFilepathError } from '../errors/InvalidFilepathError.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { ObjectTypeError } from '../errors/ObjectTypeError.ts'
 import { GitTree } from "../models/GitTree.ts"
-import { _readObject as readObject } from "../storage/readObject.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { resolveTree } from './resolveTree.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 

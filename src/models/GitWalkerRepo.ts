@@ -2,7 +2,7 @@ import { NotFoundError } from '../errors/NotFoundError.ts'
 import { ObjectTypeError } from '../errors/ObjectTypeError.ts'
 // GitRefManager import removed - using src/git/refs/ functions instead
 import { GitTree } from './GitTree.ts'
-import { _readObject as readObject } from "../storage/readObject.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { join } from "../utils/join.ts"
 import { normalizeMode } from "../utils/normalizeMode.ts"
 import { resolveTree } from "../utils/resolveTree.ts"

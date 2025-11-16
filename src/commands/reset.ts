@@ -1,7 +1,7 @@
 import { checkout } from './checkout.ts'
 import { writeRef } from './writeRef.ts'
 import { resolveRef } from './resolveRef.ts'
-import { currentBranch } from '../api/currentBranch.ts'
+import { _currentBranch } from './currentBranch.ts'
 import { normalizeFs } from '../utils/normalizeFs.ts'
 import { assertParameter } from '../utils/assertParameter.ts'
 import { join } from '../utils/join.ts'
@@ -84,7 +84,7 @@ export async function resetToCommit({
     if (!branchName) {
       // Try to get the current branch
       try {
-        const currentBranchName = await currentBranch({ fs, gitdir, fullname: true })
+        const currentBranchName = await _currentBranch({ fs, gitdir, fullname: true })
         if (currentBranchName && currentBranchName.startsWith('refs/heads/')) {
           branchName = currentBranchName.replace('refs/heads/', '')
         }

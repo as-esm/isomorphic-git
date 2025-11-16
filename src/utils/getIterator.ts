@@ -3,15 +3,20 @@ import { fromValue } from './fromValue.ts'
 export const getIterator = <T>(
   iterable: AsyncIterable<T> | Iterable<T> | { next: () => IteratorResult<T> } | T
 ): AsyncIterator<T> => {
-  if (iterable && typeof iterable === 'object' && Symbol.asyncIterator in iterable) {
+  // Check for async iterable
+  if (iterable != null && typeof iterable === 'object' && Symbol.asyncIterator in iterable) {
     return (iterable as AsyncIterable<T>)[Symbol.asyncIterator]()
   }
-  if (iterable && typeof iterable === 'object' && Symbol.iterator in iterable) {
+  // Check for sync iterable (including strings which are iterable)
+  // Check if Symbol.iterator exists as a function (works for objects and primitives like strings)
+  if (iterable != null && typeof (iterable as any)[Symbol.iterator] === 'function') {
     return (iterable as Iterable<T>)[Symbol.iterator]() as AsyncIterator<T>
   }
-  if (iterable && typeof iterable === 'object' && 'next' in iterable) {
+  // Check for iterator-like object with next method
+  if (iterable != null && typeof iterable === 'object' && 'next' in iterable) {
     return iterable as AsyncIterator<T>
   }
+  // Convert single value to iterator
   return fromValue(iterable)
 }
 

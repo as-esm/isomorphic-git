@@ -1,5 +1,5 @@
 import ignore from 'ignore'
-import { dirname, join } from '../GitPath.ts'
+import { join } from '../GitPath.ts'
 import type { FsClient } from "../../models/FileSystem.ts"
 
 type AttributeRule = {
@@ -90,11 +90,11 @@ export const loadAttributes = async ({
     // Use gitignore-style matching to determine if pattern matches
     for (const rule of rules) {
       // Test if the pattern matches this filepath
-      // Invert the logic: if pattern would ignore, it doesn't match
-      // If pattern wouldn't ignore, it matches
+      // In gitattributes, patterns work like gitignore: if pattern would match/ignore the file,
+      // then the attributes apply. So we check if the pattern would ignore the filepath.
       const testPattern = rule.pattern.startsWith('!') ? rule.pattern.slice(1) : rule.pattern
       const testIgn = ignore().add(testPattern)
-      const matches = !testIgn.test(p.filepath).ignored
+      const matches = testIgn.test(p.filepath).ignored
 
       if (matches) {
         // Merge attributes (later rules override earlier ones)

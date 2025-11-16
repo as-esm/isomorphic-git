@@ -1,6 +1,6 @@
 import { ParseError } from "../errors/ParseError.ts"
 import { GitPktLine } from "../models/GitPktLine.ts"
-import type { PushResult } from '../api/push.ts'
+import type { PushResult } from '../commands/push.ts'
 
 export async function parseReceivePackResponse(packfile: AsyncIterableIterator<Uint8Array>): Promise<PushResult> {
   const result: PushResult = {
