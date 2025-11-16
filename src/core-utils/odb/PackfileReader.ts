@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use read/loadIndex from '../../git/objects/pack.ts' instead
+ * This file is kept for backward compatibility and will be removed in a future version.
+ * 
+ * The new implementation provides the same functionality with better integration
+ * into the unified object database structure, including multi-pack-index support.
+ */
 import { GitPackIndex } from "../../models/GitPackIndex.ts"
 import { GitMultiPackIndex } from "../../models/GitMultiPackIndex.ts"
 import { join } from '../GitPath.ts'

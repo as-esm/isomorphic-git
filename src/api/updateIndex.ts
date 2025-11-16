@@ -1,7 +1,7 @@
 import { InvalidFilepathError } from "../errors/InvalidFilepathError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
-import { _writeObject } from "../storage/writeObject.ts"
+import { writeObject as writeObjectInternal } from "../git/objects/writeObject.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
@@ -148,7 +148,7 @@ export async function updateIndex({
         ? await fs.readlink(join(dir, filepath))
         : await fs.read(join(dir, filepath))
 
-      oid = await _writeObject({
+      oid = await writeObjectInternal({
         fs,
         gitdir,
         type: 'blob',

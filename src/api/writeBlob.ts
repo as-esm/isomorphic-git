@@ -1,5 +1,5 @@
 import { normalizeFs } from "../utils/normalizeFs.ts"
-import { _writeObject } from "../storage/writeObject.ts"
+import { writeObject as writeObjectInternal } from "../git/objects/writeObject.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
@@ -42,7 +42,7 @@ export async function writeBlob({
     assertParameter('gitdir', gitdir)
     assertParameter('blob', blob)
 
-    return await _writeObject({
+    return await writeObjectInternal({
       fs: normalizeFs(fs),
       gitdir,
       type: 'blob',

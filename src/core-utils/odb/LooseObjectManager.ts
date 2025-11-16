@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use read/write from '../../git/objects/loose.ts' instead
+ * This file is kept for backward compatibility and will be removed in a future version.
+ * 
+ * The new implementation provides the same functionality with better integration
+ * into the unified object database structure.
+ */
 import { InternalError } from "../../errors/InternalError.ts"
 import { toObjectPath } from '../GitPath.ts'
 import { deflate, inflate } from '../Zlib.ts'

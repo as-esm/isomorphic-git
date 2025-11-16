@@ -3,7 +3,7 @@ import { normalizeFs } from "../utils/normalizeFs.ts"
 import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { GitTree } from "../models/GitTree.ts"
-import { _readObject } from "../storage/readObject.ts"
+import { readObject as readObjectInternal } from "../git/objects/readObject.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { resolveFilepath } from "../utils/resolveFilepath.ts"
@@ -237,7 +237,7 @@ export async function readObject({
     }
     // GitObjectManager does not know how to parse content, so we tweak that parameter before passing it.
     const _format = format === 'parsed' ? 'content' : format
-    const result = await _readObject({
+    const result = await readObjectInternal({
       fs,
       cache,
       gitdir,

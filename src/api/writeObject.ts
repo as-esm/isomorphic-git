@@ -3,7 +3,7 @@ import { normalizeFs } from "../utils/normalizeFs.ts"
 import { GitAnnotatedTag } from "../models/GitAnnotatedTag.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { GitTree } from "../models/GitTree.ts"
-import { _writeObject } from "../storage/writeObject.ts"
+import { writeObject as writeObjectInternal } from "../git/objects/writeObject.ts"
 import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { CommitObject } from "../models/GitCommit.ts"
@@ -119,7 +119,7 @@ export async function writeObject({
       // GitObjectManager does not know how to serialize content, so we tweak that parameter before passing it.
       processedFormat = 'content'
     }
-    const resultOid = await _writeObject({
+    const resultOid = await writeObjectInternal({
       fs,
       gitdir,
       type: type!,
