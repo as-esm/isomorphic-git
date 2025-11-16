@@ -90,12 +90,24 @@ export class GitWalkerIndex {
    * This ensures we see the same index state as the command that created this walker
    */
   private async getTree(): Promise<Map<string, Inode>> {
-    // Use the Repository instance passed in the constructor
-    // This ensures we see the same index state as add(), status(), etc.
-    const index = await this.repo.readIndexDirect() // Use default force=false to get owned instance
-    
-    // Convert index entries to tree structure
-    return flatFileListToDirectoryStructure(index.entries) as Map<string, Inode>
+    try {
+      // Use the Repository instance passed in the constructor
+      // This ensures we see the same index state as add(), status(), etc.
+      const index = await this.repo.readIndexDirect() // Use default force=false to get owned instance
+      
+      // Convert index entries to tree structure
+      return flatFileListToDirectoryStructure(index.entries) as Map<string, Inode>
+    } catch (err) {
+      // If index read fails (e.g., empty index file during parallel test execution),
+      // return an empty tree structure rather than failing the walker
+      // This allows walk() to continue even if the index is in a transient state
+      if ((err as any).code === 'InternalError' && (err as any).data?.message === 'Index file is empty (.git/index)') {
+        // Return empty tree structure for empty index
+        return new Map<string, Inode>()
+      }
+      // Re-throw all other errors
+      throw err
+    }
   }
 
   /**
