@@ -1,6 +1,7 @@
 import ignore from 'ignore'
 import { join } from '../GitPath.ts'
 import { ConfigAccess } from "../../utils/configAccess.ts"
+import { normalizeFs } from "../../utils/normalizeFs.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
 
 /**
@@ -16,10 +17,11 @@ export const loadPatterns = async ({
   const sparseCheckoutFile = join(gitdir, 'info', 'sparse-checkout')
   try {
     const content = await fs.read(sparseCheckoutFile, 'utf8')
-    return (content as string)
+    const patterns = (content as string)
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0 && !line.startsWith('#'))
+    return patterns
   } catch (err) {
     if ((err as { code?: string }).code === 'NOENT') {
       return []
@@ -46,6 +48,18 @@ export const match = ({
   }
 
   if (coneMode) {
+    // Special case: `/*` or `*` pattern means everything is included at the root.
+    // In cone mode, `/*` is not a glob, it's a directive to include all root-level entries.
+    // Since our walk is recursive, simply returning true here effectively includes everything.
+    // Note: The pattern may be stored as `*` in the file (without leading slash), so check both.
+    // Also check normalized versions (with leading slash removed) to handle any normalization.
+    for (const pattern of patterns) {
+      const normalized = pattern.replace(/^\/+/, '')
+      if (pattern === '/*' || pattern === '*' || normalized === '*') {
+        return true
+      }
+    }
+    
     // Cone mode: patterns are directory prefixes
     // In Git v2.4+, cone mode supports negative patterns with ! prefix
     // - Patterns without ! are inclusion patterns
@@ -74,61 +88,80 @@ export const match = ({
     // Normalize filepath for comparison (remove leading slash if present)
     const normalizedPath = filepath.replace(/^\/+/, '')
     
-    // Check if file matches any inclusion pattern
-    let matchesInclusion = false
-    for (const pattern of inclusionPatterns) {
-      // Normalize pattern: remove leading slashes
-      let normalizedPattern = pattern.replace(/^\/+/, '') // Remove leading slashes
-      
-      // Special case: /* matches everything
-      if (normalizedPattern === '*' || normalizedPattern === '/*') {
-        matchesInclusion = true
-        break
-      }
-      
-      // Ensure it ends with / for directory matching (unless it's a wildcard pattern)
-      if (!normalizedPattern.endsWith('/') && !normalizedPattern.includes('*')) {
-        normalizedPattern += '/'
-      }
-      
-      // Match if filepath is exactly the directory or is within it
-      // In cone mode, we need exact prefix matching (e.g., "src/" matches "src/file.txt" but not "src-backup/file.txt")
-      const patternWithoutSlash = normalizedPattern.replace(/\/$/, '')
-      if (normalizedPath === patternWithoutSlash) {
-        // Exact match
-        matchesInclusion = true
-        break
-      } else if (normalizedPath.startsWith(normalizedPattern)) {
-        // Path starts with pattern (which ends with /), so it's within the directory
-        matchesInclusion = true
-        break
-      } else if (normalizedPath.startsWith(patternWithoutSlash + '/')) {
-        // Path starts with pattern + /, so it's within the directory
-        // This handles the case where pattern doesn't have trailing slash but path does
-        matchesInclusion = true
-        break
+    // FIX: Implement precise cone mode matching logic.
+    // A file matches a cone mode pattern if:
+    // 1. It is the directory itself (e.g., filepath 'src', pattern 'src/')
+    // 2. It is a descendant of the directory (e.g., filepath 'src/file.js', pattern 'src/')
+    // This requires the path to start with the pattern, ensuring a directory boundary.
+    
+    let isIncluded = false
+    if (inclusionPatterns.length === 0) {
+      // If only negative patterns, nothing is included by default
+      isIncluded = false
+    } else {
+      for (const pattern of inclusionPatterns) {
+        // Normalize pattern: remove leading slashes
+        let normalizedPattern = pattern.replace(/^\/+/, '')
+        
+        // Special case: /* matches everything
+        if (normalizedPattern === '*' || normalizedPattern === '/*') {
+          isIncluded = true
+          break
+        }
+        
+        // Case 1: The path is the directory itself (e.g., filepath 'src', pattern 'src/')
+        // Remove trailing slash from pattern for exact match
+        if (normalizedPath === normalizedPattern.replace(/\/$/, '')) {
+          isIncluded = true
+          break
+        }
+        
+        // Case 2: The path is a descendant (e.g., filepath 'src/file.js', pattern 'src/')
+        // This requires the path to start with the pattern, ensuring a directory boundary.
+        // The pattern must end with / to create a proper boundary check.
+        // This correctly excludes 'src-backup/file.js' from matching 'src/'
+        // because 'src-backup/file.js' does NOT start with 'src/'
+        const normalizedPatternWithSlash = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/'
+        if (normalizedPath.startsWith(normalizedPatternWithSlash)) {
+          isIncluded = true
+          break
+        }
+        
+        // Case 3: The path is an ancestor directory (e.g., filepath 'src', pattern 'src/components/')
+        // This allows the walker to enter directories leading to sparse directories.
+        // We check if pattern starts with filepath, ensuring a proper directory boundary.
+        // Normalize filepath with trailing slash for comparison
+        const normalizedFilepathWithSlash = normalizedPath.endsWith('/') ? normalizedPath : normalizedPath + '/'
+        if (normalizedPatternWithSlash.startsWith(normalizedFilepathWithSlash) && normalizedPatternWithSlash !== normalizedFilepathWithSlash) {
+          // Pattern continues after the filepath, so filepath is an ancestor
+          // The remaining part should start with a directory name (not a /)
+          const remaining = normalizedPatternWithSlash.slice(normalizedFilepathWithSlash.length)
+          if (remaining.length > 0 && remaining[0] !== '/') {
+            isIncluded = true
+            break
+          }
+        }
       }
     }
     
     // If it doesn't match any inclusion, exclude it
-    if (!matchesInclusion) {
+    if (!isIncluded) {
       return false
     }
     
     // Check if file matches any exclusion pattern (exclusions override inclusions)
     for (const pattern of exclusionPatterns) {
       // Normalize pattern: remove leading slashes
-      let normalizedPattern = pattern.replace(/^\/+/, '') // Remove leading slashes
+      let normalizedPattern = pattern.replace(/^\/+/, '')
       
-      // Ensure it ends with / for directory matching (unless it's a wildcard pattern)
-      if (!normalizedPattern.endsWith('/') && !normalizedPattern.includes('*')) {
-        normalizedPattern += '/'
+      // Case 1: The path is the excluded directory itself
+      if (normalizedPath === normalizedPattern.replace(/\/$/, '')) {
+        return false
       }
       
-      // Match if filepath is exactly the directory or is within it
-      if (normalizedPath === normalizedPattern.replace(/\/$/, '') || 
-          normalizedPath.startsWith(normalizedPattern)) {
-        // Matches exclusion pattern, so exclude it
+      // Case 2: The path is a descendant of the excluded directory
+      const normalizedPatternWithSlash = normalizedPattern.endsWith('/') ? normalizedPattern : normalizedPattern + '/'
+      if (normalizedPath.startsWith(normalizedPatternWithSlash)) {
         return false
       }
     }
@@ -159,6 +192,15 @@ export const set = async ({
   coneMode?: boolean
 }): Promise<void> => {
   const sparseCheckoutFile = join(gitdir, 'info', 'sparse-checkout')
+  
+  // CRITICAL: Ensure the info directory exists before writing the file
+  const infoDir = join(gitdir, 'info')
+  const normalizedFs = normalizeFs(fs) // Normalize to ensure mkdir/write methods are available
+  try {
+    await normalizedFs.mkdir(infoDir, { recursive: true })
+  } catch {
+    // Directory might already exist, that's okay
+  }
 
   // Format patterns according to Git v2.4+ format
   // In cone mode, patterns are written as-is (directory paths)
@@ -197,7 +239,7 @@ export const set = async ({
     content += patterns.join('\n') + '\n'
   }
 
-  await fs.write(sparseCheckoutFile, content, 'utf8')
+  await normalizedFs.write(sparseCheckoutFile, content, 'utf8')
 }
 
 /**

@@ -166,22 +166,19 @@ export async function mergeTree({
         }
 
         // Base exists and ours matches base, so include their changes
-        return theirs
-          ? {
-              mode: (await theirs.mode()).toString(8).padStart(6, '0'),
-              path,
-              oid: theirOid!,
-              type: (await theirs.type()) as ObjectType,
-            }
-          : undefined
-      }
-      
-      if (ourChange && !theirChange) {
-        // We changed, they didn't - keep our changes
-        // Ours has it (true), theirs deleted it (false)
-        // Native git behavior: always keep ours when we have it and they deleted it
-        // This is NOT a conflict - we simply keep the file
-        if (ours) {
+        // But if they deleted it (theirs is null) and we kept it unchanged (ours exists),
+        // we should keep our version (the file), not delete it
+        // This matches native git behavior: deleting a file that wasn't modified in the other branch
+        // results in keeping the file
+        if (theirs) {
+          return {
+            mode: (await theirs.mode()).toString(8).padStart(6, '0'),
+            path,
+            oid: theirOid!,
+            type: (await theirs.type()) as ObjectType,
+          }
+        } else if (ours) {
+          // They deleted it, but we kept it unchanged - keep our version
           return {
             mode: (await ours.mode()).toString(8).padStart(6, '0'),
             path,
@@ -189,6 +186,34 @@ export async function mergeTree({
             type: (await ours.type()) as ObjectType,
           }
         }
+        // They deleted it and we also don't have it - file is deleted
+        return undefined
+      }
+      
+      if (ourChange && !theirChange) {
+        // We changed, they didn't - keep our changes
+        // But check: if we deleted it (ours is null) and they kept it unchanged (theirs exists),
+        // we should keep their version (the file), not delete it
+        // This matches native git behavior: deleting a file that wasn't modified in the other branch
+        // results in keeping the file
+        if (ours) {
+          // We modified/added it - keep our version
+          return {
+            mode: (await ours.mode()).toString(8).padStart(6, '0'),
+            path,
+            oid: ourOid!,
+            type: (await ours.type()) as ObjectType,
+          }
+        } else if (theirs) {
+          // We deleted it, but they kept it unchanged - keep their version
+          return {
+            mode: (await theirs.mode()).toString(8).padStart(6, '0'),
+            path,
+            oid: theirOid!,
+            type: (await theirs.type()) as ObjectType,
+          }
+        }
+        // We deleted it and they also don't have it - file is deleted
         return undefined
       }
       
@@ -346,13 +371,8 @@ export async function mergeTree({
           // TODO: Merge conflicts involving additions
           throw new MergeNotSupportedError()
         }
-      }
-    },
-    /**
-     * @param {TreeEntry} [parent]
-     * @param {Array<TreeEntry>} children
-     */
-    reduce: async (parent: TreeEntry | undefined, children: TreeEntry[]): Promise<TreeEntry | undefined> => {
+      },
+    reduce: async function (parent: TreeEntry | undefined, children: TreeEntry[]): Promise<TreeEntry | undefined> {
       // If we have conflicts and abortOnConflict is true, we still need to build the tree structure
       // to detect all conflicts, but we can skip writing objects to save time
       // The key is that we still need to return a valid tree structure so the walk completes
@@ -362,6 +382,32 @@ export async function mergeTree({
       // For now, always build the tree structure to ensure all conflicts are detected
       
       const entries = children.filter(Boolean) // remove undefineds
+
+      // CRITICAL: Handle root case (parent is undefined or parent.path === '.')
+      // For the root, we need to create a tree entry if we have any children
+      if (!parent || parent.path === '.') {
+        if (entries.length > 0) {
+          // Create root tree from entries
+          const tree = new GitTree(entries)
+          const object = tree.toObject()
+          const oid = await writeObject({
+            fs,
+            gitdir,
+            type: 'tree',
+            object,
+            dryRun,
+          })
+          // Return a root tree entry
+          return {
+            mode: '040000',
+            path: '.',
+            oid,
+            type: 'tree',
+          }
+        }
+        // Empty root - return undefined (will be handled as empty tree later)
+        return undefined
+      }
 
       // if the parent was deleted, the children have to go
       if (!parent) return undefined
@@ -376,10 +422,7 @@ export async function mergeTree({
       )
         return undefined
 
-      if (
-        entries.length > 0 ||
-        (parent.path === '.' && entries.length === 0)
-      ) {
+      if (entries.length > 0) {
         const tree = new GitTree(entries)
         const object = tree.toObject()
         const oid = await writeObject({
@@ -440,10 +483,7 @@ export async function mergeTree({
       // Only if we have a valid tree OID
       if (results && typeof results === 'object' && 'oid' in results && results.oid) {
         await _walk({
-          fs,
-          cache,
-          dir,
-          gitdir,
+          repo, // CRITICAL: Pass repo to _walk, not fs/cache/dir/gitdir
           trees: [TREE({ ref: results.oid as string })],
           map: async function (filepath: string, [entry]: (WalkerEntry | null)[]): Promise<boolean> {
             if (!entry) return false
@@ -469,7 +509,8 @@ export async function mergeTree({
         const fullPath = `${dir}/${filepath}`
         const parentDir = dirname(fullPath)
         try {
-          await normalizedFs.mkdir(parentDir, { recursive: true })
+          // FileSystem.mkdir already implements recursive directory creation
+          await normalizedFs.mkdir(parentDir)
         } catch {
           // Directory might already exist, ignore
         }
@@ -496,9 +537,22 @@ export async function mergeTree({
   }
 
   // No conflicts - return the merged tree OID
-  // But only if we have valid results from the walk
+  // The reduce function returns a TreeEntry (with oid) or undefined
+  // If results is a TreeEntry, extract the oid
+  // If results is undefined, it means the tree is empty (all files deleted)
+  if (results === undefined) {
+    // Empty tree - return the canonical empty tree OID
+    return '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+  }
+  
   if (results && typeof results === 'object' && 'oid' in results) {
-    return results.oid as string
+    const oid = results.oid as string
+    // If oid is undefined, it means the tree has no entries (empty tree)
+    // This can happen when the reduce function didn't write a tree because entries.length === 0
+    if (!oid) {
+      return '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+    }
+    return oid
   }
   
   // If we get here and there are no conflicts, but also no results,

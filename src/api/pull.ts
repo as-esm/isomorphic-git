@@ -5,6 +5,7 @@ import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
 import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
+import { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
@@ -123,12 +124,14 @@ export async function pull({
 
     const fs = normalizeFs(_fs)
 
-    const author = await normalizeAuthorObject({ fs, gitdir, author: _author })
+    // CRITICAL: Use Repository to ensure state consistency
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+
+    const author = await normalizeAuthorObject({ repo, author: _author })
     if (!author) throw new MissingNameError('author')
 
     const committer = await normalizeCommitterObject({
-      fs,
-      gitdir,
+      repo,
       author,
       committer: _committer,
     })

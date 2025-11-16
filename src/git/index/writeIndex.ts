@@ -12,6 +12,7 @@
 import { GitIndex } from './GitIndex.ts'
 import { normalizeFs } from '../../utils/normalizeFs.ts'
 import { join } from '../../core-utils/GitPath.ts'
+import { normalize } from '../../core-utils/GitPath.ts'
 import type { FsClient } from '../../models/FileSystem.ts'
 
 export async function writeIndex({
@@ -33,5 +34,15 @@ export async function writeIndex({
   if (normalizedFs.sync) {
     await normalizedFs.sync(indexPath)
   }
+  
+  // Record the mutation in StateMutationStream
+  const { getStateMutationStream } = await import('../../core-utils/StateMutationStream.ts')
+  const mutationStream = getStateMutationStream()
+  const normalizedGitdir = normalize(gitdir)
+  mutationStream.record({
+    type: 'index-write',
+    gitdir: normalizedGitdir,
+    data: { entryCount: index.entriesMap.size },
+  })
 }
 

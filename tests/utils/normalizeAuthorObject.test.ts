@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { setConfig } from 'isomorphic-git'
 import { normalizeAuthorObject } from '../../src/utils/normalizeAuthorObject.ts'
 import { makeFixture } from '../helpers/fixture.ts'
+import { Repository } from '../../src/core-utils/Repository.ts'
 
 describe('normalizeAuthorObject', () => {
   it('return author if all properties are populated', async () => {
@@ -19,9 +20,11 @@ describe('normalizeAuthorObject', () => {
     await setConfig({
       fs,
       gitdir,
-      path: 'user.name',
+      path: 'user.email',
       value: `user-config@example.com`,
     })
+
+    const repo = await Repository.open({ fs, gitdir, cache: {}, autoDetectConfig: true })
 
     // Test
     const author = {
@@ -31,7 +34,7 @@ describe('normalizeAuthorObject', () => {
       timezoneOffset: -120,
     }
 
-    assert.deepStrictEqual(await normalizeAuthorObject({ fs, gitdir, author }), author)
+    assert.deepStrictEqual(await normalizeAuthorObject({ repo, author }), author)
   })
 
   it('return commit author when no author was provided', async () => {
@@ -52,6 +55,8 @@ describe('normalizeAuthorObject', () => {
       value: `user-config@example.com`,
     })
 
+    const repo = await Repository.open({ fs, gitdir, cache: {}, autoDetectConfig: true })
+
     // Test
     const commit = {
       message: 'commit message',
@@ -71,7 +76,7 @@ describe('normalizeAuthorObject', () => {
       },
     }
 
-    assert.deepStrictEqual(await normalizeAuthorObject({ fs, gitdir, commit }), commit.author)
+    assert.deepStrictEqual(await normalizeAuthorObject({ repo, commit }), commit.author)
   })
 
   it('return config values and new timestamp if no author or commit was provided', async () => {
@@ -92,8 +97,10 @@ describe('normalizeAuthorObject', () => {
       value: `user-config@example.com`,
     })
 
+    const repo = await Repository.open({ fs, gitdir, cache: {}, autoDetectConfig: true })
+
     // Test
-    const author = await normalizeAuthorObject({ fs, gitdir })
+    const author = await normalizeAuthorObject({ repo })
     assert.strictEqual(author.name, 'user-config')
     assert.strictEqual(author.email, 'user-config@example.com')
     assert.strictEqual(typeof author.timestamp, 'number')
@@ -104,8 +111,11 @@ describe('normalizeAuthorObject', () => {
     // Setup
     const { fs, gitdir } = await makeFixture('test-normalizeAuthorObject')
 
+    // Disable auto-detection of global/system config to ensure no config values are found
+    const repo = await Repository.open({ fs, gitdir, cache: {}, autoDetectConfig: false })
+
     // Test
-    assert.strictEqual(await normalizeAuthorObject({ fs, gitdir }), undefined)
+    assert.strictEqual(await normalizeAuthorObject({ repo }), undefined)
   })
 })
 

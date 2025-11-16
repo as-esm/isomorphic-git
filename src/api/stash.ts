@@ -94,6 +94,7 @@ export async function stash({
   message = '',
   refIdx = 0,
   cache = {},
+  autoDetectConfig = true,
 }: {
   fs: FsClient
   dir: string
@@ -102,6 +103,7 @@ export async function stash({
   message?: string
   refIdx?: number
   cache?: Record<string, unknown>
+  autoDetectConfig?: boolean
 }): Promise<string | void> {
   assertParameter('fs', fs)
   assertParameter('dir', dir)
@@ -121,25 +123,23 @@ export async function stash({
   const opsNeedRefIdx: StashOp[] = ['apply', 'drop', 'pop']
 
   try {
-    // Use Repository to ensure consistent context and error handling
-    // IMPORTANT: Use the provided cache directly to ensure add() and stash() share the same cache
-    // Don't overwrite cache with repo.cache - Repository.open uses the provided cache if given
-    // CRITICAL: Don't overwrite gitdir - use the provided gitdir to ensure we read config from the correct location
-    // Repository.open() might find a different gitdir if dir is not the exact working directory
+    // CRITICAL: Use Repository.open() to ensure state consistency
+    // This ensures that setConfig() and stash() use the same Repository instance and config service
+    // Repository.open() will use the provided cache and gitdir, ensuring consistency with add()
     let repo: Repository | undefined
     try {
-      // Use the provided gitdir if available, otherwise let Repository.open() find it
-      if (gitdir) {
-        // Create Repository with explicit gitdir to avoid _findRoot() finding wrong path
-        repo = new (await import('../core-utils/Repository.ts')).Repository(fs, dir, gitdir, cache, undefined, undefined)
-      } else {
-        repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+      repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig })
+      try {
         gitdir = await repo.getGitdir()
+      } catch {
+        // If getGitdir fails, use provided gitdir
+        // This can happen if the gitdir is invalid, but we'll let _createStashCommit handle it
       }
-      // Don't overwrite cache - Repository uses the provided cache, so repo.cache === cache
+      // Repository.open uses the provided cache if given, so repo.cache === cache
       // This ensures add() and stash() use the same cache instance
     } catch {
       // If Repository.open fails, continue with provided gitdir
+      // repo will be undefined, and the stash functions will handle it
     }
 
     const _fs = normalizeFs(fs)

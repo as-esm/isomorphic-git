@@ -13,12 +13,15 @@ import http from '../../src/http/node/index.ts'
 import { makeFixture } from '../helpers/fixture.ts'
 import { join } from '../../src/utils/join.ts'
 import { ConfigAccess } from '../../src/utils/configAccess.ts'
+import { Repository } from '../../src/core-utils/Repository.ts'
 
 // Skip HTTP tests if running in CI without network access
 const SKIP_HTTP_TESTS = process.env.SKIP_HTTP_TESTS === 'true'
 
 test('clone', async (t) => {
   await t.test('clone with noCheckout', async () => {
+    // Clear Repository cache to ensure clean state
+    Repository.clearInstanceCache()
     if (SKIP_HTTP_TESTS) {
       return // Skip test if network access is not available
     }
@@ -45,6 +48,7 @@ test('clone', async (t) => {
   })
 
   await t.test('clone a tag', async () => {
+    Repository.clearInstanceCache()
     if (SKIP_HTTP_TESTS) {
       return
     }
@@ -70,6 +74,7 @@ test('clone', async (t) => {
   })
 
   await t.test('clone from GitLab repository', async () => {
+    Repository.clearInstanceCache()
     if (SKIP_HTTP_TESTS) {
       return
     }
@@ -112,6 +117,7 @@ test('clone', async (t) => {
   })
 
   await t.test('clone with noTags', async () => {
+    Repository.clearInstanceCache()
     if (SKIP_HTTP_TESTS) {
       return
     }
@@ -144,6 +150,7 @@ test('clone', async (t) => {
   })
 
   await t.test('clone and verify working directory', async () => {
+    Repository.clearInstanceCache()
     if (SKIP_HTTP_TESTS) {
       return
     }
@@ -182,6 +189,7 @@ test('clone', async (t) => {
   })
 
   await t.test('clone from local git repository', async () => {
+    Repository.clearInstanceCache()
     // Create a source repository using native git CLI
     const { fs: sourceFs, dir: sourceDir } = await makeFixture('test-clone-local-source')
     
@@ -278,6 +286,7 @@ test('clone', async (t) => {
   })
 
   await t.test('clone from GitLab using protocol v2', async () => {
+    Repository.clearInstanceCache()
     if (SKIP_HTTP_TESTS) {
       return
     }

@@ -1,6 +1,4 @@
-import { getConfigValue } from './configAccess.ts'
 import { assignDefined } from './assignDefined.ts'
-import type { FsClient } from "../models/FileSystem.ts"
 import type { Author, CommitObject } from "../models/GitCommit.ts"
 import type { Repository } from "../core-utils/Repository.ts"
 
@@ -12,55 +10,48 @@ import type { Repository } from "../core-utils/Repository.ts"
  * -> (4) Config and current date/time
  *
  * @param {Object} args
- * @param {FsClient} args.fs - a file system implementation
- * @param {string} [args.gitdir] - The [git directory](dir-vs-gitdir.md) path
+ * @param {Repository} args.repo - Repository instance (required for config access)
  * @param {Object} [args.author] - The author object.
  * @param {Object} [args.committer] - The committer object.
  * @param {CommitObject} [args.commit] - A commit object.
- * @param {Repository} [args.repo] - Repository instance (optional, used for config access)
  *
  * @returns {Promise<void | {name: string, email: string, timestamp: number, timezoneOffset: number }>}
  */
 export async function normalizeCommitterObject({
-  fs,
-  gitdir,
+  repo,
   author,
   committer,
   commit,
-  repo,
 }: {
-  fs: FsClient
-  gitdir?: string
+  repo: Repository
   author?: Partial<Author>
   committer?: Partial<Author>
   commit?: CommitObject
-  repo?: Repository
 }): Promise<Author | undefined> {
-  const timestamp = Math.floor(Date.now() / 1000)
-
-  // Try to use repo's config service if available
-  let nameConfig: string | undefined
-  let emailConfig: string | undefined
-  if (repo) {
-    try {
-      const config = await repo.getConfig()
-      nameConfig = (await config.get('user.name')) as string | undefined
-      emailConfig = ((await config.get('user.email')) as string | undefined) || ''
-    } catch {
-      // Fall back to direct config access if repo config fails
-      nameConfig = (await getConfigValue(fs, gitdir || '', 'user.name')) as string | undefined
-      emailConfig = ((await getConfigValue(fs, gitdir || '', 'user.email')) as string | undefined) || ''
-    }
-  } else {
-    nameConfig = (await getConfigValue(fs, gitdir || '', 'user.name')) as string | undefined
-    emailConfig = ((await getConfigValue(fs, gitdir || '', 'user.email')) as string | undefined) || '' // committer.email is allowed to be empty string
-  }
+  // CRITICAL: Use the Repository's config service to ensure state consistency
+  // This ensures that setConfig() and getCommitter() use the same UnifiedConfigService instance
+  const config = await repo.getConfig()
+  const nameConfig = (await config.get('user.name')) as string | undefined
+  const emailConfig = ((await config.get('user.email')) as string | undefined) || '' // committer.email is allowed to be empty string
+  
+  // CRITICAL: Only use current timestamp if no timestamp is provided in committer, author, or commit
+  // This ensures tests that provide specific timestamps get those exact timestamps
+  // Priority: committer.timestamp > author.timestamp > commit.committer.timestamp > current time
+  const providedTimestamp = committer?.timestamp ?? author?.timestamp ?? commit?.committer?.timestamp
+  const timestamp = providedTimestamp ?? Math.floor(Date.now() / 1000)
+  
+  // CRITICAL: Only use current timezoneOffset if no timezoneOffset is provided
+  // Priority: committer.timezoneOffset > author.timezoneOffset > commit.committer.timezoneOffset > current timezone
+  const providedTimezoneOffset = committer?.timezoneOffset ?? author?.timezoneOffset ?? commit?.committer?.timezoneOffset
+  const timezoneOffset = providedTimezoneOffset !== undefined 
+    ? providedTimezoneOffset 
+    : new Date(timestamp * 1000).getTimezoneOffset()
   
   const defaultCommitter: Partial<Author> = {
     name: nameConfig,
     email: emailConfig,
     timestamp,
-    timezoneOffset: new Date(timestamp * 1000).getTimezoneOffset(),
+    timezoneOffset,
   }
 
   const normalizedCommitter = assignDefined(

@@ -60,7 +60,7 @@ describe('abortMerge', () => {
     assert.notStrictEqual(error, null)
     assert.ok(error instanceof Errors.MergeConflictError || (error as any).code === Errors.MergeConflictError.code)
 
-    const repo = await Repository.open({ fs, dir, cache: {}, autoDetectConfig: true })
+    const repo = await Repository.open({ fs, dir, gitdir, cache: {}, autoDetectConfig: true })
     const index = await repo.readIndexDirect()
     assert.strictEqual(index.unmergedPaths.length, 2)
     assert.strictEqual(index.entriesFlat.length, 7)

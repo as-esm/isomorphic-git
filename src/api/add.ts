@@ -51,12 +51,14 @@ export async function add({
     assertParameter('gitdir', gitdir)
     assertParameter('filepath', filepath)
 
-    const fs = normalizeFs(_fs)
-    
     // CRITICAL: Pass gitdir to Repository.open() to ensure we get the same Repository instance
     // as other operations like status() and stash(). This ensures index state consistency.
     const { Repository } = await import('../core-utils/Repository.ts')
     const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+    
+    // CRITICAL: Use repo.fs (which is already normalized) for all file operations
+    // This ensures we're using the exact same fs instance that the Repository uses
+    const fs = repo.fs
     const worktree = repo.getWorktree()
     
     if (!worktree) {
@@ -66,9 +68,9 @@ export async function add({
     const effectiveGitdir = await worktree.getGitdir()
     
     // Read config
-    const { ConfigAccess } = await import('../utils/configAccess.ts')
-    const configAccess = new ConfigAccess(_fs, effectiveGitdir)
-    const autocrlf = ((await configAccess.getConfigValue('core.autocrlf')) as string) || 'false'
+    // CRITICAL: Use repo.getConfig() instead of ConfigAccess for consistency
+    const configService = await repo.getConfig()
+    const autocrlf = ((await configService.get('core.autocrlf')) as string) || 'false'
     
     // Read index directly from .git/index file (single source of truth)
     const index = await repo.readIndexDirect()

@@ -57,12 +57,24 @@ export async function readRef({
   
   if (depth <= 0) {
     // Max depth reached - return the ref as-is (might be a symbolic ref)
-    return ref.startsWith('ref: ') ? ref : null
+    // If it's a ref pointer, return just the target without 'ref: ' prefix
+    if (ref.startsWith('ref: ')) {
+      return ref.slice('ref: '.length).trim()
+    }
+    // If it's already a ref path (not an OID), return it
+    if (!(/^[0-9a-f]{40}$/.test(ref))) {
+      return ref
+    }
+    return null
   }
 
   // Is it a ref pointer?
   if (ref.startsWith('ref: ')) {
-    const targetRef = ref.slice('ref: '.length)
+    const targetRef = ref.slice('ref: '.length).trim()
+    // If depth is 1, return the target ref name instead of resolving further
+    if (depth === 1) {
+      return targetRef
+    }
     return readRef({ fs, gitdir, ref: targetRef, depth: depth - 1 })
   }
 
@@ -101,6 +113,11 @@ export async function readRef({
           }
           // Check if the content is a ref pointer (starts with 'ref: ')
           if (contentStr.startsWith('ref: ')) {
+            const targetRef = contentStr.slice('ref: '.length).trim()
+            // If depth is 1, return the target ref name instead of resolving further
+            if (depth === 1) {
+              return targetRef
+            }
             // Recursively resolve the symbolic ref
             return readRef({ fs, gitdir, ref: contentStr, depth: depth - 1 })
           }
@@ -114,6 +131,13 @@ export async function readRef({
       // Try packed refs
       const packedSha = packedMap.get(refPath)
       if (packedSha) {
+        // If it's a symbolic ref and depth is 1, return the target ref name
+        if (packedSha.startsWith('ref: ')) {
+          const targetRef = packedSha.slice('ref: '.length).trim()
+          if (depth === 1) {
+            return targetRef
+          }
+        }
         // Recursively resolve - this handles both SHA and ref pointers
         return readRef({ fs, gitdir, ref: packedSha, depth: depth - 1 })
       }
@@ -150,6 +174,62 @@ export async function resolveRef({
     throw new NotFoundError(ref)
   }
   return oid
+}
+
+/**
+ * Reads a symbolic ref and returns its target without resolving to OID
+ * Returns null if the ref is not symbolic or doesn't exist
+ */
+export async function readSymbolicRef({
+  fs,
+  gitdir,
+  ref,
+}: {
+  fs: FsClient
+  gitdir: string
+  ref: string
+}): Promise<string | null> {
+  const normalizedFs = normalizeFs(fs)
+  
+  // Try reading the ref file directly
+  try {
+    let content = await normalizedFs.read(join(gitdir, ref), 'utf8')
+    if (content === null || content === undefined) {
+      content = await normalizedFs.read(join(gitdir, ref))
+    }
+    if (content !== null && content !== undefined) {
+      let contentStr: string
+      if (typeof content === 'string') {
+        contentStr = content.trim()
+      } else if (Buffer.isBuffer(content)) {
+        contentStr = content.toString('utf8').trim()
+      } else if (content instanceof Uint8Array) {
+        contentStr = Buffer.from(content).toString('utf8').trim()
+      } else {
+        return null
+      }
+      
+      // Check if it's a symbolic ref
+      if (contentStr.startsWith('ref: ')) {
+        return contentStr.slice('ref: '.length).trim()
+      }
+    }
+  } catch {
+    // File doesn't exist
+  }
+  
+  // Try packed refs
+  const packedMap = await readPackedRefs({ fs, gitdir })
+  const allpaths = refpaths(ref).filter(p => !GIT_FILES.includes(p))
+  
+  for (const refPath of allpaths) {
+    const packedValue = packedMap.get(refPath)
+    if (packedValue && packedValue.startsWith('ref: ')) {
+      return packedValue.slice('ref: '.length).trim()
+    }
+  }
+  
+  return null
 }
 
 /**

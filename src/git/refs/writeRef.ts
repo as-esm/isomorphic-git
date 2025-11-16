@@ -8,7 +8,7 @@
  * @param value - OID to write (for direct refs) or target ref (for symbolic refs)
  * @param symbolic - Whether this is a symbolic ref (default: false)
  */
-import { join } from '../../core-utils/GitPath.ts'
+import { join, normalize } from '../../core-utils/GitPath.ts'
 import { dirname } from '../../utils/dirname.ts'
 import { normalizeFs } from '../../utils/normalizeFs.ts'
 import AsyncLock from 'async-lock'
@@ -40,11 +40,35 @@ export async function writeRef({
   
   await acquireLock(ref, async () => {
     // Ensure parent directory exists
+    // FileSystem.mkdir already implements recursive directory creation
     const parentDir = dirname(path)
-    await normalizedFs.mkdir(parentDir, { recursive: true })
+    await normalizedFs.mkdir(parentDir)
     
-    // Write the ref file with the OID
-    await normalizedFs.write(path, `${value.trim()}\n`, 'utf8')
+    // CRITICAL: Trim and validate OID to prevent concatenated OIDs
+    // The value should be exactly 40 hex characters followed by a newline
+    const trimmedValue = value.trim()
+    
+    // Strict validation: must be exactly 40 hex characters
+    if (!/^[0-9a-f]{40}$/.test(trimmedValue)) {
+      const { InvalidOidError } = await import('../../errors/InvalidOidError.ts')
+      throw new InvalidOidError(
+        `Invalid value for ref "${ref}": Not a 40-char OID. Got "${trimmedValue}" (length: ${trimmedValue.length})`
+      )
+    }
+    
+    // Write the ref file with ONLY the OID followed by a newline
+    // This ensures we never write concatenated OIDs
+    await normalizedFs.write(path, `${trimmedValue}\n`, 'utf8')
+    
+    // Record the mutation in StateMutationStream
+    const { getStateMutationStream } = await import('../../core-utils/StateMutationStream.ts')
+    const mutationStream = getStateMutationStream()
+    const normalizedGitdir = normalize(gitdir)
+    mutationStream.record({
+      type: 'ref-write',
+      gitdir: normalizedGitdir,
+      data: { ref, value: trimmedValue },
+    })
   })
 }
 
@@ -67,11 +91,23 @@ export async function writeSymbolicRef({
   
   await acquireLock(ref, async () => {
     // Ensure parent directory exists
+    // FileSystem.mkdir already implements recursive directory creation
     const parentDir = dirname(path)
-    await normalizedFs.mkdir(parentDir, { recursive: true })
+    await normalizedFs.mkdir(parentDir)
     
     // Write the symbolic ref with 'ref: ' prefix
-    await normalizedFs.write(path, 'ref: ' + `${value.trim()}\n`, 'utf8')
+    const trimmedValue = value.trim()
+    await normalizedFs.write(path, 'ref: ' + `${trimmedValue}\n`, 'utf8')
+    
+    // Record the mutation in StateMutationStream
+    const { getStateMutationStream } = await import('../../core-utils/StateMutationStream.ts')
+    const mutationStream = getStateMutationStream()
+    const normalizedGitdir = normalize(gitdir)
+    mutationStream.record({
+      type: 'ref-write',
+      gitdir: normalizedGitdir,
+      data: { ref, value: trimmedValue, symbolic: true },
+    })
   })
 }
 

@@ -80,7 +80,8 @@ export type PostCheckoutCallback = (args: PostCheckoutParams) => void | Promise<
  * console.log('done')
  */
 export async function checkout({
-  fs,
+  repo: _repo,
+  fs: _fs,
   onProgress,
   onPostCheckout,
   dir,
@@ -97,10 +98,11 @@ export async function checkout({
   nonBlocking = false,
   batchSize = 100,
 }: {
-  fs: FsClient
+  repo?: import('../core-utils/Repository.ts').Repository
+  fs?: FsClient
   onProgress?: ProgressCallback
   onPostCheckout?: PostCheckoutCallback
-  dir: string
+  dir?: string
   gitdir?: string
   remote?: string
   ref?: string
@@ -115,23 +117,60 @@ export async function checkout({
   batchSize?: number
 }): Promise<void> {
   try {
-    assertParameter('fs', fs)
-    assertParameter('dir', dir)
-    assertParameter('gitdir', gitdir)
+    // CRITICAL: If repo is provided, use it directly to ensure fs instance consistency
+    // Otherwise, create a new Repository instance (backward compatibility)
+    let repo: import('../core-utils/Repository.ts').Repository
+    let fs: FsClient
+    let effectiveDir: string
+    let effectiveGitdir: string
 
-    // Use Repository to get worktree context
-    // This ensures checkout uses the correct worktree's gitdir and staging area
-    const { Repository } = await import('../core-utils/Repository.ts')
-    const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+    if (_repo) {
+      repo = _repo
+      fs = repo.fs
+      effectiveDir = repo.dir || dir || ''
+      effectiveGitdir = await repo.getGitdir()
+    } else {
+      if (!_fs) {
+        throw new Error('Either repo or fs must be provided')
+      }
+      if (!dir) {
+        throw new Error('dir is required when repo is not provided')
+      }
+      fs = _fs
+      effectiveDir = dir
+      effectiveGitdir = gitdir || join(dir, '.git')
+      
+      // Use Repository to get worktree context
+      // This ensures checkout uses the correct worktree's gitdir and staging area
+      const { Repository } = await import('../core-utils/Repository.ts')
+      repo = await Repository.open({ fs, dir: effectiveDir, gitdir: effectiveGitdir, cache, autoDetectConfig: true })
+      effectiveGitdir = await repo.getGitdir()
+    }
 
     const ref = _ref || 'HEAD'
+    
+    // If repo is provided, use repo.checkout() directly for maximum consistency
+    if (_repo) {
+      return await repo.checkout(ref, {
+        filepaths,
+        force,
+        noCheckout,
+        noUpdateHead,
+        dryRun,
+        remote,
+        track,
+        onProgress,
+      })
+    }
+    
+    // Otherwise, use _checkout for backward compatibility
     return await _checkout({
       fs: normalizeFs(fs) as any,
       cache,
       onProgress,
       onPostCheckout,
-      dir,
-      gitdir, // gitdir will be resolved from worktree in _checkout
+      dir: effectiveDir,
+      gitdir: effectiveGitdir,
       remote,
       ref,
       filepaths,

@@ -92,6 +92,9 @@ export async function _merge({
   
   if (ours === undefined) {
     ours = await _currentBranch({ fs, gitdir, fullname: true })
+    if (ours === undefined) {
+      throw new Error('Cannot merge: no current branch (detached HEAD state)')
+    }
   }
   
   // Helper to get config value with defaults matching native git behavior
@@ -123,9 +126,8 @@ export async function _merge({
   // Expand refs - use RefManager.expand() for now (it delegates to new functions)
   // TODO: Consider adding expand() to Repository or src/git/refs/
   const { RefManager } = await import('../core-utils/refs/RefManager.ts')
-  if (ours) {
-    ours = await RefManager.expand({ fs, gitdir, ref: ours })
-  }
+  // At this point, ours is guaranteed to be defined
+  ours = await RefManager.expand({ fs, gitdir, ref: ours! })
   theirs = await RefManager.expand({ fs, gitdir, ref: theirs })
   
   // Use Repository.resolveRef() for consistency
@@ -171,7 +173,8 @@ export async function _merge({
   if (fastForward && baseOid === ourOid) {
     if (!dryRun && !noUpdateBranch) {
       // Use Repository.writeRef() for consistency
-      await repo.writeRef(ours, theirOid)
+      // ours is guaranteed to be defined at this point
+      await repo.writeRef(ours!, theirOid)
     }
     // Fast-forward - get tree OID from their commit
     const theirCommitResult = await readObject({ fs, cache, gitdir, oid: theirOid, format: 'content' })
@@ -269,6 +272,8 @@ export async function _merge({
     }
     
     // Check for conflicts - MergeStream returns MergeConflictError when there are conflicts
+    // CRITICAL: Always throw MergeConflictError when conflicts are detected, even if abortOnConflict is false
+    // When abortOnConflict is false, the index is written with conflicts, but the error should still be thrown
     if (typeof mergeResult !== 'string') {
       // It's a MergeConflictError - ensure it's properly thrown
       const error = mergeResult as any
@@ -280,25 +285,24 @@ export async function _merge({
         error?.code === 'MergeConflictError' ||
         error?.name === 'MergeConflictError'
       
-      if (isMergeConflictError) {
-        // When abortOnConflict is true, we should NOT have modified the index or worktree
-        // The index should remain unchanged, and the worktree should not be updated
-        // This matches native git behavior - when a merge fails due to conflicts with --abort,
-        // nothing is changed
-        throw error
-      } else {
-        // If for some reason it's not recognized, create a new one with the same data
-        throw new MergeConflictError(
-          error?.data?.filepaths || [],
-          error?.data?.bothModified || [],
-          error?.data?.deleteByUs || [],
-          error?.data?.deleteByTheirs || []
-        )
-      }
+      // Always reconstruct the error to ensure it's recognized as a MergeConflictError
+      // This handles cases where instanceof might not work across module boundaries
+      // Extract data from the error - it should have data.filepaths, data.bothModified, etc.
+      const filepaths = error?.data?.filepaths || []
+      const bothModified = error?.data?.bothModified || []
+      const deleteByUs = error?.data?.deleteByUs || []
+      const deleteByTheirs = error?.data?.deleteByTheirs || []
+      
+      // Create a new MergeConflictError with the extracted data
+      // This ensures the error is always recognized as a MergeConflictError with the correct code
+      const conflictError = new MergeConflictError(filepaths, bothModified, deleteByUs, deleteByTheirs)
+      throw conflictError
     }
     
+    // If we get here, merge succeeded (no conflicts)
     if (!message) {
-      message = `Merge branch '${abbreviateRef(theirs)}' into ${abbreviateRef(ours)}`
+      // ours is guaranteed to be defined at this point
+      message = `Merge branch '${abbreviateRef(theirs)}' into ${abbreviateRef(ours!)}`
     }
     
     const oid = await _commit({
@@ -306,12 +310,13 @@ export async function _merge({
       cache,
       gitdir,
       message,
-      ref: ours,
+      ref: ours!, // ours is guaranteed to be defined at this point
       tree: mergeResult as string,
       parent: [ourOid, theirOid],
       author,
       committer,
       signingKey,
+      repo, // CRITICAL: Pass Repository instance for consistent context
       onSign,
       dryRun,
       noUpdateBranch,

@@ -1,15 +1,12 @@
-import { STAGE } from '../commands/STAGE.ts'
-import { TREE } from '../commands/TREE.ts'
-import { WORKDIR } from '../commands/WORKDIR.ts'
-import { _walk } from '../commands/walk.ts'
-import { IndexResetError } from '../errors/IndexResetError.ts'
+import { _readTree } from '../commands/readTree.ts'
 import { Repository } from "../core-utils/Repository.ts"
-import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
-import { modified } from "../utils/modified.ts"
 import { ObjectReader } from "../core-utils/odb/ObjectReader.ts"
+import { hashObject } from '../core-utils/ShaHasher.ts'
+import { StateManager } from '../core-utils/StateManager.ts'
 import type { FsClient } from "../models/FileSystem.ts"
+import type { TreeEntry } from '../models/GitTree.ts'
 
 /**
  * Abort a merge in progress.
@@ -38,7 +35,7 @@ import type { FsClient } from "../models/FileSystem.ts"
 export async function abortMerge({
   fs: _fs,
   dir,
-  gitdir = join(dir, '.git'),
+  gitdir: _gitdir,
   commit = 'HEAD',
   cache = {},
 }: {
@@ -51,146 +48,146 @@ export async function abortMerge({
   try {
     assertParameter('fs', _fs)
     assertParameter('dir', dir)
+    // CRITICAL: Initialize gitdir BEFORE using it to avoid temporal dead zone issues
+    const gitdir = _gitdir || join(dir, '.git')
     assertParameter('gitdir', gitdir)
 
-    // Use Repository to ensure consistent context and error handling
-    let repo: Repository | undefined
-    try {
-      repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
-      gitdir = await repo.getGitdir()
-      cache = repo.cache
-    } catch {
-      // If Repository.open fails, continue with provided gitdir
-    }
+    // 1. Open the repository to get a consistent context
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+    const effectiveGitdir = await repo.getGitdir()
+    const fs = repo.fs
+    cache = repo.cache
 
-    // If Repository is available, use its abortMerge method
-    if (repo) {
-      return await repo.abortMerge({ commit })
-    }
-
-    const fs = normalizeFs(_fs) as any
-    const trees = [TREE({ ref: commit }), WORKDIR(), STAGE()]
-
-    // CRITICAL: Get the Repository instance and pass it to _walk
-    // This ensures all walkers use the same Repository instance
-    if (!repo) {
-      repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
-    }
-    
-    // Read index to get unmerged paths
-    const index = await repo.readIndexDirect()
-    const unmergedPaths = Array.from(index.unmergedPaths)
-
-    // Track filepaths that should be deleted (when map returns undefined)
-    const filesToDelete = new Set<string>()
-    
-    const results = await _walk({
-      repo,
-      trees,
-      map: async function (path: string, [head, workdir, index]: any[]) {
-        const staged = !(await modified(workdir, index))
-        const unmerged = unmergedPaths.includes(path)
-        const unmodified = !(await modified(index, head))
-        const workdirModified = await modified(workdir, head)
-
-        // If unmerged, always reset to HEAD
-        if (unmerged) {
-          if (head) {
-            return {
-              path,
-              mode: await head.mode(),
-              oid: await head.oid(),
-              type: await head.type(),
-            }
-          } else {
-            // No HEAD entry for unmerged file - mark for deletion
-            filesToDelete.add(path)
-            return undefined
-          }
-        }
-
-        // If staged (workdir == index), reset to HEAD
-        if (staged) {
-          if (head) {
-            return {
-              path,
-              mode: await head.mode(),
-              oid: await head.oid(),
-              type: await head.type(),
-            }
-          } else {
-            // No HEAD entry - mark for deletion
-            filesToDelete.add(path)
-            return undefined
-          }
-        }
-
-        // If index == head, keep workdir changes (return false to skip)
-        if (unmodified) {
-          return false
-        }
-
-        // If index != head but workdir has unstaged changes, keep workdir changes
-        // This means index was modified but workdir has additional changes
-        if (workdirModified) {
-          return false
-        }
-
-        // Otherwise, index != head and workdir == index, reset to HEAD
-        if (head) {
-          return {
-            path,
-            mode: await head.mode(),
-            oid: await head.oid(),
-            type: await head.type(),
-          }
-        }
-
-        // No HEAD entry, remove from index
-        filesToDelete.add(path)
-        return undefined
-      },
-    })
-
-    // Get the latest index instance and modify it
-    const finalIndex = await repo.readIndexDirect()
-    const gitdir = await repo.getGitdir()
-    // Reset paths in index and worktree, this can't be done in _walk because the
-    // STAGE walker uses its own index instance.
-
-    for (const entry of results) {
-      if (entry === false) continue
-
-      // Handle file deletion: entry is undefined/null means file should be removed
-      if (!entry) {
-        // Find all files in index that need to be deleted
-        // These are files that exist in index but not in HEAD (commit)
-        // We need to track which files were processed in the walk
-        // For now, we'll handle deletions separately by checking index entries
-        continue
-      }
-
+    // 2. Load all necessary state into memory ONCE
+    const { resolveRef } = await import('../git/refs/readRef.ts')
+    const HEAD_oid = await resolveRef({ fs, gitdir: effectiveGitdir, ref: commit })
+    const { tree: headTree } = await _readTree({ fs, cache, gitdir: effectiveGitdir, oid: HEAD_oid })
+    const headTreeEntries = new Map<string, TreeEntry>()
+    for (const entry of headTree) {
       if (entry.type === 'blob') {
-        const filepath = entry.path
-        const fullPath = join(dir, filepath)
-        
-        // Read blob content using ObjectReader (handles binary files correctly)
-        const { object: blobObject } = await ObjectReader.read({ 
-          fs, 
-          cache, 
-          gitdir, 
-          oid: entry.oid 
-        })
+        headTreeEntries.set(entry.path, entry)
+      }
+    }
 
+    const index = await repo.readIndexDirect()
+    const unmergedPaths = new Set(index.unmergedPaths)
+    
+    // Build index entries map (only stage 0 entries, or use the first stage for unmerged)
+    const indexEntries = new Map<string, { oid: string; mode: number; stats?: any }>()
+    for (const entry of index.entries) {
+      if (entry.stage === 0 || (entry.stage !== 0 && !indexEntries.has(entry.path))) {
+        indexEntries.set(entry.path, {
+          oid: entry.oid,
+          mode: entry.mode,
+          stats: entry.stat,
+        })
+      }
+    }
+
+    // 3. Compute workdir OIDs ONLY for files that are in index or HEAD
+    // This avoids expensive SHA-1 computation for irrelevant files
+    const workdirOids = new Map<string, string>()
+    const allRelevantPaths = new Set([...headTreeEntries.keys(), ...indexEntries.keys()])
+    
+    for (const filepath of allRelevantPaths) {
+      const fullPath = join(dir, filepath)
+      try {
+        const stat = await fs.lstat(fullPath)
+        if (stat && !stat.isDirectory()) {
+          const content = await fs.read(fullPath)
+          const oid = await hashObject({ type: 'blob', content: content as Buffer | Uint8Array })
+          workdirOids.set(filepath, oid)
+        }
+      } catch {
+        // File doesn't exist in workdir, that's okay
+      }
+    }
+
+    // 4. Determine which files to reset (the core logic)
+    const operations: Array<{ op: 'update' | 'delete', path: string, oid?: string, mode?: string }> = []
+    const newIndexEntries = new Map<string, { oid: string; mode: number; stats?: any }>()
+
+    for (const filepath of allRelevantPaths) {
+      const headEntry = headTreeEntries.get(filepath)
+      const indexEntry = indexEntries.get(filepath)
+      const workdirOid = workdirOids.get(filepath)
+
+      const isUnmerged = unmergedPaths.has(filepath)
+      const isStaged = indexEntry && (!workdirOid || indexEntry.oid === workdirOid)
+      const hasUnstagedChanges = indexEntry && workdirOid && indexEntry.oid !== workdirOid
+
+      if (isUnmerged || (isStaged && !hasUnstagedChanges)) {
+        // Case 1: Unmerged file -> Reset to HEAD
+        // Case 2: Staged change with no unstaged changes -> Reset to HEAD
+        if (headEntry) {
+          operations.push({ op: 'update', path: filepath, oid: headEntry.oid, mode: headEntry.mode })
+          // Get stats from workdir if it exists, otherwise use index stats
+          let stats = indexEntry?.stats
+          if (!stats) {
+            try {
+              const fullPath = join(dir, filepath)
+              stats = await fs.lstat(fullPath)
+            } catch {
+              // File doesn't exist, will be created
+            }
+          }
+          newIndexEntries.set(filepath, {
+            oid: headEntry.oid,
+            mode: parseInt(headEntry.mode, 8),
+            stats,
+          })
+        } else {
+          operations.push({ op: 'delete', path: filepath })
+          // Entry is removed from newIndexEntries by not adding it
+        }
+      } else if (hasUnstagedChanges) {
+        // Case 3: Has unstaged changes -> Keep workdir, reset index to HEAD
+        if (headEntry) {
+          // Get stats from workdir
+          let stats = indexEntry?.stats
+          if (!stats) {
+            try {
+              const fullPath = join(dir, filepath)
+              stats = await fs.lstat(fullPath)
+            } catch {
+              // Shouldn't happen if hasUnstagedChanges is true
+            }
+          }
+          newIndexEntries.set(filepath, {
+            oid: headEntry.oid,
+            mode: parseInt(headEntry.mode, 8),
+            stats,
+          })
+        }
+      } else if (indexEntry) {
+        // Case 4: Not staged, not unmerged, no unstaged changes -> Keep as is
+        newIndexEntries.set(filepath, indexEntry)
+      }
+    }
+
+    // 5. Also handle files that exist in index but not in HEAD or workdir
+    // These need to be removed
+    for (const [filepath, indexEntry] of indexEntries.entries()) {
+      if (!headTreeEntries.has(filepath) && !workdirOids.has(filepath)) {
+        operations.push({ op: 'delete', path: filepath })
+        // Don't add to newIndexEntries (removes from index)
+      }
+    }
+
+    // 6. Execute the plan on the workdir
+    for (const op of operations) {
+      const fullPath = join(dir, op.path)
+      if (op.op === 'update') {
+        const { object } = await ObjectReader.read({ fs, cache, gitdir: effectiveGitdir, oid: op.oid! })
+        const modeNum = parseInt(op.mode!, 8)
+        
         // Ensure directory exists
         const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'))
-        if (dirPath) {
+        if (dirPath && dirPath !== dir) {
           await fs.mkdir(dirPath)
         }
 
-        // Write the file with proper binary handling
-        const modeNum = typeof entry.mode === 'string' ? parseInt(entry.mode, 8) : entry.mode
-        const blobBuffer = Buffer.isBuffer(blobObject) ? blobObject : Buffer.from(blobObject as Uint8Array)
+        const blobBuffer = Buffer.isBuffer(object) ? object : Buffer.from(object as Uint8Array)
         
         if (modeNum === 0o100644) {
           // Regular file
@@ -208,77 +205,55 @@ export async function abortMerge({
           // Default: regular file
           await fs.write(fullPath, blobBuffer)
         }
-
-        // Update index - inserting with stage 0 automatically clears unmerged status
-        const stats = await fs.lstat(fullPath)
-        finalIndex.insert({
-          filepath,
-          oid: entry.oid,
-          stats,
-          stage: 0,
-        })
-      }
-    }
-
-    // Handle file deletions: remove files that were marked for deletion
-    for (const filepath of filesToDelete) {
-      const fullPath = join(dir, filepath)
-      try {
-        await fs.rm(fullPath)
-      } catch {
-        // File might not exist in workdir, that's okay
-      }
-      finalIndex.delete({ filepath })
-    }
-
-    // Also remove files from index that exist in index but not in HEAD (commit)
-    // These are files that weren't processed in the walk (don't exist in any of the trees)
-    const processedFilepaths = new Set<string>()
-    for (const entry of results) {
-      if (entry && entry !== false && entry.path) {
-        processedFilepaths.add(entry.path)
-      }
-    }
-    // Add files marked for deletion to processed set so we don't double-delete
-    for (const filepath of filesToDelete) {
-      processedFilepaths.add(filepath)
-    }
-
-    // Check for files in index that don't exist in HEAD (commit)
-    const indexFilepaths = Array.from(finalIndex.entriesMap.keys())
-    const { resolveFilepath } = await import('../utils/resolveFilepath.ts')
-    // Use direct resolveRef() for consistency
-    const { resolveRef } = await import('../git/refs/readRef.ts')
-    const commitOid = await resolveRef({ 
-      fs, 
-      gitdir, 
-      ref: commit 
-    })
-
-    for (const filepath of indexFilepaths) {
-      if (!processedFilepaths.has(filepath)) {
-        // File was not processed - check if it exists in commit tree
+      } else if (op.op === 'delete') {
         try {
-          await resolveFilepath({ fs, cache, gitdir, oid: commitOid, filepath })
-          // File exists in commit, it was skipped (keep workdir changes), so don't delete
+          await fs.rm(fullPath)
         } catch {
-          // File doesn't exist in commit - remove it from index and workdir
-          const fullPath = join(dir, filepath)
-          try {
-            await fs.rm(fullPath)
-          } catch {
-            // File might not exist in workdir
-          }
-          finalIndex.delete({ filepath })
+          // File might not exist in workdir, that's okay
         }
       }
     }
+
+    // 7. Update the index
+    // Clear all entries and rebuild from newIndexEntries
+    const finalIndex = await repo.readIndexDirect()
     
-    // Write the modified index back
+    // Delete all existing entries (this also clears unmerged paths for deleted entries)
+    const allIndexPaths = Array.from(finalIndex.entriesMap.keys())
+    for (const filepath of allIndexPaths) {
+      finalIndex.delete({ filepath })
+    }
+    
+    // Now insert all the new entries with stage 0 (this automatically clears unmerged status)
+    for (const [filepath, entry] of newIndexEntries.entries()) {
+      // Get fresh stats if available, otherwise use entry.stats
+      let stats = entry.stats
+      if (!stats) {
+        try {
+          const fullPath = join(dir, filepath)
+          stats = await fs.lstat(fullPath)
+        } catch {
+          // File might not exist, skip
+          continue
+        }
+      }
+      
+      finalIndex.insert({
+        filepath,
+        oid: entry.oid,
+        stats,
+        stage: 0,
+      })
+    }
+
     await repo.writeIndexDirect(finalIndex)
+
+    // 8. Clean up merge state files
+    const stateManager = new StateManager(fs, effectiveGitdir)
+    await stateManager.clearMergeHead()
+
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.abortMerge'
     throw err
   }
 }
-

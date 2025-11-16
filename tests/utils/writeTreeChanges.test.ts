@@ -83,7 +83,7 @@ describe('writeTreeChanges', () => {
     // Verify index matches HEAD by comparing file lists
     // If they don't match, writeTreeChanges will correctly detect changes (not null)
     const { Repository } = await import('../../src/core-utils/Repository.ts')
-    const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
     const index = await repo.readIndexDirect(false) // Force fresh read
     const indexFiles = Array.from(index.entriesMap.keys()).sort()
     const headFilesSorted = headFiles.sort()

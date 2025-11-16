@@ -5,6 +5,7 @@ import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { resolveRef } from "../git/refs/readRef.ts"
 import { _writeObject as writeObject } from "../storage/writeObject.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { SignCallback } from "../core-utils/Signing.ts"
 import type { Author } from "../models/GitCommit.ts"
@@ -24,6 +25,7 @@ export async function _addNote({
   author,
   committer,
   signingKey,
+  repo,
 }: {
   fs: FsClient
   cache: Record<string, unknown>
@@ -36,6 +38,7 @@ export async function _addNote({
   author: Author
   committer: Author
   signingKey?: string
+  repo: Repository
 }): Promise<string> {
   // Get the current note commit
   let parent: string | undefined
@@ -106,6 +109,7 @@ export async function _addNote({
     author,
     committer,
     signingKey,
+    repo, // Pass Repository instance
   })
 
   return commitOid

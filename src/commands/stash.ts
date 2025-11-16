@@ -41,7 +41,13 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
   }
   
   // Now that author check passed, we can safely resolve gitdir through repo if needed
-  const effectiveGitdir = repo ? await repo.getGitdir() : gitdir
+  let effectiveGitdir: string
+  try {
+    effectiveGitdir = repo ? await repo.getGitdir() : gitdir
+  } catch {
+    // If getGitdir fails, this shouldn't happen but handle it gracefully
+    effectiveGitdir = gitdir // Fallback to provided gitdir
+  }
   // Create a new stashMgr with the resolved gitdir if it changed
   const effectiveStashMgr = effectiveGitdir !== gitdir 
     ? new GitStashManager({ fs, dir, gitdir: effectiveGitdir, repo })
@@ -52,6 +58,85 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
   // This ensures add() and stash() share the same cache for index synchronization
   const effectiveCache = cache // Always use the provided cache to ensure consistency with add()
 
+  // CRITICAL: Check for changes BEFORE resolving HEAD
+  // This ensures we throw "nothing to stash" error before trying to resolve HEAD
+  // which might fail with NotFoundError in a fresh repository
+  // Ensure index is read from disk before writeTreeChanges
+  if (repo) {
+    await repo.readIndexDirect(false) // Force fresh read to bypass cache
+  } else {
+    // Fallback: use direct readIndex for backward compatibility
+    const { readIndex } = await import('../git/index/readIndex.ts')
+    await readIndex({ fs, gitdir: effectiveGitdir })
+  }
+
+  // Check for staged changes (HEAD vs INDEX) - but don't resolve HEAD yet
+  // We'll use writeTreeChanges which will handle HEAD resolution internally
+  // If HEAD doesn't exist, writeTreeChanges will throw NotFoundError, which we catch
+  let indexTree: string | null = null
+  try {
+    indexTree = await writeTreeChanges({
+      fs,
+      dir,
+      gitdir: effectiveGitdir,
+      cache: effectiveCache,
+      treePair: [TREE({ ref: 'HEAD' }), 'stage'],
+    })
+  } catch (err) {
+    // If HEAD doesn't exist, treat it as no staged changes
+    // This can happen in a fresh repository
+    // GitWalkerRepo already handles missing HEAD by using empty tree, so this shouldn't happen
+    // But if it does, catch it and treat as no changes
+    if (err instanceof NotFoundError) {
+      // Check if the error is about HEAD or a ref
+      const errorMsg = (err as any).message || (err as any).data?.what || ''
+      if (errorMsg.includes('HEAD') || errorMsg.includes('ref')) {
+        indexTree = null
+      } else {
+        throw err
+      }
+    } else {
+      throw err
+    }
+  }
+
+  // Check for worktree changes (HEAD/STAGE vs WORKDIR)
+  // If HEAD doesn't exist and no staged changes, compare empty tree vs WORKDIR
+  const workDirCompareBase = indexTree ? STAGE() : TREE({ ref: 'HEAD' })
+  let worktreeTree: string | null = null
+  try {
+    worktreeTree = await writeTreeChanges({
+      fs,
+      dir,
+      gitdir: effectiveGitdir,
+      cache: effectiveCache,
+      treePair: [workDirCompareBase, 'workdir'],
+    })
+  } catch (err) {
+    // If HEAD doesn't exist, treat it as no worktree changes
+    // This can happen in a fresh repository
+    // GitWalkerRepo already handles missing HEAD by using empty tree, so this shouldn't happen
+    // But if it does, catch it and treat as no changes
+    if (err instanceof NotFoundError) {
+      // Check if the error is about HEAD or a ref
+      const errorMsg = (err as any).message || (err as any).data?.what || ''
+      if (errorMsg.includes('HEAD') || errorMsg.includes('ref')) {
+        worktreeTree = null
+      } else {
+        throw err
+      }
+    } else {
+      throw err
+    }
+  }
+
+  // If no changes found, throw error BEFORE trying to resolve HEAD
+  if (!worktreeTree && !indexTree) {
+    const { NotFoundError } = await import('../errors/NotFoundError.ts')
+    throw new NotFoundError('changes, nothing to stash')
+  }
+
+  // NOW we can safely resolve HEAD - we know there are changes to stash
   // prepare the stash commit: first parent is the current branch HEAD
   // Use Repository.resolveRefDirect() or direct resolveRef() for consistency
   // Handle the case where HEAD doesn't exist (fresh repo with no commits)
@@ -88,26 +173,8 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
   const stashCommitParents: string[] = [headCommit]
   let indexCommitOid: string | null = null
 
-  // Ensure index is read from disk before writeTreeChanges
-  // Use Repository.readIndexDirect() or direct readIndex() to get the latest index state
-  if (repo) {
-    await repo.readIndexDirect(false) // Force fresh read to bypass cache
-  } else {
-    // Fallback: use direct readIndex for backward compatibility
-    const { readIndex } = await import('../git/index/readIndex.ts')
-    await readIndex({ fs, gitdir: effectiveGitdir })
-  }
-
-  // Step 1: Check for staged changes (HEAD vs INDEX)
-  // If staged changes exist, create an index commit with tree = index state, parent = [HEAD]
-  const indexTree = await writeTreeChanges({
-    fs,
-    dir,
-    gitdir: effectiveGitdir,
-    cache: effectiveCache,
-    treePair: [TREE({ ref: 'HEAD' }), 'stage'],
-  })
-  
+  // Step 1: Create index commit if staged changes exist
+  // We already computed indexTree above, so use it
   if (indexTree) {
     // Create index commit: tree = index state, parent = [HEAD]
     // This commit's tree represents the INDEX state
@@ -119,20 +186,9 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
     stashCommitParents.push(indexCommitOid)
   }
 
-  // Step 2: Create worktree tree - compare HEAD (or INDEX if exists) vs WORKDIR
+  // Step 2: Use the worktree tree we already computed above
   // The worktree tree represents the WORKING DIRECTORY state
-  const workDirCompareBase = indexCommitOid ? STAGE() : TREE({ ref: 'HEAD' })
-  const worktreeTree = await writeTreeChanges({
-    fs,
-    dir,
-    gitdir: effectiveGitdir,
-    cache: effectiveCache,
-    treePair: [workDirCompareBase, 'workdir'],
-  })
-
-  if (!worktreeTree && !indexTree) {
-    throw new NotFoundError('changes, nothing to stash')
-  }
+  // We already checked for changes above, so worktreeTree or indexTree must exist
 
   // Step 3: Create stash commit with tree = worktree state
   // Parents: [HEAD, indexCommit] (if index commit exists)
@@ -154,6 +210,17 @@ async function _createStashCommit({ fs, dir, gitdir, message = '', cache = {}, r
 }
 
 export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; message?: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<string> {
+  // CRITICAL: Check for author FIRST - before any other operations
+  // This ensures we throw MissingNameError before any other errors (NotFoundError, etc.)
+  // This matches git's behavior where it checks for author before checking for changes
+  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
+  try {
+    await stashMgr.getAuthor() // ensure there is an author
+  } catch (err) {
+    // If author check fails, throw immediately (don't check for unmerged paths, don't read index, etc.)
+    throw err
+  }
+  
   // IMPORTANT: Always use the provided cache directly to ensure consistency with add()
   // Repository.open uses the provided cache if given, so repo.cache === cache
   // But to be safe, always use the provided cache parameter
@@ -173,7 +240,7 @@ export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, re
     }
   }
   
-  const { stashCommit, stashMsg, branch, stashMgr } = await _createStashCommit({
+  const { stashCommit, stashMsg, branch, stashMgr: createdStashMgr } = await _createStashCommit({
     fs,
     dir,
     gitdir: effectiveGitdir,
@@ -183,10 +250,10 @@ export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, re
   })
 
   // next, write this commit into .git/refs/stash:
-  await stashMgr.writeStashRef(stashCommit)
+  await createdStashMgr.writeStashRef(stashCommit)
 
   // write the stash commit to the logs
-  await stashMgr.writeStashReflogEntry({
+  await createdStashMgr.writeStashReflogEntry({
     stashCommit,
     message: stashMsg,
   })
@@ -234,14 +301,26 @@ export async function _stashPush({ fs, dir, gitdir, message = '', cache = {}, re
 }
 
 export async function _stashCreate({ fs, dir, gitdir, message = '', cache = {}, repo }: { fs: FsClient; dir?: string; gitdir: string; message?: string; cache?: Record<string, unknown>; repo?: Repository }): Promise<string> {
+  // CRITICAL: Check for author FIRST - before any other operations
+  // This ensures we throw MissingNameError before any other errors (NotFoundError, etc.)
+  // This matches git's behavior where it checks for author before checking for changes
+  const stashMgr = new GitStashManager({ fs, dir, gitdir, repo })
+  try {
+    await stashMgr.getAuthor() // ensure there is an author
+  } catch (err) {
+    // If author check fails, throw immediately (don't check for unmerged paths, don't read index, etc.)
+    throw err
+  }
+  
   // Check for unmerged paths before creating stash
+  const effectiveGitdir = repo ? await repo.getGitdir() : gitdir
   if (repo) {
     const index = await repo.readIndexDirect(false, false) // Force fresh read, allowUnmerged: false
     // If there are unmerged paths, readIndexDirect will throw UnmergedPathsError
   } else {
     // Fallback: use direct readIndex and check unmerged paths manually
     const { readIndex } = await import('../git/index/readIndex.ts')
-    const index = await readIndex({ fs, gitdir })
+    const index = await readIndex({ fs, gitdir: effectiveGitdir })
     if (index.unmergedPaths.length > 0) {
       throw new UnmergedPathsError(index.unmergedPaths)
     }

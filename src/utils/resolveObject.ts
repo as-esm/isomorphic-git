@@ -46,9 +46,17 @@ export async function resolveObject<T>(
   } catch (error) {
     // If we're looking for a tree and it doesn't exist, fall back to empty tree
     // This handles cases where tree objects are missing from the repository
+    // BUT: Only do this for the known empty tree OID, not for arbitrary missing trees
+    // Arbitrary missing trees indicate a repository integrity issue and should throw
     if (expectedType === 'tree' && error instanceof NotFoundError) {
-      const emptyTreeBuffer = Buffer.from('tree 0\x00')
-      return { oid: emptyTreeOid || '4b825dc642cb6eb9a060e54bf8d69288fbee4904', object: parser(emptyTreeBuffer) }
+      // Only fall back to empty tree if the requested OID is the empty tree OID
+      // Otherwise, this is a real error - the tree should exist
+      if (oid === (emptyTreeOid || '4b825dc642cb6eb9a060e54bf8d69288fbee4904')) {
+        const emptyTreeBuffer = Buffer.from('tree 0\x00')
+        return { oid, object: parser(emptyTreeBuffer) }
+      }
+      // For any other missing tree, this is a real error - don't silently fall back
+      throw error
     }
     throw error
   }

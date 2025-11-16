@@ -48,7 +48,7 @@ export async function readTree({
     if (dir) {
       try {
         const { Repository } = await import('../core-utils/Repository.ts')
-        const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+        const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
         const worktree = repo.getWorktree()
         if (worktree) {
           effectiveGitdir = await worktree.getGitdir()
@@ -61,6 +61,12 @@ export async function readTree({
         // If Repository.open fails, use provided gitdir
         effectiveGitdir = gitdir
       }
+    } else if (gitdir) {
+      // If only gitdir is provided (no dir), use it directly
+      effectiveGitdir = gitdir
+    } else {
+      // Neither dir nor gitdir provided - this is an error
+      throw new Error('Either dir or gitdir must be provided')
     }
 
     return await _readTree({

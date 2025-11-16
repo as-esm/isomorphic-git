@@ -23,15 +23,9 @@ describe('checkout restore missing files', () => {
     
     // Verify file is deleted - try multiple ways to be sure
     const existsAfterDelete = await fs.exists(filePath)
-    let lstatFails = false
-    try {
-      await fs.lstat(filePath)
-    } catch {
-      lstatFails = true
-    }
+    const lstatResult = await fs.lstat(filePath)
     assert.strictEqual(existsAfterDelete, false, 'fs.exists() should return false after deletion')
-    assert.strictEqual(lstatFails, true, 'fs.lstat() should fail after deletion')
-    console.log(`[DEBUG test] After deletion: exists=${existsAfterDelete}, lstatFails=${lstatFails}`)
+    assert.strictEqual(lstatResult, null, 'fs.lstat() should return null after deletion')
     
     // Now checkout HEAD with force - this should restore the file
     await checkout({ fs, dir, gitdir, ref: 'HEAD', force: true })

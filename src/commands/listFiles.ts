@@ -34,7 +34,11 @@ export async function _listFiles({
   } else {
     // Use Repository.readIndexDirect() for consistency
     const { Repository } = await import('../core-utils/Repository.ts')
-    const repo = await Repository.open({ fs, dir: undefined, cache, autoDetectConfig: true })
+    // When dir is undefined, gitdir must be provided
+    if (!gitdir) {
+      throw new Error('Either dir or gitdir is required for listFiles')
+    }
+    const repo = await Repository.open({ fs, dir: undefined, gitdir, cache, autoDetectConfig: true })
     const index = await repo.readIndexDirect(false) // Force fresh read
     // Filter out entries without paths and return sorted list
     // This handles edge cases where entries might not have paths set

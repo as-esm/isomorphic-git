@@ -25,7 +25,7 @@ import type { FsClient } from "../models/FileSystem.ts"
 export async function remove({
   fs: _fs,
   dir,
-  gitdir = join(dir, '.git'),
+  gitdir: _gitdir,
   filepath,
   cache = {},
 }: {
@@ -37,26 +37,16 @@ export async function remove({
 }): Promise<void> {
   try {
     assertParameter('fs', _fs)
-    assertParameter('gitdir', gitdir)
     assertParameter('filepath', filepath)
+    // CRITICAL: Initialize gitdir - either use provided gitdir or derive from dir
+    // This ensures Repository.open() always has a valid gitdir
+    const gitdir = _gitdir || (dir ? join(dir, '.git') : undefined)
+    assertParameter('gitdir', gitdir)
 
-    // CRITICAL: Resolve gitdir through Repository to ensure consistency with add() and listFiles()
-    // This ensures that add(), remove(), and listFiles() use the same gitdir path and cache entry
-    let effectiveGitdir = gitdir
-    try {
-      const { Repository } = await import('../core-utils/Repository.ts')
-      const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
-      effectiveGitdir = await repo.getGitdir()
-      // Use the repository's cache to ensure consistency
-      // Repository.open uses the provided cache if given, so repo.cache === cache
-    } catch {
-      // If Repository.open fails, use provided gitdir
-      effectiveGitdir = gitdir
-    }
-
-    // Use Repository.readIndexDirect() and writeIndexDirect() for consistency
+    // CRITICAL: Use Repository to ensure consistency with add() and listFiles()
+    // This ensures that add(), remove(), and listFiles() use the same Repository instance
     const { Repository } = await import('../core-utils/Repository.ts')
-    const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
     const index = await repo.readIndexDirect(false) // Force fresh read
     index.delete({ filepath })
     await repo.writeIndexDirect(index)

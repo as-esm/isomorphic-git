@@ -131,32 +131,31 @@ export async function _commit({
   }
 
   // Determine author and committer information
+  // CRITICAL: repo is required for normalizeAuthorObject and normalizeCommitterObject
+  if (!repo) {
+    throw new Error('Repository instance is required for commit')
+  }
+  
   const author = !amend
-    ? await normalizeAuthorObject({ fs, gitdir, author: _author, repo })
+    ? await normalizeAuthorObject({ repo, author: _author })
     : await normalizeAuthorObject({
-        fs,
-        gitdir,
+        repo,
         author: _author,
         commit: refCommit,
-        repo,
       })
   if (!author) throw new MissingNameError('author')
 
   const committer = !amend
     ? await normalizeCommitterObject({
-        fs,
-        gitdir,
+        repo,
         author,
         committer: _committer,
-        repo,
       })
     : await normalizeCommitterObject({
-        fs,
-        gitdir,
+        repo,
         author,
         committer: _committer,
         commit: refCommit,
-        repo,
       })
   if (!committer) throw new MissingNameError('committer')
 
@@ -357,6 +356,10 @@ export async function _commit({
       } else {
         // Normal commit - just update the ref
         // Use Repository.writeRef() or direct writeRef() for consistency
+        // DEBUG: Log ref and OID being written for native git compatibility debugging
+        if (process.env.DEBUG_COMMIT_REFS === 'true') {
+          console.log(`[DEBUG] Writing ref: ${ref} -> ${oid}`)
+        }
         if (repo) {
           await repo.writeRef(ref, oid)
         } else {

@@ -48,8 +48,9 @@ describe('StateMutationStream', () => {
     const index = await repo.readIndexDirect()
     // Just reading (index is now loaded)
     
-    // Check that index-read was recorded
-    const normalizedGitdir = normalize(gitdir)
+    // Check that index-read was recorded - use repo's gitdir to ensure normalization matches
+    const repoGitdir = await repo.getGitdir()
+    const normalizedGitdir = normalize(repoGitdir)
     const latestRead = mutationStream.getLatest('index-read', normalizedGitdir)
     
     assert.notStrictEqual(latestRead, undefined)

@@ -182,7 +182,7 @@ export class Repository {
         const isBare = await fs.exists(configPath)
         if (!isBare) {
           // gitdir is .git subdirectory, working dir is parent
-          const { dirname } = await import('./GitPath.ts')
+          const { dirname } = await import('../utils/dirname.ts')
           workingDir = dirname(providedGitdir)
         } else {
           workingDir = null
@@ -293,9 +293,9 @@ export class Repository {
       if (configExists) {
         // Read config to check bare setting
         try {
-          const { ConfigAccess } = await import('../utils/configAccess.ts')
-          const configAccess = new ConfigAccess(this.fs, gitdir)
-          const bare = await configAccess.getConfigValue('core.bare')
+          // CRITICAL: Use this repository's config service to ensure state consistency
+          const config = await this.getConfig()
+          const bare = await config.get('core.bare')
           this._isBare = bare === 'true' || bare === true
         } catch {
           // Default to non-bare if can't read config
@@ -457,18 +457,32 @@ export class Repository {
     // If we have an in-memory index, check if it's stale
     if (this._index) {
       let currentMtime: number | null = null
-    try {
-      const stat = await normalizedFs.lstat(indexPath)
-      // Handle both normalized and raw stat objects
-      const mtimeSeconds = (stat as any).mtimeSeconds ?? (stat as any).mtime?.seconds ?? (stat as any).mtime?.getTime?.() / 1000 ?? null
-      const mtimeNanoseconds = (stat as any).mtimeNanoseconds ?? (stat as any).mtime?.nanoseconds ?? 0
-      if (mtimeSeconds !== null && mtimeSeconds !== undefined) {
-        currentMtime = mtimeSeconds * 1000 + (mtimeNanoseconds || 0) / 1000000
-      } else {
-        currentMtime = null
-      }
+      try {
+        const stat = await normalizedFs.lstat(indexPath)
+        // Handle both normalized and raw stat objects
+        const mtimeSeconds = (stat as any).mtimeSeconds ?? (stat as any).mtime?.seconds ?? (stat as any).mtime?.getTime?.() / 1000 ?? null
+        const mtimeNanoseconds = (stat as any).mtimeNanoseconds ?? (stat as any).mtime?.nanoseconds ?? 0
+        if (mtimeSeconds !== null && mtimeSeconds !== undefined) {
+          currentMtime = mtimeSeconds * 1000 + (mtimeNanoseconds || 0) / 1000000
+        } else {
+          currentMtime = null
+        }
       } catch (e) {
         // File doesn't exist on disk, our in-memory one is the only source of truth
+        // Record index-read mutation even when file doesn't exist
+        try {
+          const { getStateMutationStream } = await import('./StateMutationStream.ts')
+          const { normalize } = await import('./GitPath.ts')
+          const mutationStream = getStateMutationStream()
+          const normalizedGitdir = normalize(gitdir)
+          mutationStream.record({
+            type: 'index-read',
+            gitdir: normalizedGitdir,
+            data: {},
+          })
+        } catch {
+          // Ignore errors in mutation recording
+        }
         // Check for unmerged paths if allowUnmerged is false
         if (!allowUnmerged && this._index.unmergedPaths.length > 0) {
           const { UnmergedPathsError } = await import('../errors/UnmergedPathsError.ts')
@@ -477,29 +491,68 @@ export class Repository {
         return this._index
       }
       
-      // If mtime on disk is the same as when we last read/wrote it, our in-memory copy is valid
-      if (this._indexMtime === currentMtime) {
-        // Check for unmerged paths if allowUnmerged is false
-        if (!allowUnmerged && this._index.unmergedPaths.length > 0) {
-          const { UnmergedPathsError } = await import('../errors/UnmergedPathsError.ts')
-          throw new UnmergedPathsError(this._index.unmergedPaths)
+      // If mtime on disk is the same as when we last read/wrote it, our in-memory copy is likely valid
+      // However, we still need to verify the file is not corrupted by attempting to read it.
+      // If the file is corrupted (empty, wrong magic, wrong checksum), readIndex() will throw an error.
+      // We only skip the read if mtime matches AND we're not forcing a read AND we're confident the file is valid.
+      // For safety, we always re-read to detect corruption, even if mtime matches.
+      // This ensures corrupted index files are always detected, even if mtime hasn't changed.
+      if (this._indexMtime === currentMtime && !force) {
+        // Even though mtime matches, we need to verify the file is not corrupted
+        // Attempt to read the file - if it's corrupted, readIndex() will throw
+        // If it's valid, we can return the cached index for efficiency
+        try {
+          const { readIndex } = await import('../git/index/readIndex.ts')
+          const diskIndex = await readIndex({
+            fs: this.fs,
+            gitdir,
+          })
+          // File is valid, return cached index (more efficient than returning diskIndex)
+          // Record index-read mutation even for cached reads
+          try {
+            const { getStateMutationStream } = await import('./StateMutationStream.ts')
+            const { normalize } = await import('./GitPath.ts')
+            const mutationStream = getStateMutationStream()
+            const normalizedGitdir = normalize(gitdir)
+            mutationStream.record({
+              type: 'index-read',
+              gitdir: normalizedGitdir,
+              data: {},
+            })
+          } catch {
+            // Ignore errors in mutation recording
+          }
+          // Check for unmerged paths if allowUnmerged is false
+          if (!allowUnmerged && this._index.unmergedPaths.length > 0) {
+            const { UnmergedPathsError } = await import('../errors/UnmergedPathsError.ts')
+            throw new UnmergedPathsError(this._index.unmergedPaths)
+          }
+          return this._index
+        } catch (err) {
+          // File is corrupted or read failed - clear cache and propagate error
+          this._index = null
+          this._indexMtime = null
+          throw err
         }
-        return this._index
       }
       
       // If mtimes differ, it means an external process (or a bug) modified the index file
       // We must discard our in-memory version and re-read from disk
       // This should be rare - normally writeIndexDirect updates _indexMtime correctly
+      // CRITICAL: Even if mtime matches, if force=true, we still re-read to detect corruption
     }
     
     // If we're here, we need to read from disk
+    // CRITICAL: readIndex() may throw errors for corrupted index files (empty, wrong magic, wrong checksum)
+    // These errors should propagate to the caller, not be caught and swallowed
     const { readIndex } = await import('../git/index/readIndex.ts')
     const index = await readIndex({
       fs: this.fs,
       gitdir,
     })
     
-    // Update the owned instance and its mtime
+    // Only update the owned instance and its mtime if readIndex() succeeded
+    // If readIndex() threw an error, we should not update the cache
     this._index = index
     try {
       const stat = await normalizedFs.lstat(indexPath)
@@ -515,8 +568,23 @@ export class Repository {
       this._indexMtime = null
     }
     
+    // Record index-read mutation
+    try {
+      const { getStateMutationStream } = await import('./StateMutationStream.ts')
+      const { normalize } = await import('./GitPath.ts')
+      const mutationStream = getStateMutationStream()
+      const normalizedGitdir = normalize(gitdir)
+      mutationStream.record({
+        type: 'index-read',
+        gitdir: normalizedGitdir,
+        data: {},
+      })
+    } catch {
+      // Ignore errors in mutation recording
+    }
     
     // Check for unmerged paths if allowUnmerged is false
+    // unmergedPaths is a getter that returns an array, so use .length
     if (!allowUnmerged && index.unmergedPaths.length > 0) {
       const { UnmergedPathsError } = await import('../errors/UnmergedPathsError.ts')
       throw new UnmergedPathsError(index.unmergedPaths)
@@ -568,6 +636,21 @@ export class Repository {
       }
     } catch (e) {
       this._indexMtime = null
+    }
+    
+    // Record index-write mutation
+    try {
+      const { getStateMutationStream } = await import('./StateMutationStream.ts')
+      const { normalize } = await import('./GitPath.ts')
+      const mutationStream = getStateMutationStream()
+      const normalizedGitdir = normalize(gitdir)
+      mutationStream.record({
+        type: 'index-write',
+        gitdir: normalizedGitdir,
+        data: {},
+      })
+    } catch {
+      // Ignore errors in mutation recording
     }
   }
 
@@ -622,12 +705,18 @@ export class Repository {
   async writeRefDirect(ref: string, value: string): Promise<void> {
     const gitdir = await this.getGitdir()
     const { writeRef } = await import('../git/refs/writeRef.ts')
-    // Validate OID format
-    if (!value.match(/[0-9a-f]{40}/)) {
+    // CRITICAL: Validate OID format - must be exactly 40 hex characters
+    // Trim whitespace first to handle any accidental whitespace
+    const trimmedValue = value.trim()
+    
+    if (!trimmedValue.match(/^[0-9a-f]{40}$/)) {
       const { InvalidOidError } = await import('../errors/InvalidOidError.ts')
-      throw new InvalidOidError(value)
+      throw new InvalidOidError(
+        `Invalid value for ref "${ref}": Not a 40-char OID. Got "${trimmedValue}" (length: ${trimmedValue.length})`
+      )
     }
-    return writeRef({ fs: this.fs, gitdir, ref, value })
+    // CRITICAL: Use trimmed value to prevent concatenated OIDs
+    return writeRef({ fs: this.fs, gitdir, ref, value: trimmedValue })
   }
 
   /**

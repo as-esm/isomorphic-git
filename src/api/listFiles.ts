@@ -53,7 +53,7 @@ export async function listFiles({
     let effectiveGitdir = gitdir
     try {
       const { Repository } = await import('../core-utils/Repository.ts')
-      const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+      const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
       effectiveGitdir = await repo.getGitdir()
       // Use the repository's cache to ensure consistency
       // Repository.open uses the provided cache if given, so repo.cache === cache

@@ -24,6 +24,7 @@ export async function commit({
   parent,
   tree,
   cache = {},
+  autoDetectConfig = true,
 }: {
   fs: FsClient
   onSign?: SignCallback
@@ -40,6 +41,7 @@ export async function commit({
   parent?: string[]
   tree?: string
   cache?: Record<string, unknown>
+  autoDetectConfig?: boolean
 }): Promise<string> {
   try {
     assertParameter('fs', fs)
@@ -51,20 +53,11 @@ export async function commit({
       assertParameter('onSign', onSign)
     }
 
-    // CRITICAL: Resolve gitdir through Repository to ensure consistency with add()
-    // This ensures that add() and commit() use the same gitdir path and cache entry
-    let effectiveGitdir = gitdir
-    let repo: import('../core-utils/Repository.ts').Repository | undefined
-    try {
-      const { Repository } = await import('../core-utils/Repository.ts')
-      repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
-      effectiveGitdir = await repo.getGitdir()
-      // Use the repository's cache to ensure consistency
-      // Repository.open uses the provided cache if given, so repo.cache === cache
-    } catch {
-      // If Repository.open fails, use provided gitdir
-      effectiveGitdir = gitdir
-    }
+    // CRITICAL: Use Repository to ensure state consistency
+    // This ensures that add() and commit() use the same Repository instance and config service
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig })
+    const effectiveGitdir = await repo.getGitdir()
 
     return await _commit({
       fs,

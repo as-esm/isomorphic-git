@@ -9,6 +9,7 @@ import {
 } from 'isomorphic-git'
 import { makeFixture } from '../helpers/fixture.ts'
 import { analyzeCheckout } from '../../src/core-utils/filesystem/WorkdirManager.ts'
+import { normalizeFs } from '../../src/utils/normalizeFs.ts'
 
 describe('stash checkout integration', () => {
   const addUserConfig = async (fs: any, dir: string, gitdir: string) => {
@@ -71,6 +72,11 @@ describe('stash checkout integration', () => {
     // - workdir OID != tree OID (staged content != HEAD)
     // So it should create an update operation
     
+    // Read the index first, then pass it to analyzeCheckout
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false)
+    
     const operations = await analyzeCheckout({
       fs,
       dir,
@@ -78,6 +84,7 @@ describe('stash checkout integration', () => {
       treeOid,
       force: true,
       cache,
+      index, // Pass the index object
     })
     
     // Should have an update operation for a.txt
@@ -90,19 +97,29 @@ describe('stash checkout integration', () => {
     await addUserConfig(fs, dir, gitdir)
     const cache = {}
     
-    // Get original content
-    const originalContent = await fs.read(`${dir}/a.txt`)
+    // CRITICAL: Create Repository instance once and use it for everything
+    // This ensures the same fs instance is used throughout the test
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
     
-    // Make changes but don't stage them
-    await fs.write(`${dir}/a.txt`, 'unstaged changes')
+    // CRITICAL: Use normalizeFs to ensure we're using the same fs instance as the Repository
+    // This ensures that writes from checkout are visible to reads in the test
+    const normalizedFs = normalizeFs(fs)
+    
+    // Get original content - use normalized fs to match checkout's fs
+    const originalContent = await normalizedFs.read(`${dir}/a.txt`)
+    
+    // Make changes but don't stage them using normalized fs
+    await normalizedFs.write(`${dir}/a.txt`, 'unstaged changes')
     
     // Verify file is modified but not staged (status might have '*' prefix)
     const statusBefore = await status({ fs, dir, gitdir, filepath: 'a.txt', cache })
     assert.ok(statusBefore === 'modified' || statusBefore === '*modified', `Status should be 'modified' or '*modified', got '${statusBefore}'`)
     
-    // Now checkout with force should restore to HEAD
+    // Now checkout with force should restore to HEAD - pass repo to ensure fs consistency
     await checkout({
-      fs,
+      repo, // Pass Repository instance to ensure same fs instance
+      fs,   // Still pass for backward compatibility
       dir,
       gitdir,
       ref: 'HEAD',
@@ -110,13 +127,16 @@ describe('stash checkout integration', () => {
       cache,
     })
     
-    // Verify file is restored
-    const restoredContent = await fs.read(`${dir}/a.txt`)
+    // Verify file is restored - use normalized fs to match checkout's fs
+    const restoredContent = await normalizedFs.read(`${dir}/a.txt`)
     assert.strictEqual(restoredContent.toString(), originalContent.toString())
     
     // Verify status shows file is unmodified
+    // CRITICAL: Use the same repo instance to ensure we see the updated index
+    // The status API creates its own Repository instance, but we can ensure cache consistency
+    // by using the same cache object and ensuring the index is written to disk
     const statusAfter = await status({ fs, dir, gitdir, filepath: 'a.txt', cache })
-    assert.strictEqual(statusAfter, 'unmodified')
+    assert.strictEqual(statusAfter, 'unmodified', `Expected 'unmodified', got '${statusAfter}'. File should be in HEAD after checkout.`)
   })
 
   it('should handle stash when index matches HEAD but workdir has changes', async () => {

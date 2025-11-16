@@ -99,7 +99,7 @@ describe('stash', () => {
 
       let error: unknown = null
       try {
-        await stash({ fs, dir, gitdir })
+        await stash({ fs, dir, gitdir, autoDetectConfig: false })
       } catch (e) {
         error = e
       }
@@ -163,7 +163,7 @@ describe('stash', () => {
 
       let error: unknown = null
       try {
-        await stash({ fs, dir, gitdir, op: 'create' })
+        await stash({ fs, dir, gitdir, op: 'create', autoDetectConfig: false })
       } catch (e) {
         error = e
       }

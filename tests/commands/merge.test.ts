@@ -101,8 +101,12 @@ describe('merge', () => {
   // visible to subsequent commands, eliminating race conditions
   let cache: Record<string, unknown>
 
-  beforeEach(() => {
+  beforeEach(async () => {
     cache = {} // Reset the cache for each test
+    // Clear Repository instance cache to prevent stale Repository instances
+    // from causing "Cannot checkout in bare repository" or similar errors
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    Repository.clearInstanceCache()
   })
 
   it('prevent merge if index has unmerged paths', async () => {
@@ -124,6 +128,26 @@ describe('merge', () => {
       }
     } catch {
       // Index might not exist - that's okay, the merge should still check
+    }
+
+    // FIX: Create the branches so they can be resolved
+    // The merge command needs to resolve these refs before checking for unmerged paths
+    // If the branches don't exist, it will throw NotFoundError before checking unmerged paths
+    try {
+      // Try to create branches 'a' and 'b' pointing to HEAD if they don't exist
+      const headOid = await resolveRef({ fs, gitdir, ref: 'HEAD' })
+      try {
+        await branch({ fs, dir, gitdir, ref: 'a', checkout: false })
+      } catch {
+        // Branch might already exist, that's okay
+      }
+      try {
+        await branch({ fs, dir, gitdir, ref: 'b', checkout: false })
+      } catch {
+        // Branch might already exist, that's okay
+      }
+    } catch {
+      // If we can't create branches, the test will fail with the appropriate error
     }
 
     // Test
@@ -634,6 +658,7 @@ describe('merge', () => {
         ours: 'delete-first-half',
         theirs: 'delete-second-half',
         dryRun: true,
+        autoDetectConfig: false, // Disable auto-detection to ensure no user.name is found
       })
     } catch (e) {
       error = e

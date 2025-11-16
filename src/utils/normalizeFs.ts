@@ -19,6 +19,11 @@ const wrapperCache = new WeakMap<object, FileSystem>()
  * @returns A cached or new FileSystem instance
  */
 export function normalizeFs(fs: FsClient): FileSystem {
+  // If fs is already a FileSystem instance, return it directly
+  if (fs instanceof FileSystem) {
+    return fs
+  }
+
   // The raw fs object is the true source of identity.
   // If 'fs' is already a FileSystem wrapper, we can use it directly as the key.
   // Otherwise, use the raw fs object as the key.

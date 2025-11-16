@@ -115,20 +115,19 @@ describe('stash flow', () => {
     const { fs, dir, gitdir } = await makeFixture('test-stash')
     await addUserConfig(fs, dir, gitdir)
     
-    // Create Repository
-    const repo = await Repository.open({ fs, dir, cache: {}, autoDetectConfig: true })
-    const effectiveGitdir = await repo.getGitdir()
+    // Use a shared cache - stash will create Repository internally
+    const cache = {}
     
     // Make changes and stage them
     await fs.write(`${dir}/a.txt`, 'staged changes - a')
     await fs.write(`${dir}/b.js`, 'staged changes - b')
-    await add({ fs, dir, gitdir: effectiveGitdir, filepath: ['a.txt', 'b.js'], cache: repo.cache })
+    await add({ fs, dir, gitdir, filepath: ['a.txt', 'b.js'], cache })
     
-    // Test stash API - it will create Repository internally
+    // Test stash API - it will create Repository internally with the same cache
     let error: unknown = null
     let stashOid: string | void = undefined
     try {
-      stashOid = await stash({ fs, dir, gitdir: effectiveGitdir, message: '', cache: repo.cache })
+      stashOid = await stash({ fs, dir, gitdir, message: '', cache })
     } catch (e) {
       error = e
     }
@@ -187,11 +186,12 @@ describe('stash flow', () => {
     await add({ fs, dir, gitdir, filepath: ['a.txt', 'b.js'], cache })
     
     // Use STAGE walker to check what it sees
+    // CRITICAL: Use the public walk API which creates Repository internally
     const stageWalker = STAGE()
-    const { _walk } = await import('../../src/commands/walk.ts')
+    const { walk } = await import('isomorphic-git')
     
     const entries: any[] = []
-    await _walk({
+    await walk({
       fs,
       cache, // Same cache
       dir,

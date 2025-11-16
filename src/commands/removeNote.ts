@@ -3,6 +3,7 @@ import { _readTree } from "../commands/readTree.ts"
 import { _writeTree } from "../commands/writeTree.ts"
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { resolveRef } from "../git/refs/readRef.ts"
+import type { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { SignCallback } from "../core-utils/Signing.ts"
 import type { Author } from "../models/GitCommit.ts"
@@ -41,6 +42,7 @@ export async function _removeNote({
   author,
   committer,
   signingKey,
+  repo,
 }: {
   fs: FsClient
   cache: Record<string, unknown>
@@ -51,6 +53,7 @@ export async function _removeNote({
   author: Author
   committer: Author
   signingKey?: string
+  repo: Repository
 }): Promise<string> {
   // Get the current note commit
   let parent: string | undefined
@@ -93,6 +96,7 @@ export async function _removeNote({
     author,
     committer,
     signingKey,
+    repo, // Pass Repository instance
   })
 
   return commitOid

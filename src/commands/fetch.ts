@@ -88,14 +88,16 @@ export async function _fetch({
   const normalizedFs = normalizeFs(fs)
   const ref = _ref || (await _currentBranch({ fs, gitdir, test: true }))
   
-      // Use ConfigAccess for config access
-      const configService = new ConfigAccess(fs, gitdir)
+  // CRITICAL: Use Repository to ensure consistent config access
+  const { Repository } = await import('../core-utils/Repository.ts')
+  const repo = await Repository.open({ fs, dir: undefined, gitdir, cache, autoDetectConfig: true })
+  const configService = await repo.getConfig()
   
   // Figure out what remote to use
-  const remote = _remote || (ref && ((await configService.getConfigValue(`branch.${ref}.remote`)) as string)) || 'origin'
+  const remote = _remote || (ref && ((await configService.get(`branch.${ref}.remote`)) as string)) || 'origin'
   
   // Lookup the URL for the given remote
-  const url = _url || ((await configService.getConfigValue(`remote.${remote}.url`)) as string)
+  const url = _url || ((await configService.get(`remote.${remote}.url`)) as string)
   if (typeof url === 'undefined') {
     throw new MissingParameterError('remote OR url')
   }
@@ -103,12 +105,12 @@ export async function _fetch({
   // Figure out what remote ref to use
   const remoteRef =
     _remoteRef ||
-    (ref && ((await configService.getConfigValue(`branch.${ref}.merge`)) as string)) ||
+    (ref && ((await configService.get(`branch.${ref}.merge`)) as string)) ||
     _ref ||
     'HEAD'
 
   if (corsProxy === undefined) {
-    corsProxy = (await configService.getConfigValue('http.corsProxy')) as string | undefined
+    corsProxy = (await configService.get('http.corsProxy')) as string | undefined
   }
 
   const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url })
@@ -435,8 +437,9 @@ export async function _fetch({
     res.packfile = `objects/pack/pack-${packfileSha}.pack`
     const fullpath = join(gitdir, res.packfile)
     // Ensure the pack directory exists
+    // FileSystem.mkdir already implements recursive directory creation
     const packDir = join(gitdir, 'objects', 'pack')
-    await normalizedFs.mkdir(packDir, { recursive: true })
+    await normalizedFs.mkdir(packDir)
     
     // Create index from packfile first (before writing to disk)
     // We need getExternalRefDelta to be able to read from the packfile being indexed

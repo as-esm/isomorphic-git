@@ -4,6 +4,7 @@ import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
+import { Repository } from "../core-utils/Repository.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { SignCallback } from "../core-utils/Signing.ts"
 import type { Author } from "../models/GitCommit.ts"
@@ -81,8 +82,11 @@ export async function annotatedTag({
     }
     const fs = normalizeFs(_fs)
 
+    // CRITICAL: Use Repository to ensure state consistency
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+
     // Fill in missing arguments with default values
-    const tagger = await normalizeAuthorObject({ fs, gitdir, author: _tagger })
+    const tagger = await normalizeAuthorObject({ repo, author: _tagger })
     if (!tagger) throw new MissingNameError('tagger')
 
     return await _annotatedTag({

@@ -52,8 +52,9 @@ export async function _checkout({
   batchSize?: number
 }): Promise<void> {
   // Use Repository to get worktree context
+  // CRITICAL: Pass gitdir to Repository.open() to ensure we use the same gitdir where refs were written
   const { Repository } = await import('../core-utils/Repository.ts')
-  const repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+  const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
   const worktree = repo.getWorktree()
   
   if (!worktree) {
@@ -78,22 +79,62 @@ export async function _checkout({
   try {
     oid = await repo.resolveRef(ref)
   } catch (err) {
-    if (ref === 'HEAD') throw err
-    // If `ref` doesn't exist, try to create a new remote tracking branch
-    const remoteRef = `${remote}/${ref}`
-    try {
-      oid = await repo.resolveRef(remoteRef)
-      if (track) {
-        // Set up remote tracking branch
+    if (ref === 'HEAD') {
+      // HEAD doesn't exist - try to find default branch
+      let defaultBranch = 'master'
+      try {
         const { ConfigAccess } = await import('../utils/configAccess.ts')
         const configAccess = new ConfigAccess(fs, worktreeGitdir)
-        await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
-        await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')
+        const initDefaultBranch = await configAccess.getConfigValue('init.defaultBranch')
+        if (initDefaultBranch && typeof initDefaultBranch === 'string') {
+          defaultBranch = initDefaultBranch
+        }
+      } catch {
+        // Config doesn't exist or can't be read, use 'master'
       }
-      // Create a new branch that points at that same commit
-      await repo.writeRef(`refs/heads/${ref}`, oid)
-    } catch {
-      throw err
+      
+      // Try to resolve the default branch
+      try {
+        oid = await repo.resolveRef(`refs/heads/${defaultBranch}`)
+        // Set HEAD to point to the default branch
+        await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${defaultBranch}`)
+      } catch {
+        // Default branch doesn't exist - try to list branches and use the first one
+        try {
+          const { listRefs } = await import('../git/refs/listRefs.ts')
+          const branches = await listRefs({ fs, gitdir: worktreeGitdir, filepath: 'refs/heads' })
+          if (branches.length > 0) {
+            // Use the first branch
+            const firstBranch = branches[0].replace('refs/heads/', '')
+            oid = await repo.resolveRef(`refs/heads/${firstBranch}`)
+            // Set HEAD to point to the first branch
+            await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${firstBranch}`)
+          } else {
+            // No branches exist, can't checkout HEAD
+            throw err
+          }
+        } catch {
+          // Can't find any branches, re-throw original error
+          throw err
+        }
+      }
+    } else {
+      // If `ref` doesn't exist, try to create a new remote tracking branch
+      const remoteRef = `${remote}/${ref}`
+      try {
+        oid = await repo.resolveRef(remoteRef)
+        if (track) {
+          // Set up remote tracking branch
+          const { ConfigAccess } = await import('../utils/configAccess.ts')
+          const configAccess = new ConfigAccess(fs, worktreeGitdir)
+          await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
+          await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')
+        }
+        // Create a new branch that points at that same commit
+        await repo.writeRef(`refs/heads/${ref}`, oid)
+      } catch {
+        throw err
+      }
     }
   }
 

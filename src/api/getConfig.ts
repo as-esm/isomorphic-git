@@ -1,4 +1,4 @@
-import { _getConfig } from "../commands/getConfig.ts"
+import { Repository } from "../core-utils/Repository.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { withErrorCaller } from "../utils/errorHandler.ts"
@@ -17,11 +17,13 @@ export const getConfig = withErrorCaller(
     dir,
     gitdir = dir ? join(dir, '.git') : undefined,
     path,
+    cache = {},
   }: {
     fs: FsClient
     dir?: string
     gitdir?: string
     path: string
+    cache?: Record<string, unknown>
   }): Promise<unknown> => {
     assertParameter('fs', fs)
     if (!gitdir) {
@@ -30,11 +32,11 @@ export const getConfig = withErrorCaller(
     assertParameter('gitdir', gitdir)
     assertParameter('path', path)
 
-    return await _getConfig({
-      fs,
-      gitdir,
-      path,
-    })
+    // CRITICAL: Use Repository to ensure state consistency
+    // This ensures that setConfig() and getConfig() use the same UnifiedConfigService instance
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    const config = await repo.getConfig()
+    return config.get(path)
   },
   'git.getConfig'
 )

@@ -1,4 +1,4 @@
-import { ConfigAccess } from "../utils/configAccess.ts"
+import { Repository } from "../core-utils/Repository.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { withErrorCaller } from "../utils/errorHandler.ts"
@@ -26,11 +26,13 @@ export const getConfigAll = withErrorCaller(
     dir,
     gitdir = dir ? join(dir, '.git') : undefined,
     path,
+    cache = {},
   }: {
     fs: FsClient
     dir?: string
     gitdir?: string
     path: string
+    cache?: Record<string, unknown>
   }): Promise<Array<any>> => {
     assertParameter('fs', fs)
     if (!gitdir) {
@@ -39,8 +41,11 @@ export const getConfigAll = withErrorCaller(
     assertParameter('gitdir', gitdir)
     assertParameter('path', path)
 
-    const configAccess = new ConfigAccess(fs, gitdir)
-    const values = await configAccess.getAllConfigValues(path)
+    // CRITICAL: Use Repository to ensure state consistency
+    // This ensures that setConfig() and getConfigAll() use the same UnifiedConfigService instance
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    const config = await repo.getConfig()
+    const values = await config.getAll(path)
     return values.map(v => v.value)
   },
   'git.getConfigAll'

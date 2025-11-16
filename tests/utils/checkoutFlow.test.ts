@@ -9,6 +9,7 @@ import {
 } from 'isomorphic-git'
 import { makeFixture } from '../helpers/fixture.ts'
 import { analyzeCheckout, executeCheckout } from '../../src/core-utils/filesystem/WorkdirManager.ts'
+import { normalizeFs } from '../../src/utils/normalizeFs.ts'
 
 describe('checkout flow', () => {
   const addUserConfig = async (fs: any, dir: string, gitdir: string) => {
@@ -20,27 +21,39 @@ describe('checkout flow', () => {
     const { fs, dir, gitdir } = await makeFixture('test-stash')
     await addUserConfig(fs, dir, gitdir)
     
-    // Get original content
-    const originalContent = await fs.read(`${dir}/a.txt`)
+    // CRITICAL: Create Repository instance once and use it for everything
+    // This ensures the same fs instance is used throughout the test
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const cache = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
     
-    // Make changes to file
-    await fs.write(`${dir}/a.txt`, 'modified content')
+    // CRITICAL: Use normalizeFs to ensure we're using the same fs instance as the Repository
+    // This ensures that writes from checkout are visible to reads in the test
+    const normalizedFs = normalizeFs(fs)
     
-    // Verify file is modified
-    const modifiedContent = await fs.read(`${dir}/a.txt`)
+    // Get original content - use normalized fs to match checkout's fs
+    const originalContent = await normalizedFs.read(`${dir}/a.txt`)
+    
+    // Make changes to file using normalized fs
+    await normalizedFs.write(`${dir}/a.txt`, 'modified content')
+    
+    // Verify file is modified using normalized fs
+    const modifiedContent = await normalizedFs.read(`${dir}/a.txt`)
     assert.strictEqual(modifiedContent.toString(), 'modified content')
     
-    // Checkout with force should restore to HEAD
+    // Checkout with force should restore to HEAD - pass repo to ensure fs consistency
     await checkout({
-      fs,
+      repo, // Pass Repository instance to ensure same fs instance
+      fs,   // Still pass for backward compatibility
       dir,
       gitdir,
       ref: 'HEAD',
       force: true,
+      cache,
     })
     
-    // Verify file is restored
-    const restoredContent = await fs.read(`${dir}/a.txt`)
+    // Verify file is restored - use normalized fs to match checkout's fs
+    const restoredContent = await normalizedFs.read(`${dir}/a.txt`)
     assert.strictEqual(restoredContent.toString(), originalContent.toString())
   })
 
@@ -60,6 +73,12 @@ describe('checkout flow', () => {
     // Make changes to file
     await fs.write(`${dir}/a.txt`, 'modified content')
     
+    // Read the index first, then pass it to analyzeCheckout
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const cache = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false)
+    
     // Analyze checkout - should detect the change
     const operations = await analyzeCheckout({
       fs,
@@ -67,6 +86,8 @@ describe('checkout flow', () => {
       gitdir,
       treeOid,
       force: true,
+      cache,
+      index, // Pass the index object
     })
     
     // Should have an update operation for a.txt
@@ -93,6 +114,12 @@ describe('checkout flow', () => {
     // Make changes to file
     await fs.write(`${dir}/a.txt`, 'modified content')
     
+    // Read the index first, then pass it to analyzeCheckout and executeCheckout
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const cache = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    const index = await repo.readIndexDirect(false)
+    
     // Analyze and execute checkout
     const operations = await analyzeCheckout({
       fs,
@@ -100,10 +127,13 @@ describe('checkout flow', () => {
       gitdir,
       treeOid,
       force: true,
+      cache,
+      index, // Pass the index object
     })
     
     await executeCheckout({
       fs,
+      index, // Pass the index object
       dir,
       gitdir,
       operations,
@@ -118,19 +148,27 @@ describe('checkout flow', () => {
     const { fs, dir, gitdir } = await makeFixture('test-stash')
     await addUserConfig(fs, dir, gitdir)
     
-    // Use a shared cache
+    // CRITICAL: Create Repository instance once and use it for everything
+    // This ensures the same fs instance is used throughout the test
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
     const cache = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
     
-    // Get original content
-    const originalContent = await fs.read(`${dir}/a.txt`)
+    // CRITICAL: Use normalizeFs to ensure we're using the same fs instance as the Repository
+    // This ensures that writes from checkout are visible to reads in the test
+    const normalizedFs = normalizeFs(fs)
     
-    // Make changes and stage them
-    await fs.write(`${dir}/a.txt`, 'staged changes')
+    // Get original content - use normalized fs to match checkout's fs
+    const originalContent = await normalizedFs.read(`${dir}/a.txt`)
+    
+    // Make changes and stage them using normalized fs
+    await normalizedFs.write(`${dir}/a.txt`, 'staged changes')
     await add({ fs, dir, gitdir, filepath: 'a.txt', cache })
     
-    // Now checkout with force should restore to HEAD
+    // Now checkout with force should restore to HEAD - pass repo to ensure fs consistency
     await checkout({
-      fs,
+      repo, // Pass Repository instance to ensure same fs instance
+      fs,   // Still pass for backward compatibility
       dir,
       gitdir,
       ref: 'HEAD',
@@ -138,8 +176,8 @@ describe('checkout flow', () => {
       cache,
     })
     
-    // Verify file is restored
-    const restoredContent = await fs.read(`${dir}/a.txt`)
+    // Verify file is restored - use normalized fs to match checkout's fs
+    const restoredContent = await normalizedFs.read(`${dir}/a.txt`)
     assert.strictEqual(restoredContent.toString(), originalContent.toString())
     
     // Verify status shows file is unmodified

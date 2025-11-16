@@ -221,6 +221,10 @@ export async function statusMatrix({
       effectiveGitdir = gitdir
     }
     
+    // Capture fs and dir for use in map function
+    const fs = repo.fs
+    const effectiveDir = dir
+    
     return await _walk({
       repo,
       trees: [TREE({ ref }), WORKDIR(), STAGE()],
@@ -230,7 +234,7 @@ export async function statusMatrix({
           if (!shouldIgnore) {
             const isIgnored = await GitIgnoreManager.isIgnored({
               fs,
-              dir,
+              dir: effectiveDir,
               filepath,
             })
             if (isIgnored) {

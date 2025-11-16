@@ -52,6 +52,7 @@ export async function merge({
   cache = {},
   allowUnrelatedHistories = false,
   mergeDriver,
+  autoDetectConfig = true,
 }: {
   repo?: Repository
   fs?: FsClient
@@ -76,6 +77,7 @@ export async function merge({
     contents: [string, string, string]
     path: string
   }) => { cleanMerge: boolean; mergedText: string }
+  autoDetectConfig?: boolean
 }): Promise<MergeResult> {
   try {
     // Create Repository if not provided (backward compatibility)
@@ -89,31 +91,28 @@ export async function merge({
       // For bare repos, we might only have gitdir, not dir
       if (dir) {
         // Create Repository from working directory
-        repo = await Repository.open({ fs, dir, cache, autoDetectConfig: true })
+        repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig })
       } else if (gitdir) {
         // For bare repos, create Repository with gitdir as the base
         // Repository.open expects a dir, so we'll use gitdir and let it detect it's bare
-        repo = await Repository.open({ fs, dir: gitdir, cache, autoDetectConfig: true })
+        repo = await Repository.open({ fs, dir: gitdir, gitdir, cache, autoDetectConfig })
       } else {
         throw new Error('Either repo, dir, or gitdir must be provided')
       }
     }
 
-    const finalGitdir = await repo.getGitdir()
-    const finalFs = repo.fs
-
     if (signingKey) {
       assertParameter('onSign', onSign)
     }
 
-    const author = await normalizeAuthorObject({ fs: finalFs, gitdir: finalGitdir, author: _author })
+    // CRITICAL: Use repo's config service to ensure state consistency
+    const author = await normalizeAuthorObject({ repo, author: _author })
     if (!author && (!fastForwardOnly || !fastForward)) {
       throw new MissingNameError('author')
     }
 
     const committer = await normalizeCommitterObject({
-      fs: finalFs,
-      gitdir: finalGitdir,
+      repo,
       author,
       committer: _committer,
     })

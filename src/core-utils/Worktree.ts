@@ -166,7 +166,36 @@ export class Worktree {
 
     // Update HEAD in worktree's gitdir (not main repo's HEAD)
     if (!noUpdateHead) {
-      await this.repo.writeRef('HEAD', oid)
+      // Special case: if ref is 'HEAD', preserve the current HEAD state
+      // (either symbolic or detached) since we're already on HEAD
+      if (ref === 'HEAD') {
+        // Check if HEAD is currently a symbolic ref
+        const { readSymbolicRef } = await import('../git/refs/readRef.ts')
+        try {
+          const symbolicTarget = await readSymbolicRef({ fs: this.repo.fs, gitdir, ref: 'HEAD' })
+          if (symbolicTarget) {
+            // HEAD is symbolic, preserve it
+            // No need to update since we're already on HEAD
+          } else {
+            // HEAD is detached or doesn't exist, set it to the OID
+            await this.repo.writeRef('HEAD', oid)
+          }
+        } catch {
+          // HEAD doesn't exist, set it to the OID
+          await this.repo.writeRef('HEAD', oid)
+        }
+      } else {
+        // If ref is a branch name (not a full ref path and not a tag), set HEAD as symbolic ref
+        // Otherwise, set HEAD as detached (direct OID)
+        const isBranchRef = ref && !ref.startsWith('refs/') && !ref.match(/^[0-9a-f]{40}$/)
+        if (isBranchRef) {
+          // Set HEAD as symbolic ref pointing to the branch
+          await this.repo.writeSymbolicRefDirect('HEAD', `refs/heads/${ref}`)
+        } else {
+          // For tags, full refs, or OIDs, set HEAD as detached (direct OID)
+          await this.repo.writeRef('HEAD', oid)
+        }
+      }
     }
 
     // Update working directory and index

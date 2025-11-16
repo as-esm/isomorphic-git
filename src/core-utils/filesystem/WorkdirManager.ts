@@ -13,7 +13,7 @@ import { normalizeFs } from "../../utils/normalizeFs.ts"
 import type { FsClient } from "../../models/FileSystem.ts"
 import type { ProgressCallback } from "../../managers/GitRemoteHTTP.ts"
 
-type CheckoutOperation = ['create' | 'update' | 'delete' | 'delete-index' | 'mkdir' | 'conflict', string, ...unknown[]]
+type CheckoutOperation = ['create' | 'update' | 'delete' | 'delete-index' | 'mkdir' | 'conflict' | 'keep', string, ...unknown[]]
 
 /**
  * Analyzes what changes are needed to checkout a tree to the working directory
@@ -27,6 +27,7 @@ export const analyzeCheckout = async ({
   force = false,
   sparsePatterns,
   cache = {},
+  index: gitIndex, // NEW: Accept the index object passed from checkout
 }: {
   fs: FsClient
   dir: string
@@ -36,24 +37,42 @@ export const analyzeCheckout = async ({
   force?: boolean
   sparsePatterns?: string[]
   cache?: Record<string, unknown>
+  index: import('../git/index/GitIndex.ts').GitIndex // NEW: Index object parameter
 }): Promise<CheckoutOperation[]> => {
-  // Read the tree
-  const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: treeOid })
-  const treeEntries = parseTree(treeObject as Buffer)
-
-  // CRITICAL: Pass gitdir to Repository.open() to ensure we get the same Repository instance
-  // as other operations like add() and status(). This ensures index state consistency.
+  // CRITICAL: Use the Repository's fs (which is already normalized) for all file operations
+  // This ensures we're using the exact same fs instance that the Repository uses
+  // Get the Repository instance to access normalized fs
   const { Repository } = await import('../Repository.ts')
   const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
-  const gitIndex = await repo.readIndexDirect(false) // Force fresh read
-  const indexVersion = (gitIndex as { _version?: number })._version || 2
-  const index: IndexObject = {
-    entries: gitIndex.entriesMap,
-    unmergedPaths: gitIndex.unmergedPaths,
-    version: indexVersion,
+  const normalizedFs = repo.fs
+  
+  // Helper to recursively walk tree and build a map of all entries
+  const buildTreeMap = async (treeOid: string, prefix = '', map: Map<string, { oid: string; mode: string; type: 'blob' | 'tree' }> = new Map()): Promise<Map<string, { oid: string; mode: string; type: 'blob' | 'tree' }>> => {
+    const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: treeOid })
+    const entries = parseTree(treeObject as Buffer)
+
+    for (const entry of entries) {
+      const filepath = prefix ? `${prefix}/${entry.path}` : entry.path
+      
+      // Filter by filepaths if specified
+      if (filepaths && !filepaths.some(fp => filepath.startsWith(fp) || fp.startsWith(filepath))) {
+        continue
+      }
+
+      if (entry.type === 'tree') {
+        map.set(filepath, { oid: entry.oid, mode: entry.mode, type: 'tree' })
+        // Recursively walk subdirectory
+        await buildTreeMap(entry.oid, filepath, map)
+      } else if (entry.type === 'blob') {
+        map.set(filepath, { oid: entry.oid, mode: entry.mode, type: 'blob' })
+      }
+    }
+    
+    return map
   }
 
-  const operations: CheckoutOperation[] = []
+  // Build map of all entries in the target tree
+  const targetTreeEntries = await buildTreeMap(treeOid)
 
   // Check sparse checkout patterns
   let shouldCheckSparse = false
@@ -81,198 +100,158 @@ export const analyzeCheckout = async ({
     }
   }
 
-  // Helper to recursively walk tree
-  const walkTree = async (treeOid: string, prefix = ''): Promise<void> => {
-    const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: treeOid })
-    const entries = parseTree(treeObject as Buffer)
+  const operations: CheckoutOperation[] = []
+  const filesToKeep = new Set<string>()
 
-    for (const entry of entries) {
-      const filepath = prefix ? `${prefix}/${entry.path}` : entry.path
+  // Get all paths from both the target tree AND the current index
+  const allPaths = new Set([...targetTreeEntries.keys(), ...gitIndex.entriesMap.keys()])
 
-      // Filter by filepaths if specified
-      if (filepaths && !filepaths.some(fp => filepath.startsWith(fp) || fp.startsWith(filepath))) {
-        continue
+  // Process each path to determine if it should exist in the final state
+  for (const filepath of allPaths) {
+    const targetEntry = targetTreeEntries.get(filepath)
+    const indexEntry = gitIndex.entriesMap.get(filepath)
+
+    // Determine if this file should exist in the final state (matches sparse patterns)
+    const matchesSparse = shouldCheckSparse && finalSparsePatterns
+      ? SparseCheckoutManager.match({ filepath, patterns: finalSparsePatterns, coneMode })
+      : true
+
+
+    if (targetEntry && targetEntry.type === 'blob' && matchesSparse) {
+      // File should exist in the final state - mark it to keep
+      filesToKeep.add(filepath)
+      
+      const workdirPath = join(dir, filepath)
+      let workdirExists = false
+      try {
+        const stat = await normalizedFs.lstat(workdirPath)
+        if (stat && !(stat as any).isDirectory()) {
+          workdirExists = true
+        }
+      } catch {
+        // File doesn't exist
       }
 
-      // Check sparse checkout
-      if (shouldCheckSparse && finalSparsePatterns) {
-        const matches = SparseCheckoutManager.match({ 
-          filepath, 
-          patterns: finalSparsePatterns,
-          coneMode 
-        })
-        if (!matches) {
-          // Skip this file, but mark it in index with skip-worktree
-          // For now, just skip
+      // Check if file needs to be created or updated
+      let needsUpdate = false
+      if (!workdirExists) {
+        needsUpdate = true
+      } else if (indexEntry) {
+        // File exists in both index and workdir - check if update needed
+        let indexOid: string | null = null
+        if (indexEntry.oid) {
+          indexOid = indexEntry.oid
+        } else if (indexEntry.stages && indexEntry.stages.length > 0) {
+          const stage0 = indexEntry.stages.find((s: any) => s && s.flags && s.flags.stage === 0)
+          if (stage0 && stage0.oid) {
+            indexOid = stage0.oid
+          } else if (indexEntry.stages[0] && indexEntry.stages[0].oid) {
+            indexOid = indexEntry.stages[0].oid
+          }
+        }
+        
+        let workdirOid: string | null = null
+        try {
+          const workdirContent = await normalizedFs.read(workdirPath)
+          const { hashObject } = await import('../ShaHasher.ts')
+          workdirOid = await hashObject({
+            type: 'blob',
+            content: workdirContent as Buffer | Uint8Array,
+          })
+        } catch {
+          workdirOid = null
+        }
+        
+        const indexMismatch = indexOid !== null && indexOid !== targetEntry.oid
+        const workdirMismatch = workdirOid !== null ? workdirOid !== targetEntry.oid : workdirExists
+        
+        if (force) {
+          needsUpdate = workdirMismatch || (workdirOid === null && workdirExists) || indexMismatch
+        } else {
+          if (indexMismatch || workdirMismatch) {
+            if (workdirOid !== null && workdirOid !== targetEntry.oid && (indexOid === null || workdirOid !== indexOid)) {
+              operations.push(['conflict', filepath])
+              continue
+            } else {
+              needsUpdate = true
+            }
+          }
+        }
+      } else {
+        // File in workdir but not in index
+        if (force) {
+          needsUpdate = true
+        } else {
+          operations.push(['conflict', filepath])
           continue
         }
       }
 
-      if (entry.type === 'tree') {
-        // Recursively walk subdirectory
-        await walkTree(entry.oid, filepath)
-      } else if (entry.type === 'blob') {
-        // Check if file exists in working directory
-        // Use normalizeFs to ensure consistent behavior across different fs implementations
-        const normalizedFs = normalizeFs(fs)
-        const workdirPath = join(dir, filepath)
-        let workdirExists = false
-        try {
-          // First check if it's a file (not a directory) using lstat
-          // This is more reliable than read() for existence checking
-          const stat = await normalizedFs.lstat(workdirPath)
-          if (stat && !(stat as any).isDirectory()) {
-            workdirExists = true
-          } else {
-            // It's a directory, not a file - treat as not existing for blob files
-            workdirExists = false
+      if (needsUpdate) {
+        operations.push(['update', filepath, targetEntry.oid, targetEntry.mode])
+      } else {
+        // File is already correct - mark it to keep with all necessary index entry info
+        // We need to pass the stats from the existing index entry so we can rebuild it
+        // CRITICAL: Always generate a 'keep' operation for files that match sparse patterns
+        // and don't need updates. This ensures they're added back to the index after clear().
+        if (indexEntry) {
+          // Get stats from the existing index entry
+          const stats = {
+            ctimeSeconds: indexEntry.ctimeSeconds || 0,
+            ctimeNanoseconds: indexEntry.ctimeNanoseconds || 0,
+            mtimeSeconds: indexEntry.mtimeSeconds || 0,
+            mtimeNanoseconds: indexEntry.mtimeNanoseconds || 0,
+            dev: indexEntry.dev || 0,
+            ino: indexEntry.ino || 0,
+            mode: indexEntry.mode || 0o100644,
+            uid: indexEntry.uid || 0,
+            gid: indexEntry.gid || 0,
+            size: indexEntry.size || 0,
           }
-        } catch (err: unknown) {
-          // File doesn't exist - lstat throws for missing files
-          workdirExists = false
+          // Use targetEntry.oid since that's what we want to keep (the file matches the target)
+          operations.push(['keep', filepath, targetEntry.oid, targetEntry.mode, stats])
+        } else {
+          // File is in target tree and matches sparse pattern, but not in index
+          // This means we need to add it, so use 'update' (which will create it)
+          operations.push(['update', filepath, targetEntry.oid, targetEntry.mode])
         }
-
-        // Check if file exists in index
-        const indexEntry = index.entries.get(filepath)
-
-        if (!indexEntry && !workdirExists) {
-          // New file - create it
-          operations.push(['create', filepath, entry.oid, entry.mode])
-        } else if (!indexEntry && workdirExists) {
-          // File in workdir but not in index
-          // When force=true, we should update it to match the target tree
-          // Use 'create' instead of 'update' to ensure the file is written even if it doesn't actually exist
-          // (workdirExists might be incorrectly true due to caching or fs implementation quirks)
-          if (force) {
-            operations.push(['create', filepath, entry.oid, entry.mode])
-          } else {
-            operations.push(['conflict', filepath])
-          }
-        } else if (indexEntry && !workdirExists) {
-          // File in index but not in workdir - restore it
-          operations.push(['create', filepath, entry.oid, entry.mode])
-        } else if (indexEntry && workdirExists) {
-          // File exists in both - check if update needed
-          // Extract index OID: use entry.oid if available, otherwise check stages
-          let indexOid: string | null = null
-          if (indexEntry.oid) {
-            indexOid = indexEntry.oid
-          } else if (indexEntry.stages && indexEntry.stages.length > 0) {
-            // For unmerged entries, use stage 0 (ours) if available
-            const stage0 = indexEntry.stages.find((s: any) => s && s.flags && s.flags.stage === 0)
-            if (stage0 && stage0.oid) {
-              indexOid = stage0.oid
-            } else if (indexEntry.stages[0] && indexEntry.stages[0].oid) {
-              indexOid = indexEntry.stages[0].oid
-            }
-          }
-          
-          // Check workdir OID to see if file needs to be updated
-          let workdirOid: string | null = null
-          try {
-            const workdirContent = await fs.read(workdirPath)
-            const { hashObject } = await import('../ShaHasher.ts')
-            workdirOid = await hashObject({
-              type: 'blob',
-              content: workdirContent as Buffer | Uint8Array,
-            })
-          } catch {
-            // File read failed, treat as needing update
-            workdirOid = null
-          }
-          
-          // Update if index OID doesn't match tree OID, or if workdir OID doesn't match tree OID
-          // When force is true, always update if workdir doesn't match tree (regardless of index)
-          // When force is false, check for conflicts between workdir and tree
-          // If indexOid is null, we can't compare, so check workdir only
-          const indexMismatch = indexOid !== null && indexOid !== entry.oid
-          // workdirMismatch: true if workdirOid exists and doesn't match tree, OR if workdirOid is null but file exists
-          // (null workdirOid means we couldn't compute it, so we should update to be safe)
-          const workdirMismatch = workdirOid !== null ? workdirOid !== entry.oid : workdirExists
-          
-          if (force) {
-            // Force mode: always update if workdir doesn't match tree (regardless of index state)
-            // This ensures files are restored to match the tree, even if index has been modified
-            // Also update if we couldn't compute workdirOid (workdirOid === null) but file exists
-            if (workdirMismatch) {
-              operations.push(['update', filepath, entry.oid, entry.mode])
-            } else if (indexMismatch) {
-              // Index doesn't match tree, but workdir does - still update to sync index
-              operations.push(['update', filepath, entry.oid, entry.mode])
-            }
-          } else {
-            // Non-force mode: check for conflicts
-            if (indexMismatch || workdirMismatch) {
-              if (workdirOid !== null && workdirOid !== entry.oid && (indexOid === null || workdirOid !== indexOid)) {
-                operations.push(['conflict', filepath])
-              } else {
-                operations.push(['update', filepath, entry.oid, entry.mode])
-              }
-            }
-          }
-        }
+      }
+    } else {
+      // File should NOT exist in the final state
+      if (indexEntry) {
+        operations.push(['delete-index', filepath])
+      }
+      // Check if file exists in workdir
+      const workdirPath = join(dir, filepath)
+      try {
+        await normalizedFs.lstat(workdirPath)
+        operations.push(['delete', filepath])
+      } catch {
+        // File doesn't exist in workdir, nothing to delete
       }
     }
   }
 
-  await walkTree(treeOid)
-
   // Also check for files in index that are not in the target tree (deletions)
-  // These need to be removed from both index and workdir
   // But only if force is true (otherwise we might conflict with workdir changes)
   if (force) {
-    const indexFilepaths = Array.from(index.entries.keys())
-    
-    for (const filepath of indexFilepaths) {
-      // Skip if we already processed this file in walkTree
+    for (const filepath of gitIndex.entriesMap.keys()) {
+      // Skip if we already processed this file
       if (operations.some(op => op[1] === filepath)) {
         continue
       }
 
       // Check if file exists in target tree
-      let existsInTree = false
-      try {
-        const { resolveFilepath } = await import('../../utils/resolveFilepath.ts')
-        await resolveFilepath({ fs, cache, gitdir, oid: treeOid, filepath })
-        existsInTree = true
-      } catch {
-        // File doesn't exist in tree
-      }
-
-      // If file is in index but not in target tree, remove it
-      if (!existsInTree) {
+      if (!targetTreeEntries.has(filepath)) {
         operations.push(['delete', filepath])
         operations.push(['delete-index', filepath])
       }
     }
   }
 
-  // If sparse checkout is enabled, remove files from index that don't match patterns
-  if (shouldCheckSparse && finalSparsePatterns) {
-    const filesToKeep = new Set<string>()
-    // Collect all filepaths that match sparse patterns
-    for (const op of operations) {
-      if (op[0] === 'create' || op[0] === 'update') {
-        filesToKeep.add(op[1] as string)
-      }
-    }
-    
-    // Remove index entries for files that don't match sparse patterns
-    for (const [filepath] of index.entries) {
-      if (!filesToKeep.has(filepath)) {
-        const matches = SparseCheckoutManager.match({ 
-          filepath, 
-          patterns: finalSparsePatterns,
-          coneMode 
-        })
-        if (!matches) {
-          // File doesn't match sparse patterns, remove from index
-          operations.push(['delete-index', filepath])
-        }
-      }
-    }
-  }
-
+  // Return operations along with filesToKeep information
+  // We'll encode filesToKeep as a special operation type so executeCheckout knows which files to keep
+  // Files that match sparse patterns but don't need updates should be kept
   return operations
 }
 
@@ -286,6 +265,7 @@ export const executeCheckout = async ({
   operations,
   cache = {},
   onProgress,
+  index: gitIndex, // NEW: Accept the index object passed from checkout
 }: {
   fs: FsClient
   dir: string
@@ -293,6 +273,7 @@ export const executeCheckout = async ({
   operations: CheckoutOperation[]
   cache?: Record<string, unknown>
   onProgress?: ProgressCallback
+  index: import('../git/index/GitIndex.ts').GitIndex // NEW: Index object parameter
 }): Promise<void> => {
   // Check for conflicts
   const conflicts = operations.filter(op => op[0] === 'conflict').map(op => op[1] as string)
@@ -300,38 +281,27 @@ export const executeCheckout = async ({
     throw new CheckoutConflictError(conflicts)
   }
 
-  // CRITICAL: Pass gitdir to Repository.open() to ensure we get the same Repository instance
-  // as other operations like add() and status(). This ensures index state consistency.
+  // CRITICAL: Use the Repository's fs (which is already normalized) for all file operations
+  // This ensures we're using the exact same fs instance that the Repository uses
+  // Get the Repository instance to access normalized fs
   const { Repository } = await import('../Repository.ts')
   const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
-  const gitIndex = await repo.readIndexDirect(false) // Force fresh read
+  const normalizedFs = repo.fs
+  
+  // --- START OF THE FIX ---
+  // Clear the in-memory index completely. We will rebuild it from scratch based only on operations.
+  gitIndex.clear()
   
   let count = 0
   const total = operations.length
 
-  // Delete files first
+  // Execute operations and rebuild the index from scratch
   for (const op of operations) {
-    if (op[0] === 'delete') {
-      const filepath = join(dir, op[1] as string)
-      try {
-        await fs.rm(filepath)
-      } catch {
-        // File might not exist
-      }
-      gitIndex.delete({ filepath: op[1] as string })
-      if (onProgress) {
-        await onProgress({ phase: 'Updating workdir', loaded: ++count, total })
-      }
-    } else if (op[0] === 'delete-index') {
-      gitIndex.delete({ filepath: op[1] as string })
-    }
-  }
+    const filepath = op[1] as string
 
-  // Create/update files
-  for (const op of operations) {
-    if (op[0] === 'create' || op[0] === 'update') {
-      const [, filepath, oid, mode] = op
-      const fullPath = join(dir, filepath as string)
+    if (op[0] === 'update' || op[0] === 'create') {
+      const [, , oid, mode] = op
+      const fullPath = join(dir, filepath)
       
       // Read the blob
       const { object: blobObject } = await ObjectReader.read({ fs, cache, gitdir, oid: oid as string })
@@ -339,24 +309,24 @@ export const executeCheckout = async ({
       // Ensure directory exists
       const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'))
       if (dirPath) {
-        await fs.mkdir(dirPath)
+        await normalizedFs.mkdir(dirPath)
       }
 
-      // Write the file
+      // Write the file using normalizedFs for consistency
       const modeNum = typeof mode === 'string' ? parseInt(mode, 8) : (mode as number)
       if (modeNum === 0o100644) {
-        await fs.write(fullPath, blobObject as Buffer)
+        await normalizedFs.write(fullPath, blobObject as Buffer)
       } else if (modeNum === 0o100755) {
-        await fs.write(fullPath, blobObject as Buffer, { mode: 0o777 })
+        await normalizedFs.write(fullPath, blobObject as Buffer, { mode: 0o777 })
       } else if (modeNum === 0o120000) {
-        await (fs as { writelink?: (path: string, target: Buffer) => Promise<void> }).writelink?.(
+        await (normalizedFs as { writelink?: (path: string, target: Buffer) => Promise<void> }).writelink?.(
           fullPath,
           blobObject as Buffer
         )
       }
 
-      // Update index using GitIndex.insert() - this automatically marks as dirty
-      const stats = await fs.lstat(fullPath)
+      // Add the entry to our new, clean index
+      const stats = await normalizedFs.lstat(fullPath)
       gitIndex.insert({
         filepath: filepath as string,
         oid: oid as string,
@@ -367,14 +337,53 @@ export const executeCheckout = async ({
       if (onProgress) {
         await onProgress({ phase: 'Updating workdir', loaded: ++count, total })
       }
+    } else if (op[0] === 'keep') {
+      // File is already correct - add it to our new index
+      // Read stats from the workdir file to ensure they're current
+      const [, , oid] = op
+      const fullPath = join(dir, filepath)
+      try {
+        const stats = await normalizedFs.lstat(fullPath)
+        gitIndex.insert({
+          filepath: filepath as string,
+          oid: oid as string,
+          stats,
+          stage: 0,
+        })
+      } catch {
+        // File doesn't exist in workdir, but we have stats from the operation
+        // Use the stats from the operation as fallback
+        const [, , , , stats] = op
+        gitIndex.insert({
+          filepath: filepath as string,
+          oid: oid as string,
+          stats: stats as any,
+          stage: 0,
+        })
+      }
+    } else if (op[0] === 'delete' || op[0] === 'delete-index') {
+      // For deletions, we simply do nothing to the index, because we already cleared it.
+      // We only need to remove the file from the workdir if it's a 'delete' op.
+      if (op[0] === 'delete') {
+        const fullPath = join(dir, filepath)
+        try {
+          await normalizedFs.rm(fullPath)
+        } catch {
+          // File might not exist
+        }
+        if (onProgress) {
+          await onProgress({ phase: 'Updating workdir', loaded: ++count, total })
+        }
+      }
     } else if (op[0] === 'mkdir') {
-      const fullPath = join(dir, op[1] as string)
-      await fs.mkdir(fullPath)
+      const fullPath = join(dir, filepath)
+      await normalizedFs.mkdir(fullPath)
     }
   }
   
-  // Write the index using Repository.writeIndexDirect() to ensure cache consistency
-  await repo.writeIndexDirect(gitIndex)
+  // No final cleanup loop is needed. The index is now perfectly correct.
+  // The checkout() function will write this perfectly constructed index to disk.
+  // --- END OF THE FIX ---
 }
 
 /**
@@ -398,30 +407,48 @@ export const getFileStatus = async ({
   if (!dir) {
     throw new Error('Cannot get file status in bare repository')
   }
+  // CRITICAL: Use repo.getGitdir() directly - this is the same gitdir used by checkout
+  // worktree.getGitdir() may return a different path for linked worktrees, but for the main
+  // worktree it should be the same. However, since checkout uses repo.getGitdir(), we should
+  // use the same to ensure consistency.
   const gitdir = await repo.getGitdir()
   const cache = repo.cache
 
   // Get HEAD tree
   let headTreeOid: string | null = null
   try {
-    // Use direct resolveRef() for consistency
-    const { resolveRef } = await import('../../git/refs/readRef.ts')
-    const headOid = await resolveRef({ fs, gitdir, ref: 'HEAD' })
+    // Use repo.resolveRef() to ensure we use the same gitdir as checkout
+    const headOid = await repo.resolveRef('HEAD')
     const { object: commitObject } = await ObjectReader.read({ fs, cache, gitdir, oid: headOid })
     const commit = parseCommit(commitObject as Buffer | string)
     headTreeOid = commit.tree
-  } catch {
+  } catch (err) {
     // No HEAD commit
+    headTreeOid = null
   }
 
   // Get file from HEAD tree
+  // CRITICAL: Use resolveFilepath to recursively find files in the tree
+  // parseTree only parses the root tree, so nested files won't be found
+  // For files in the root, we can use parseTree for efficiency
   let headOid: string | null = null
   if (headTreeOid) {
-    const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: headTreeOid })
-    const treeEntries = parseTree(treeObject as Buffer)
-    const entry = treeEntries.find(e => e.path === filepath)
-    if (entry) {
-      headOid = entry.oid
+    try {
+      // First try parseTree for root-level files (more efficient)
+      const { object: treeObject } = await ObjectReader.read({ fs, cache, gitdir, oid: headTreeOid })
+      const treeEntries = parseTree(treeObject as Buffer)
+      const rootEntry = treeEntries.find(e => e.path === filepath)
+      if (rootEntry) {
+        headOid = rootEntry.oid
+      } else {
+        // File not in root, use resolveFilepath to search recursively
+        const { resolveFilepath } = await import('../../utils/resolveFilepath.ts')
+        // resolveFilepath returns the OID directly, not an object
+        headOid = await resolveFilepath({ fs, cache, gitdir, oid: headTreeOid, filepath })
+      }
+    } catch (err) {
+      // File doesn't exist in HEAD tree
+      headOid = null
     }
   }
 
@@ -503,11 +530,41 @@ export const checkout = async ({
   cache?: Record<string, unknown>
   onProgress?: ProgressCallback
 }): Promise<void> => {
-  // analyzeCheckout and executeCheckout both use GitIndexManager.acquire which locks per gitdir.
-  // Since each test has its own unique gitdir from makeFixture, parallel tests are isolated.
-  // The lock ensures that operations on the same gitdir are serialized.
-  const operations = await analyzeCheckout({ fs, dir, gitdir, treeOid, filepaths, force, sparsePatterns, cache })
-  await executeCheckout({ fs, dir, gitdir, operations, cache, onProgress })
+  // CRITICAL: Use Repository to get a consistent context and access to the index.
+  // Read the index ONCE and pass it to both analyzeCheckout and executeCheckout.
+  // This ensures both functions operate on the same index object, and changes made
+  // by executeCheckout are persisted when we write it back.
+  const { Repository } = await import('../Repository.ts')
+  const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+  const gitIndex = await repo.readIndexDirect(false) // Force fresh read
+  
+  // Analyze the checkout. Pass the live index object to it.
+  const operations = await analyzeCheckout({ 
+    fs, 
+    dir, 
+    gitdir: await repo.getGitdir(), 
+    treeOid, 
+    filepaths, 
+    force, 
+    sparsePatterns, 
+    cache,
+    index: gitIndex, // Pass the live index object
+  })
+
+  // Execute the checkout. Pass the live index object to it as well.
+  await executeCheckout({ 
+    fs, 
+    dir, 
+    gitdir: await repo.getGitdir(), 
+    operations, 
+    index: gitIndex, // Pass the live index object
+    cache, 
+    onProgress,
+  })
+  
+  // Write the modified index back to disk. This ensures listFiles() and other operations
+  // see the updated state after the checkout.
+  await repo.writeIndexDirect(gitIndex)
 }
 
 /**

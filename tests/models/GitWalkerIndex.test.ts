@@ -31,14 +31,15 @@ describe('GitWalkerIndex', () => {
     assert.strictEqual(bStatus, 'modified', `Expected 'modified', got '${bStatus}'`)
     
     // Create STAGE walker and check what it sees
+    // CRITICAL: Create Repository instance to pass to _walk
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    
     const stageWalker = STAGE()
     const entries: Array<{ filepath: string; headOid: string | null; stageOid: string | null }> = []
     
     await _walk({
-      fs,
-      cache, // Same cache used by add()
-      dir,
-      gitdir,
+      repo, // Pass Repository instance
       trees: [TREE({ ref: 'HEAD' }), stageWalker],
       map: async (filepath: string, [head, stage]: any[]) => {
         if (stage) {
@@ -70,6 +71,10 @@ describe('GitWalkerIndex', () => {
     // Use a shared cache
     const cache = {}
     
+    // CRITICAL: Create Repository instance to pass to _walk
+    const { Repository } = await import('../../src/core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
+    
     // Create STAGE walker BEFORE staging changes
     const stageWalker = STAGE()
     
@@ -86,10 +91,7 @@ describe('GitWalkerIndex', () => {
     const entries: Array<{ filepath: string; headOid: string | null; stageOid: string | null }> = []
     
     await _walk({
-      fs,
-      cache, // Same cache
-      dir,
-      gitdir,
+      repo, // Pass Repository instance
       trees: [TREE({ ref: 'HEAD' }), stageWalker],
       map: async (filepath: string, [head, stage]: any[]) => {
         if (stage) {

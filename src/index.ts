@@ -54,6 +54,7 @@ import { remove } from './api/remove.ts'
 import { removeNote } from './api/removeNote.ts'
 import { renameBranch } from './api/renameBranch.ts'
 import { resetIndex } from './api/resetIndex.ts'
+import { resetToCommit } from './api/reset.ts'
 import { resolveRef } from './api/resolveRef.ts'
 import { setConfig } from './api/setConfig.ts'
 import { sparseCheckout } from './api/sparseCheckout.ts'
@@ -130,6 +131,7 @@ export {
   removeNote,
   renameBranch,
   resetIndex,
+  resetToCommit,
   updateIndex,
   resolveRef,
   status,
@@ -206,6 +208,7 @@ export default {
   removeNote,
   renameBranch,
   resetIndex,
+  resetToCommit,
   updateIndex,
   resolveRef,
   status,

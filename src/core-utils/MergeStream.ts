@@ -62,8 +62,28 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
     
     // Start the merge process asynchronously
     // Store the promise so we can wait for it if needed
-    mergePromise = this.startMerge().catch((err: Error) => {
-      this.emit({ type: 'error', data: { error: err } }).catch(() => {})
+    mergePromise = this.startMerge().catch(async (err: Error) => {
+      // Check if it's a MergeConflictError - if so, emit as merge-conflict event
+      const isMergeConflictError = 
+        err instanceof MergeConflictError ||
+        (err as any)?.code === MergeConflictError.code ||
+        (err as any)?.code === 'MergeConflictError' ||
+        (err as any)?.name === 'MergeConflictError' ||
+        (Array.isArray((err as any)?.filepaths) || Array.isArray((err as any)?.data?.filepaths))
+      
+      if (isMergeConflictError) {
+        // Reconstruct to ensure it's recognized
+        const error = err as any
+        const mergeConflictError = new MergeConflictError(
+          error?.data?.filepaths || error?.filepaths || [],
+          error?.data?.bothModified || error?.bothModified || [],
+          error?.data?.deleteByUs || error?.deleteByUs || [],
+          error?.data?.deleteByTheirs || error?.deleteByTheirs || []
+        )
+        await this.emit({ type: 'merge-conflict', data: { error: mergeConflictError } }).catch(() => {})
+      } else {
+        await this.emit({ type: 'error', data: { error: err } }).catch(() => {})
+      }
       try {
         controller.close()
       } catch {
@@ -80,6 +100,11 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
       this.controller.enqueue(event)
       // Also record in state mutation stream for audit trail
       const mutationStream = getStateMutationStream()
+      // CRITICAL: Check if repo is defined before accessing it
+      if (!this.options?.repo) {
+        // Skip state mutation recording if repo is not available
+        return
+      }
       const gitdir = await this.options.repo.getGitdir()
       const { normalize } = await import('./GitPath.ts')
       const normalizedGitdir = normalize(gitdir)
@@ -91,12 +116,15 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
           data: { treeOid: event.data.treeOid, operation: 'merge' },
         })
       } else if (event.type === 'merge-conflict') {
+        // Safely extract filepaths from the error
+        const error = event.data.error as any
+        const filepaths = error?.data?.filepaths || error?.filepaths || []
         mutationStream.record({
           type: 'index-write',
           gitdir: normalizedGitdir,
           data: { 
             operation: 'merge-conflict',
-            conflictedFiles: event.data.error.data?.filepaths || [],
+            conflictedFiles: filepaths,
           },
         })
       }
@@ -107,6 +135,11 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
 
   private async startMerge(): Promise<void> {
     const { repo, index, ourOid, baseOid, theirOid } = this.options
+
+    // CRITICAL: Validate repo is defined
+    if (!repo) {
+      throw new Error('Repository instance is required for merge')
+    }
 
     // Emit start event
     await this.emit({
@@ -167,30 +200,60 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
         }
       } else {
         // Conflict - result is MergeConflictError
-        await this.emit({
-          type: 'merge-conflict',
-          data: { error: result },
-        })
+        // CRITICAL: Reconstruct the error to ensure it's recognized across module boundaries
+        const err = result as any
+        const mergeConflictError = new MergeConflictError(
+          err?.data?.filepaths || err?.filepaths || [],
+          err?.data?.bothModified || err?.bothModified || [],
+          err?.data?.deleteByUs || err?.deleteByUs || [],
+          err?.data?.deleteByTheirs || err?.deleteByTheirs || []
+        )
+        try {
+          await this.emit({
+            type: 'merge-conflict',
+            data: { error: mergeConflictError },
+          })
+        } catch (emitErr) {
+          // If emit fails, continue - we still need to throw the error
+        }
         try {
           this.controller.close()
         } catch {
           // Controller might already be closed
         }
-        throw result
+        // Throw the error - it should be caught by the outer catch or the .catch() handler
+        throw mergeConflictError
       }
     } catch (error) {
       // Handle any errors from mergeTree
-      if (error instanceof MergeConflictError) {
+      // CRITICAL: Check by code property first (more reliable across module boundaries)
+      const err = error as any
+      const isMergeConflictError = 
+        error instanceof MergeConflictError ||
+        err?.code === MergeConflictError.code ||
+        err?.code === 'MergeConflictError' ||
+        err?.name === 'MergeConflictError' ||
+        (Array.isArray(err?.filepaths) || Array.isArray(err?.data?.filepaths)) // MergeConflictError has filepaths array
+      
+      if (isMergeConflictError) {
+        // Reconstruct the error to ensure it's recognized across module boundaries
+        const err = error as any
+        const mergeConflictError = new MergeConflictError(
+          err?.data?.filepaths || err?.filepaths || [],
+          err?.data?.bothModified || err?.bothModified || [],
+          err?.data?.deleteByUs || err?.deleteByUs || [],
+          err?.data?.deleteByTheirs || err?.deleteByTheirs || []
+        )
         await this.emit({
           type: 'merge-conflict',
-          data: { error },
+          data: { error: mergeConflictError },
         })
         try {
           this.controller.close()
         } catch {
           // Controller might already be closed
         }
-        throw error
+        throw mergeConflictError
       } else {
         await this.emit({ type: 'error', data: { error: error as Error } })
         try {
@@ -207,7 +270,7 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
    * Helper method to consume the stream and return the result
    * This is a convenience method for simple use cases
    */
-  static async consume(stream: MergeStream): Promise<string | MergeConflictError> {
+  static async consume(stream: MergeStream): Promise<string> {
     const events: MergeStreamEvent[] = []
     let result: string | MergeConflictError | null = null
     let error: Error | null = null
@@ -240,19 +303,61 @@ export class MergeStream extends ReadableStream<MergeStreamEvent> {
       throw new Error('Merge stream did not produce a result')
     }
 
+    // Throw MergeConflictError if that's what we got
+    // CRITICAL: Check by code property as well (more reliable across module boundaries)
+    const isMergeConflictError = 
+      result instanceof MergeConflictError ||
+      (result as any)?.code === MergeConflictError.code ||
+      (result as any)?.code === 'MergeConflictError' ||
+      (result as any)?.name === 'MergeConflictError'
+    
+    if (isMergeConflictError) {
+      throw result
+    }
+
     return result
   }
 
   /**
    * Create a merge stream and consume it, returning the result
    * This is the simplest way to use the merge stream
+   * 
+   * When abortOnConflict is false, returns MergeConflictError instead of throwing it
+   * When abortOnConflict is true, throws MergeConflictError
    */
   static async execute(options: MergeStreamOptions): Promise<string | MergeConflictError> {
     const stream = new MergeStream(options)
     // Wait for the internal merge process to complete before consuming
     // This ensures all events are emitted before we start reading
     await (stream as any)._mergePromise
-    return MergeStream.consume(stream)
+    
+    // Use consume but catch MergeConflictError and return it if abortOnConflict is false
+    try {
+      return await MergeStream.consume(stream)
+    } catch (error) {
+      // CRITICAL: Check by code property first (more reliable across module boundaries)
+      // Also check for the error structure that mergeTree returns
+      const err = error as any
+      const isMergeConflictError = 
+        error instanceof MergeConflictError ||
+        err?.code === MergeConflictError.code ||
+        err?.code === 'MergeConflictError' ||
+        err?.name === 'MergeConflictError' ||
+        (Array.isArray(err?.filepaths) || Array.isArray(err?.data?.filepaths)) // MergeConflictError has filepaths array
+      
+      // If it's a MergeConflictError and abortOnConflict is false, return it instead of throwing
+      if (isMergeConflictError && options.abortOnConflict === false) {
+        // Reconstruct the error to ensure it's recognized across module boundaries
+        return new MergeConflictError(
+          err?.data?.filepaths || err?.filepaths || [],
+          err?.data?.bothModified || err?.bothModified || [],
+          err?.data?.deleteByUs || err?.deleteByUs || [],
+          err?.data?.deleteByTheirs || err?.deleteByTheirs || []
+        )
+      }
+      // Otherwise, re-throw
+      throw error
+    }
   }
 }
 

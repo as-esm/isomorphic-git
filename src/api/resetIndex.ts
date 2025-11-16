@@ -46,7 +46,13 @@ export async function resetIndex({
     assertParameter('gitdir', gitdir)
     assertParameter('filepath', filepath)
 
-    const fs = normalizeFs(_fs)
+    // CRITICAL: Use Repository to ensure consistency with other operations
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs: _fs, dir, gitdir, cache, autoDetectConfig: true })
+    
+    // CRITICAL: Use repo.fs (which is already normalized) for all file operations
+    // This ensures we're using the exact same fs instance that the Repository uses
+    const fs = repo.fs
 
     let oid: string | null
     let workdirOid: string | undefined
@@ -107,8 +113,6 @@ export async function resetIndex({
       }
     }
     // Use Repository.readIndexDirect() and writeIndexDirect() for consistency
-    const { Repository } = await import('../core-utils/Repository.ts')
-    const repo = await Repository.open({ fs: _fs, dir, cache, autoDetectConfig: true })
     const index = await repo.readIndexDirect(false) // Force fresh read
     
     index.delete({ filepath })

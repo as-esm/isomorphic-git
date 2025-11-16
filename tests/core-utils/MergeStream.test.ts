@@ -406,8 +406,9 @@ describe('MergeStream', () => {
     }
 
     let error: any = null
+    let result: any = null
     try {
-      await MergeStream.execute({
+      result = await MergeStream.execute({
         repo,
         index,
         ourOid: treeOids.ourTreeOid,
@@ -415,11 +416,15 @@ describe('MergeStream', () => {
         theirOid: treeOids.theirTreeOid,
         abortOnConflict: false,
       })
+      // When abortOnConflict is false, MergeStream.execute returns MergeConflictError instead of throwing
+      if (result instanceof Errors.MergeConflictError || result instanceof Errors.NotFoundError) {
+        error = result
+      }
     } catch (e) {
       error = e
     }
 
-    assert.notStrictEqual(error, null)
+    assert.notStrictEqual(error, null, 'Expected an error (MergeConflictError or NotFoundError) to be returned or thrown')
     // NOTE: The test-abortMerge fixture appears to be missing tree objects,
     // causing NotFoundError instead of MergeConflictError. The conflict detection
     // logic is correct (see other merge tests that successfully throw MergeConflictError).

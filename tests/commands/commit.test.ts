@@ -272,6 +272,8 @@ describe('commit', () => {
     // Setup
     const { fs, gitdir } = await makeFixture('test-commit')
     // Test
+    // Use autoDetectConfig: false to ensure no global/system config is read
+    // This makes the test hermetic and independent of the test environment
     let error = null
     try {
       await commit({
@@ -283,6 +285,7 @@ describe('commit', () => {
           timezoneOffset: 0,
         },
         message: 'Initial commit',
+        autoDetectConfig: false, // Disable auto-detection to ensure no user.name is found
       })
     } catch (err) {
       error = err
