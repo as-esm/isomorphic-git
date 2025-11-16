@@ -27,7 +27,7 @@
     "t": "node --experimental-strip-types --test --test-concurrency=0 tests/**/*test.ts 2>&1 | Select-String -Pattern \"Error|FAIL|✖|SyntaxError\"",
     "build": "nps build",
     "test": "node --experimental-strip-types --test --test-concurrency=0",
-    "test:coverage": "c8 node --experimental-strip-types --test --test-concurrency=0 tests/**/*.test.ts",
+    "test:coverage": "c8 node --experimental-strip-types --test --test-timeout=50000 --test-concurrency=0 tests/**/*.test.ts",
     "nps:test": "nps test",
     "jest": "$env:NODE_OPTIONS=\"--experimental-vm-modules\"; npx jest --ci --coverage",
     "publish-website": "nps website",

@@ -9,7 +9,7 @@
 import path from 'path'
 import fs from 'fs'
 import * as git from '../index.js'
-import { sparseCheckout } from '../src/api/sparseCheckout.ts'
+import { sparseCheckout } from '../src/commands/sparseCheckout.ts'
 import http from '../http/node/index.js'
 
 // Configuration

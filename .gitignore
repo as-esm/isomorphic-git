@@ -23,7 +23,8 @@
 /dist
 
 # Test run artifacts
-/coverage  # c8 test coverage reports
+/coverage  
+# c8 test coverage reports
 /junit
 /browser-tests.json
 /size_report.html

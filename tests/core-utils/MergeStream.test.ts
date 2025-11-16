@@ -60,7 +60,7 @@ describe('MergeStream', () => {
     const stagingArea = repo.stagingArea
     const index = await stagingArea.read()
 
-    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'master' })
+    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'main' })
     const theirCommitOid = await resolveRef({ fs, gitdir, ref: 'medium' })
     const baseOids = await findMergeBase({
       fs,
@@ -117,7 +117,7 @@ describe('MergeStream', () => {
     const stagingArea = repo.stagingArea
     const index = await stagingArea.read()
 
-    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'master' })
+    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'main' })
     const theirCommitOid = await resolveRef({ fs, gitdir, ref: 'medium' })
     const baseOids = await findMergeBase({
       fs,
@@ -174,7 +174,7 @@ describe('MergeStream', () => {
     const stagingArea = repo.stagingArea
     const index = await stagingArea.read()
 
-    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'master' })
+    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'main' })
     const theirCommitOid = await resolveRef({ fs, gitdir, ref: 'medium' })
     const baseOids = await findMergeBase({
       fs,
@@ -346,7 +346,7 @@ describe('MergeStream', () => {
     const stagingArea = repo.stagingArea
     const index = await stagingArea.read()
 
-    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'master' })
+    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'main' })
     const theirCommitOid = await resolveRef({ fs, gitdir, ref: 'medium' })
     const baseOids = await findMergeBase({
       fs,
@@ -441,7 +441,7 @@ describe('MergeStream', () => {
     const stagingArea = repo.stagingArea
     const index = await stagingArea.read()
 
-    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'master' })
+    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'main' })
     const theirCommitOid = await resolveRef({ fs, gitdir, ref: 'medium' })
     const baseOids = await findMergeBase({
       fs,
@@ -504,7 +504,7 @@ describe('MergeStream', () => {
     const stagingArea = repo.stagingArea
     const index = await stagingArea.read()
 
-    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'master' })
+    const ourCommitOid = await resolveRef({ fs, gitdir, ref: 'main' })
     const theirCommitOid = await resolveRef({ fs, gitdir, ref: 'medium' })
     const baseOids = await findMergeBase({
       fs,
