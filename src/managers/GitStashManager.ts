@@ -1,18 +1,34 @@
-import { _readCommit } from "../commands/readCommit.ts"
-import { _writeCommit } from '../commands/writeCommit.ts'
-import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
-import { MissingNameError } from '../errors/MissingNameError.ts'
-import { GitRefStash } from "../models/GitRefStash.ts"
 import { join } from "../utils/join.ts"
-import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
-import { acquireLock } from "../utils/walkerToTreeEntryMap.ts"
-import { normalizeFs } from "../utils/normalizeFs.ts"
+import {
+  refStash,
+  refLogsStash,
+  getStashRefPath,
+  getStashReflogsPath,
+  getStashAuthor,
+  getStashSHA,
+  writeStashCommit,
+  readStashCommit,
+  writeStashRef,
+  writeStashReflogEntry,
+  readStashReflogs,
+} from "../git/refs/stash.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type { Author } from "../models/GitCommit.ts"
 import type { Repository } from "../core-utils/Repository.ts"
 
-// GitRefManager import removed - using src/git/refs/ functions instead
-
+/**
+ * @deprecated This class is deprecated in favor of direct functions in `src/git/refs/stash.ts`.
+ * Use the following functions instead:
+ * - `getStashAuthor()` - Get author for stash operations
+ * - `getStashSHA()` - Get stash SHA by index
+ * - `writeStashCommit()` - Write stash commit
+ * - `readStashCommit()` - Read stash commit
+ * - `writeStashRef()` - Write stash ref
+ * - `writeStashReflogEntry()` - Write stash reflog entry
+ * - `readStashReflogs()` - Read stash reflogs
+ * 
+ * This class is maintained for backward compatibility and will be removed in a future version.
+ */
 export class GitStashManager {
   fs: FsClient
   dir: string
@@ -43,99 +59,70 @@ export class GitStashManager {
 
   /**
    * Gets the reference name for the stash.
+   * @deprecated Use `refStash` from `src/git/refs/stash.ts` instead
    */
   static get refStash(): string {
-    return 'refs/stash'
+    return refStash
   }
 
   /**
    * Gets the reference name for the stash reflogs.
+   * @deprecated Use `refLogsStash` from `src/git/refs/stash.ts` instead
    */
   static get refLogsStash(): string {
-    return 'logs/refs/stash'
+    return refLogsStash
   }
 
   /**
    * Gets the file path for the stash reference.
+   * @deprecated Use `getStashRefPath()` from `src/git/refs/stash.ts` instead
    */
   get refStashPath(): string {
-    return join(this.gitdir, GitStashManager.refStash)
+    return getStashRefPath(this.gitdir)
   }
 
   /**
    * Gets the file path for the stash reflogs.
+   * @deprecated Use `getStashReflogsPath()` from `src/git/refs/stash.ts` instead
    */
   get refLogsStashPath(): string {
-    return join(this.gitdir, GitStashManager.refLogsStash)
+    return getStashReflogsPath(this.gitdir)
   }
 
   /**
    * Retrieves the author information for the stash.
    * Uses Repository's config service to ensure state consistency.
+   * @deprecated Use `getStashAuthor()` from `src/git/refs/stash.ts` instead
    */
   async getAuthor(): Promise<Author> {
     if (!this._author) {
       if (!this.repo) {
         throw new Error('Repository instance is required for GitStashManager')
       }
-      
-      try {
-        // CRITICAL: Use the Repository's config service to ensure state consistency
-        // This ensures that setConfig() and getAuthor() use the same UnifiedConfigService instance
-        const author = await normalizeAuthorObject({ repo: this.repo, author: {} })
-        
-        if (!author) {
-          throw new MissingNameError('author')
-        }
-        this._author = author
-      } catch (err) {
-        // If normalizeAuthorObject throws NotFoundError (e.g., from getGitdir() or getConfig()),
-        // and the author is missing, we should throw MissingNameError instead
-        // This ensures the error type matches what the test expects (MissingNameError, not NotFoundError)
-        if (err instanceof MissingNameError) {
-          throw err
-        }
-        // If we get NotFoundError, it might be because getGitdir() or getConfig() failed
-        // But the test expects MissingNameError when author is missing
-        // So if we can't get the config, assume author is missing and throw MissingNameError
-        const { NotFoundError } = await import('../errors/NotFoundError.ts')
-        if (err instanceof NotFoundError) {
-          // If we can't access the config (due to NotFoundError), the author is effectively missing
-          // Throw MissingNameError to match the expected error type
-          throw new MissingNameError('author')
-        }
-        throw err
-      }
+      this._author = await getStashAuthor({ fs: this.fs, gitdir: this.gitdir, repo: this.repo })
     }
     return this._author
   }
 
   /**
    * Gets the SHA of a stash entry by its index.
+   * @deprecated Use `getStashSHA()` from `src/git/refs/stash.ts` instead
    */
   async getStashSHA(
     refIdx: number,
     stashEntries?: string[]
   ): Promise<string | null> {
-    const normalizedFs = normalizeFs(this.fs)
-    if (!(await normalizedFs.exists(this.refStashPath))) {
-      return null
-    }
-
-    const entries =
-      stashEntries || (await this.readStashReflogs({ parsed: false }))
-    if (refIdx >= entries.length) {
-      return null
-    }
-    const entry = entries[refIdx]
-    if (typeof entry === 'string') {
-      return entry.split(' ')[1]
-    }
-    return null
+    return getStashSHA({
+      fs: this.fs,
+      gitdir: this.gitdir,
+      refIdx,
+      stashEntries,
+    })
   }
 
   /**
    * Writes a stash commit to the repository.
+   * @deprecated Use `writeStashCommit()` from `src/git/refs/stash.ts` instead
    */
   async writeStashCommit({
     message,
@@ -146,21 +133,22 @@ export class GitStashManager {
     tree: string
     parent: string[]
   }): Promise<string> {
-    return _writeCommit({
+    if (!this.repo) {
+      throw new Error('Repository instance is required for GitStashManager.writeStashCommit')
+    }
+    return writeStashCommit({
       fs: this.fs,
       gitdir: this.gitdir,
-      commit: {
-        message,
-        tree,
-        parent,
-        author: await this.getAuthor(),
-        committer: await this.getAuthor(),
-      },
+      message,
+      tree,
+      parent,
+      repo: this.repo,
     })
   }
 
   /**
    * Reads a stash commit by its index.
+   * @deprecated Use `readStashCommit()` from `src/git/refs/stash.ts` instead
    */
   async readStashCommit(refIdx: number): Promise<{
     oid: string
@@ -173,47 +161,28 @@ export class GitStashManager {
       gpgsig?: string
     }
   } | Record<string, never>> {
-    const stashEntries = await this.readStashReflogs({ parsed: false })
-    if (refIdx !== 0) {
-      // non-default case, throw exceptions if not valid
-      if (refIdx < 0 || refIdx > stashEntries.length - 1) {
-        throw new InvalidRefNameError(
-          `stash@${refIdx}`,
-          'number that is in range of [0, num of stash pushed]'
-        )
-      }
-    }
-
-    const stashSHA = await this.getStashSHA(refIdx, stashEntries as string[])
-    if (!stashSHA) {
-      return {} // no stash found
-    }
-
-    // get the stash commit object
-    return _readCommit({
+    return readStashCommit({
       fs: this.fs,
-      cache: {},
       gitdir: this.gitdir,
-      oid: stashSHA,
+      refIdx,
     })
   }
 
   /**
    * Writes a stash reference to the repository.
+   * @deprecated Use `writeStashRef()` from `src/git/refs/stash.ts` instead
    */
   async writeStashRef(stashCommit: string): Promise<void> {
-    // Use direct writeRef() for consistency
-    const { writeRef } = await import('../git/refs/writeRef.ts')
-    return writeRef({
+    return writeStashRef({
       fs: this.fs,
       gitdir: this.gitdir,
-      ref: GitStashManager.refStash,
-      value: stashCommit,
+      stashCommit,
     })
   }
 
   /**
    * Writes a reflog entry for a stash commit.
+   * @deprecated Use `writeStashReflogEntry()` from `src/git/refs/stash.ts` instead
    */
   async writeStashReflogEntry({
     stashCommit,
@@ -222,49 +191,32 @@ export class GitStashManager {
     stashCommit: string
     message: string
   }): Promise<void> {
-    const author = await this.getAuthor()
-    const entry = GitRefStash.createStashReflogEntry(
-      author,
+    if (!this.repo) {
+      throw new Error('Repository instance is required for GitStashManager.writeStashReflogEntry')
+    }
+    return writeStashReflogEntry({
+      fs: this.fs,
+      gitdir: this.gitdir,
       stashCommit,
-      message
-    )
-    const filepath = this.refLogsStashPath
-    const normalizedFs = normalizeFs(this.fs)
-
-    await acquireLock({ filepath, entry }, async () => {
-      const appendTo = (await normalizedFs.exists(filepath))
-        ? await normalizedFs.read(filepath, { encoding: 'utf8' })
-        : ''
-      if (typeof appendTo === 'string') {
-        await normalizedFs.write(filepath, appendTo + entry, 'utf8')
-      }
+      message,
+      repo: this.repo,
     })
   }
 
   /**
    * Reads the stash reflogs.
+   * @deprecated Use `readStashReflogs()` from `src/git/refs/stash.ts` instead
    */
   async readStashReflogs({
     parsed = false,
   }: {
     parsed?: boolean
   }): Promise<string[] | Array<Record<string, unknown>>> {
-    const normalizedFs = normalizeFs(this.fs)
-    if (!(await normalizedFs.exists(this.refLogsStashPath))) {
-      return []
-    }
-
-    const reflogString = await normalizedFs.read(this.refLogsStashPath, { encoding: 'utf8' })
-    if (typeof reflogString !== 'string') {
-      return []
-    }
-
-    // If the reflog string is empty or only whitespace, return empty array
-    if (!reflogString.trim()) {
-      return []
-    }
-
-    return GitRefStash.getStashReflogEntry(reflogString, parsed)
+    return readStashReflogs({
+      fs: this.fs,
+      gitdir: this.gitdir,
+      parsed,
+    })
   }
 }
 

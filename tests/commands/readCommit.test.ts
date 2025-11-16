@@ -54,5 +54,17 @@ describe('readCommit', () => {
     assert.strictEqual(result.commit.author.name, 'William Hilton')
     assert.ok(result.commit.message)
   })
+  
+  it('peels tags', async () => {
+    // Setup
+    const { fs, gitdir } = await makeFixture('test-readCommit')
+    // Test
+    const result = await readCommit({
+      fs,
+      gitdir,
+      oid: '587d3f8290b513e2ee85ecd317e6efecd545aee6',
+    })
+    assert.strictEqual(result.oid, '033417ae18b174f078f2f44232cb7a374f4c60ce')
+  })
 })
 

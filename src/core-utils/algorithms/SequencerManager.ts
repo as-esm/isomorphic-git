@@ -41,15 +41,19 @@ export const readRebaseTodo = async ({
   const todoFile = join(rebaseDir, 'git-rebase-todo')
 
   try {
-    const content = (await fs.read(todoFile, 'utf8')) as string
+    const content = (await fs.read(todoFile, 'utf8')) as string | null
+    if (content === null) {
+      return []
+    }
     const lines = content.split('\n').filter(line => line.trim() && !line.startsWith('#'))
 
     return lines.map(line => {
-      const parts = line.trim().split(/\s+/, 3)
+      const trimmed = line.trim()
+      const parts = trimmed.split(/\s+/)
       return {
         action: parts[0] || 'pick',
         oid: parts[1] || '',
-        message: parts[2] || '',
+        message: parts.slice(2).join(' ') || '',
       }
     })
   } catch (err) {
@@ -94,7 +98,11 @@ export const readRebaseHead = async ({
   const headFile = join(rebaseDir, 'head-name')
 
   try {
-    return ((await fs.read(headFile, 'utf8')) as string).trim()
+    const content = (await fs.read(headFile, 'utf8')) as string | null
+    if (content === null) {
+      return null
+    }
+    return content.trim()
   } catch (err) {
     if ((err as { code?: string }).code === 'NOENT') {
       return null
@@ -117,7 +125,11 @@ export const readRebaseOnto = async ({
   const ontoFile = join(rebaseDir, 'onto')
 
   try {
-    return ((await fs.read(ontoFile, 'utf8')) as string).trim()
+    const content = (await fs.read(ontoFile, 'utf8')) as string | null
+    if (content === null) {
+      return null
+    }
+    return content.trim()
   } catch (err) {
     if ((err as { code?: string }).code === 'NOENT') {
       return null

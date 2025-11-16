@@ -23,7 +23,7 @@
 /dist
 
 # Test run artifacts
-/coverage
+/coverage  # c8 test coverage reports
 /junit
 /browser-tests.json
 /size_report.html
@@ -158,3 +158,5 @@ docs/writeTree.md
 
 # Archived planning documents
 .archive/
+
+.dump

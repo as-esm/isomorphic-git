@@ -10,4 +10,17 @@ export { readRef, resolveRef } from './readRef.ts'
 export { writeRef, writeSymbolicRef } from './writeRef.ts'
 export { listRefs } from './listRefs.ts'
 export { deleteRef, deleteRefs } from './deleteRef.ts'
+export {
+  refStash,
+  refLogsStash,
+  getStashRefPath,
+  getStashReflogsPath,
+  getStashAuthor,
+  getStashSHA,
+  writeStashCommit,
+  readStashCommit,
+  writeStashRef,
+  writeStashReflogEntry,
+  readStashReflogs,
+} from './stash.ts'
 

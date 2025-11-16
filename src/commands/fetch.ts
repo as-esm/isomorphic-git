@@ -8,18 +8,19 @@ import { getRemoteHelperFor } from "../git/remote/getRemoteHelper.ts"
 import { GitCommit } from "../models/GitCommit.ts"
 import { GitPackIndex } from "../models/GitPackIndex.ts"
 import { hasObject } from "../git/objects/hasObject.ts"
-import { _readObject as readObject } from "../storage/readObject.ts"
+import { readObject } from "../git/objects/readObject.ts"
 import { abbreviateRef } from "../utils/abbreviateRef.ts"
 import { collect } from "../utils/collect.ts"
 import { emptyPackfile } from "../utils/emptyPackfile.ts"
 import { filterCapabilities } from "../utils/filterCapabilities.ts"
 import { forAwait } from "../utils/forAwait.ts"
-import { join } from "../utils/join.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { pkg } from "../utils/pkg.ts"
 import { splitLines } from "../utils/splitLines.ts"
 import { parseUploadPackResponse } from "../wire/parseUploadPackResponse.ts"
 import { writeUploadPackRequest } from "../wire/writeUploadPackRequest.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
@@ -28,11 +29,125 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { MessageCallback } from '../api/push.ts'
-import type { FetchResult } from '../api/fetch.ts'
+
+// ============================================================================
+// FETCH TYPES
+// ============================================================================
 
 /**
- * Fetches commits from a remote repository
+ * Message callback for logging/status messages
+ */
+export type MessageCallback = (message: string) => void | Promise<void>
+
+/**
+ * Fetch operation result
+ */
+export type FetchResult = {
+  defaultBranch: string | null
+  fetchHead: string | null
+  fetchHeadDescription: string | null
+  headers?: Record<string, string>
+  pruned?: string[]
+  packfile?: string
+}
+
+/**
+ * Fetch commits from a remote repository
+ */
+export async function fetch({
+  fs: _fs,
+  http,
+  onProgress,
+  onMessage,
+  onAuth,
+  onAuthSuccess,
+  onAuthFailure,
+  dir,
+  gitdir = dir ? join(dir, '.git') : undefined,
+  ref,
+  remote,
+  remoteRef,
+  url,
+  corsProxy,
+  depth = null,
+  since = null,
+  exclude = [],
+  relative = false,
+  tags = false,
+  singleBranch = false,
+  headers = {},
+  prune = false,
+  pruneTags = false,
+  cache = {},
+}: {
+  fs: FsClient
+  http: HttpClient
+  onProgress?: ProgressCallback
+  onMessage?: MessageCallback
+  onAuth?: AuthCallback
+  onAuthSuccess?: AuthSuccessCallback
+  onAuthFailure?: AuthFailureCallback
+  dir?: string
+  gitdir?: string
+  ref?: string
+  remote?: string
+  remoteRef?: string
+  url?: string
+  corsProxy?: string
+  depth?: number | null
+  since?: Date | null
+  exclude?: string[]
+  relative?: boolean
+  tags?: boolean
+  singleBranch?: boolean
+  headers?: Record<string, string>
+  prune?: boolean
+  pruneTags?: boolean
+  cache?: Record<string, unknown>
+}): Promise<FetchResult> {
+  try {
+    assertParameter('fs', _fs)
+    assertParameter('http', http)
+    if (!gitdir) {
+      throw new Error('gitdir is required')
+    }
+    assertParameter('gitdir', gitdir)
+
+    const fs = normalizeFs(_fs)
+    return await _fetch({
+      fs,
+      cache,
+      http,
+      onProgress,
+      onMessage,
+      onAuth,
+      onAuthSuccess,
+      onAuthFailure,
+      gitdir,
+      ref,
+      remote,
+      remoteRef,
+      url,
+      corsProxy,
+      depth,
+      since,
+      exclude,
+      relative,
+      tags,
+      singleBranch,
+      headers,
+      prune,
+      pruneTags,
+    })
+  } catch (err) {
+    ;(err as { caller?: string }).caller = 'git.fetch'
+    throw err
+  }
+}
+
+/**
+ * Internal fetch implementation
+ * @internal - Exported for use by other commands (e.g., clone)
  */
 export async function _fetch({
   fs,

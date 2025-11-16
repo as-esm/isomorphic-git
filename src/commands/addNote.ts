@@ -1,6 +1,6 @@
 import { _commit } from './commit.ts'
-import { _readTree } from './readTree.ts'
-import { _writeTree } from './writeTree.ts'
+import { readTree } from './readTree.ts'
+import { writeTree } from './writeTree.ts'
 import { AlreadyExistsError } from "../errors/AlreadyExistsError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
 import { resolveRef } from "../git/refs/readRef.ts"
@@ -51,7 +51,7 @@ export async function _addNote({
   }
 
   // I'm using the "empty tree" magic number here for brevity
-  const result = await _readTree({
+  const result = await readTree({
     fs,
     cache,
     gitdir,
@@ -90,7 +90,7 @@ export async function _addNote({
 
   // Create the new note tree
   tree.push({ mode: '100644', path: oid, oid: noteOid, type: 'blob' })
-  const treeOid = await _writeTree({
+  const treeOid = await writeTree({
     fs,
     gitdir,
     tree,

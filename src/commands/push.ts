@@ -19,6 +19,9 @@ import { pkg } from "../utils/pkg.ts"
 import { splitLines } from "../utils/splitLines.ts"
 import { parseReceivePackResponse } from "../wire/parseReceivePackResponse.ts"
 import { writeReceivePackRequest } from "../wire/writeReceivePackRequest.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
+import { join } from "../utils/join.ts"
 import type { FsClient } from "../models/FileSystem.ts"
 import type {
   HttpClient,
@@ -27,12 +30,122 @@ import type {
   AuthFailureCallback,
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
-import type { MessageCallback, PrePushCallback, PushResult } from '../api/push.ts'
+import type { ClientRef } from "../git/refs/types.ts"
+import type { RefUpdateStatus } from "../git/refs/types.ts"
+
+// ============================================================================
+// PUSH TYPES
+// ============================================================================
 
 /**
- * Pushes commits to a remote repository
+ * Message callback for logging/status messages
  */
-export async function _push({
+export type MessageCallback = (message: string) => void | Promise<void>
+
+/**
+ * Pre-push hook parameters
+ */
+export type PrePushParams = {
+  remote: string // Expanded name of target remote
+  url: string // URL address of target remote
+  localRef: ClientRef // Ref which the client wants to push to the remote
+  remoteRef: ClientRef // Ref which is known by the remote
+}
+
+/**
+ * Pre-push callback
+ */
+export type PrePushCallback = (args: PrePushParams) => boolean | Promise<boolean>
+
+/**
+ * Push operation result
+ */
+export type PushResult = {
+  ok: boolean
+  refs: Record<string, RefUpdateStatus>
+  headers?: Record<string, string>
+}
+
+/**
+ * Push a branch or tag
+ */
+export async function push({
+  fs: _fs,
+  http,
+  onProgress,
+  onMessage,
+  onAuth,
+  onAuthSuccess,
+  onAuthFailure,
+  onPrePush,
+  dir,
+  gitdir = join(dir, '.git'),
+  ref,
+  remoteRef,
+  remote = 'origin',
+  url,
+  force = false,
+  delete: _delete = false,
+  corsProxy,
+  headers = {},
+  cache = {},
+}: {
+  fs: FsClient
+  http: HttpClient
+  onProgress?: ProgressCallback
+  onMessage?: MessageCallback
+  onAuth?: AuthCallback
+  onAuthSuccess?: AuthSuccessCallback
+  onAuthFailure?: AuthFailureCallback
+  onPrePush?: PrePushCallback
+  dir?: string
+  gitdir?: string
+  ref?: string
+  remoteRef?: string
+  remote?: string
+  url?: string
+  force?: boolean
+  delete?: boolean
+  corsProxy?: string
+  headers?: Record<string, string>
+  cache?: Record<string, unknown>
+}): Promise<PushResult> {
+  try {
+    assertParameter('fs', _fs)
+    assertParameter('http', http)
+    assertParameter('gitdir', gitdir)
+
+    const fs = normalizeFs(_fs)
+    return await _push({
+      fs,
+      cache,
+      http,
+      onProgress,
+      onMessage,
+      onAuth,
+      onAuthSuccess,
+      onAuthFailure,
+      onPrePush,
+      gitdir,
+      ref,
+      remoteRef,
+      remote,
+      url,
+      force,
+      delete: _delete,
+      corsProxy,
+      headers,
+    })
+  } catch (err) {
+    ;(err as { caller?: string }).caller = 'git.push'
+    throw err
+  }
+}
+
+/**
+ * Internal push implementation
+ */
+async function _push({
   fs,
   cache,
   http,

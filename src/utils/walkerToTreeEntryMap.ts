@@ -4,7 +4,7 @@ import { STAGE } from '../commands/STAGE.ts'
 import { TREE } from '../commands/TREE.ts'
 import { WORKDIR } from '../commands/WORKDIR.ts'
 import { _walk } from '../commands/walk.ts'
-import { _writeTree } from '../commands/writeTree.ts'
+import { writeTree } from '../commands/writeTree.ts'
 import { InternalError } from '../errors/InternalError.ts'
 import { NotFoundError } from '../errors/NotFoundError.ts'
 import { isIgnored as isIgnoredInternal } from "../git/info/isIgnored.ts"
@@ -163,7 +163,7 @@ async function processTreeEntries({
         }))
         
         // Write the tree with the processed children
-        entry.oid = await _writeTree({
+        entry.oid = await writeTree({
           fs,
           gitdir,
           tree: childrenTreeEntries,
@@ -537,7 +537,7 @@ export async function writeTreeChanges({
   }
 
   // Directly write the tree from these entries.
-  const finalTreeOid = await _writeTree({
+  const finalTreeOid = await writeTree({
     fs,
     gitdir: effectiveGitdir,
     tree: finalTreeEntries,

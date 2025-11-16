@@ -15,6 +15,8 @@ import { normalizeAuthorObject } from "../utils/normalizeAuthorObject.ts"
 import { normalizeCommitterObject } from "../utils/normalizeCommitterObject.ts"
 import { readObject } from "../git/objects/readObject.ts"
 import { Repository } from "../core-utils/Repository.ts"
+import { normalizeFs } from "../utils/normalizeFs.ts"
+import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import AsyncLock from 'async-lock'
 import type { FsClient } from "../models/FileSystem.ts"
@@ -24,7 +26,85 @@ import type { SignCallback } from "../core-utils/Signing.ts"
 let indexLock: AsyncLock | undefined
 
 /**
- * Commits changes to the repository
+ * Create a new commit
+ */
+export async function commit({
+  fs,
+  onSign,
+  dir,
+  gitdir = dir ? join(dir, '.git') : undefined,
+  message,
+  author,
+  committer,
+  signingKey,
+  amend = false,
+  dryRun = false,
+  noUpdateBranch = false,
+  ref,
+  parent,
+  tree,
+  cache = {},
+  autoDetectConfig = true,
+}: {
+  fs: FsClient
+  onSign?: SignCallback
+  dir?: string
+  gitdir?: string
+  message?: string
+  author?: Partial<Author>
+  committer?: Partial<Author>
+  signingKey?: string
+  amend?: boolean
+  dryRun?: boolean
+  noUpdateBranch?: boolean
+  ref?: string
+  parent?: string[]
+  tree?: string
+  cache?: Record<string, unknown>
+  autoDetectConfig?: boolean
+}): Promise<string> {
+  try {
+    assertParameter('fs', fs)
+    assertParameter('gitdir', gitdir!)
+    if (!amend) {
+      assertParameter('message', message)
+    }
+    if (signingKey) {
+      assertParameter('onSign', onSign)
+    }
+
+    // CRITICAL: Use Repository to ensure state consistency
+    // This ensures that add() and commit() use the same Repository instance and config service
+    const { Repository } = await import('../core-utils/Repository.ts')
+    const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig })
+    const effectiveGitdir = await repo.getGitdir()
+
+    return await _commit({
+      fs,
+      cache,
+      onSign,
+      gitdir: effectiveGitdir,
+      message,
+      author,
+      committer,
+      signingKey,
+      amend,
+      dryRun,
+      noUpdateBranch,
+      ref,
+      parent,
+      tree,
+      repo,
+    })
+  } catch (err) {
+    ;(err as { caller?: string }).caller = 'git.commit'
+    throw err
+  }
+}
+
+/**
+ * Internal commit implementation
+ * @internal - Exported for use by other commands (e.g., addNote, removeNote, merge)
  */
 export async function _commit({
   fs: _fs,

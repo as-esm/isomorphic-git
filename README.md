@@ -117,6 +117,212 @@ View the full [Getting Started guide](https://isomorphic-git.github.io/docs/quic
 
 Then check out the [Useful Snippets](https://isomorphic-git.org/docs/en/snippets) page, which includes even more sample code written by the community!
 
+## Common Git Operations
+
+Here are examples of the most common git operations you'll use:
+
+### Clone a Repository
+
+```js
+// Node.js
+const path = require('path')
+const git = require('isomorphic-git')
+const http = require('isomorphic-git/http/node')
+const fs = require('fs')
+
+const dir = path.join(process.cwd(), 'my-repo')
+await git.clone({
+  fs,
+  http,
+  dir,
+  url: 'https://github.com/user/repo.git',
+  corsProxy: 'https://cors.isomorphic-git.org' // Only needed for browser
+})
+```
+
+### Initialize a Repository
+
+```js
+await git.init({
+  fs,
+  dir: './my-project'
+})
+```
+
+### Add Files
+
+```js
+// Add a single file
+await git.add({
+  fs,
+  dir: './my-project',
+  filepath: 'file.txt'
+})
+
+// Add all files
+await git.add({
+  fs,
+  dir: './my-project',
+  filepath: '.'
+})
+```
+
+### Commit Changes
+
+```js
+await git.commit({
+  fs,
+  dir: './my-project',
+  message: 'Initial commit',
+  author: {
+    name: 'Your Name',
+    email: 'your.email@example.com'
+  }
+})
+```
+
+### Push to Remote
+
+```js
+await git.push({
+  fs,
+  http,
+  dir: './my-project',
+  remote: 'origin',
+  ref: 'main',
+  onAuth: () => ({ username: 'your-username', password: 'your-token' }),
+  corsProxy: 'https://cors.isomorphic-git.org' // Only needed for browser
+})
+```
+
+### Pull from Remote
+
+```js
+await git.pull({
+  fs,
+  http,
+  dir: './my-project',
+  remote: 'origin',
+  ref: 'main',
+  onAuth: () => ({ username: 'your-username', password: 'your-token' }),
+  corsProxy: 'https://cors.isomorphic-git.org' // Only needed for browser
+})
+```
+
+### Fetch from Remote
+
+```js
+await git.fetch({
+  fs,
+  http,
+  dir: './my-project',
+  remote: 'origin',
+  ref: 'main',
+  onAuth: () => ({ username: 'your-username', password: 'your-token' }),
+  corsProxy: 'https://cors.isomorphic-git.org' // Only needed for browser
+})
+```
+
+### Check Status
+
+```js
+// Get status of a specific file
+const status = await git.status({
+  fs,
+  dir: './my-project',
+  filepath: 'file.txt'
+})
+// Returns: 'unmodified', 'modified', 'deleted', 'added', '*added', 'absent', 'ignored'
+
+// Get status matrix (comparing HEAD, index, and working directory)
+const matrix = await git.statusMatrix({
+  fs,
+  dir: './my-project'
+})
+// Returns: [['file.txt', 0, 2, 0], ...]
+// Format: [filepath, HEAD, WORKDIR, STAGE]
+```
+
+### Checkout a Branch
+
+```js
+await git.checkout({
+  fs,
+  dir: './my-project',
+  ref: 'feature-branch'
+})
+```
+
+### Create a Branch
+
+```js
+await git.branch({
+  fs,
+  dir: './my-project',
+  ref: 'feature-branch',
+  checkout: true // Checkout the branch after creating it
+})
+```
+
+### List Branches
+
+```js
+const branches = await git.listBranches({
+  fs,
+  dir: './my-project'
+})
+```
+
+### View Commit History
+
+```js
+const commits = await git.log({
+  fs,
+  dir: './my-project',
+  ref: 'main',
+  depth: 10 // Limit to last 10 commits
+})
+```
+
+### Add a Remote
+
+```js
+await git.addRemote({
+  fs,
+  dir: './my-project',
+  remote: 'origin',
+  url: 'https://github.com/user/repo.git'
+})
+```
+
+### Authentication
+
+For operations that require authentication (push, pull, fetch), you can provide credentials via the `onAuth` callback:
+
+```js
+await git.push({
+  fs,
+  http,
+  dir: './my-project',
+  remote: 'origin',
+  ref: 'main',
+  onAuth: () => ({
+    username: 'your-username',
+    password: 'your-personal-access-token' // Use a token, not your password!
+  })
+})
+```
+
+**Note**: For GitHub, GitLab, and other services, use a Personal Access Token (PAT) instead of your password. Generate one in your account settings.
+
+### Complete Workflow Example
+
+For a complete example showing how to create a repository, push to GitHub, make local changes, and merge remote changes, see [examples/github-workflow-example.md](./examples/github-workflow-example.md).
+
+### Sparse Checkout Example
+
+For an example demonstrating sparse checkout (checking out only specific folders), see [examples/sparse-checkout-vscode-example.md](./examples/sparse-checkout-vscode-example.md). This example shows how to clone only the `src/` folder from a large repository like Visual Studio Code.
+
 ### CORS support
 
 Unfortunately, due to the same-origin policy by default `isomorphic-git` can only clone from the same origin as the webpage it is running on. This is terribly inconvenient, as it means for all practical purposes cloning and pushing repos must be done through a proxy.

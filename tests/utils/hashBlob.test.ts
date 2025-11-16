@@ -58,5 +58,92 @@ test('hashBlob', async (t) => {
     assert.strictEqual(format, 'wrapped')
     assert.strictEqual(Buffer.compare(Buffer.from(object), wrapped), 0)
   })
+
+  await t.test('hash empty string', async () => {
+    // Test
+    const { oid, type, format, object } = await hashBlob({
+      object: '',
+    })
+    assert.strictEqual(type, 'blob')
+    assert.strictEqual(format, 'wrapped')
+    assert.strictEqual(oid, 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391')
+    assert.ok(object instanceof Uint8Array)
+  })
+
+  await t.test('hash multiline string', async () => {
+    // Test
+    const { oid, type, format, object } = await hashBlob({
+      object: 'Line 1\nLine 2\nLine 3',
+    })
+    assert.strictEqual(type, 'blob')
+    assert.strictEqual(format, 'wrapped')
+    assert.ok(/^[0-9a-f]{40}$/.test(oid))
+    assert.ok(object instanceof Uint8Array)
+  })
+
+  await t.test('hash binary data', async () => {
+    // Test
+    const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD])
+    const { oid, type, format, object } = await hashBlob({
+      object: binaryData,
+    })
+    assert.strictEqual(type, 'blob')
+    assert.strictEqual(format, 'wrapped')
+    assert.ok(/^[0-9a-f]{40}$/.test(oid))
+    assert.ok(object instanceof Uint8Array)
+  })
+
+  await t.test('hash unicode string', async () => {
+    // Test
+    const { oid, type, format, object } = await hashBlob({
+      object: 'Hello 世界 🌍',
+    })
+    assert.strictEqual(type, 'blob')
+    assert.strictEqual(format, 'wrapped')
+    assert.ok(/^[0-9a-f]{40}$/.test(oid))
+    assert.ok(object instanceof Uint8Array)
+  })
+
+  await t.test('hash large string', async () => {
+    // Test
+    const largeString = 'x'.repeat(10000)
+    const { oid, type, format, object } = await hashBlob({
+      object: largeString,
+    })
+    assert.strictEqual(type, 'blob')
+    assert.strictEqual(format, 'wrapped')
+    assert.ok(/^[0-9a-f]{40}$/.test(oid))
+    assert.ok(object instanceof Uint8Array)
+  })
+
+  await t.test('produces consistent hashes for same input', async () => {
+    // Test
+    const input = 'Hello world!'
+    const result1 = await hashBlob({ object: input })
+    const result2 = await hashBlob({ object: input })
+    assert.strictEqual(result1.oid, result2.oid)
+    assert.strictEqual(result1.type, result2.type)
+    assert.strictEqual(result1.format, result2.format)
+  })
+
+  await t.test('produces different hashes for different inputs', async () => {
+    // Test
+    const result1 = await hashBlob({ object: 'Hello' })
+    const result2 = await hashBlob({ object: 'World' })
+    assert.notStrictEqual(result1.oid, result2.oid)
+  })
+
+  await t.test('wrapped object format is correct', async () => {
+    // Test
+    const result = await hashBlob({
+      object: 'test',
+    })
+    // The wrapped format should be: "blob 4\0test"
+    const wrapped = Buffer.from(result.object)
+    assert.strictEqual(wrapped.toString('utf8', 0, 4), 'blob')
+    assert.strictEqual(wrapped[4], 0x20) // space
+    assert.strictEqual(wrapped[5], 0x34) // '4'
+    assert.strictEqual(wrapped[6], 0x00) // null terminator
+  })
 })
 

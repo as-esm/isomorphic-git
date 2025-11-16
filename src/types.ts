@@ -53,14 +53,15 @@ export type { SignParams, SignCallback } from "./core-utils/Signing.ts"
 export type { MergeDriverParams, MergeDriverCallback } from "./core-utils/algorithms/MergeManager.ts"
 
 // API operation result types
-export type { MessageCallback, PrePushParams, PrePushCallback, PushResult } from './api/push.ts'
-export type { FetchResult } from './api/fetch.ts'
+export type { MessageCallback, PrePushParams, PrePushCallback, PushResult } from './commands/push.ts'
+export type { FetchResult } from './commands/fetch.ts'
 export type { MergeResult } from './api/merge.ts'
 export type { CherryPickResult } from './api/cherryPick.ts'
 export type { RebaseResult } from './api/rebase.ts'
-export type { DiffEntry, DiffResult } from './api/diff.ts'
-export type { ShowResult } from './api/show.ts'
-export type { HeadStatus, WorkdirStatus, StageStatus, StatusRow } from './api/statusMatrix.ts'
-export type { PostCheckoutParams, PostCheckoutCallback } from './api/checkout.ts'
+export type { DiffEntry, DiffResult } from './commands/diff.ts'
+export type { ShowResult } from './commands/show.ts'
+export type { HeadStatus, WorkdirStatus, StageStatus, StatusRow } from './commands/statusMatrix.ts'
+export type { FileStatus } from './commands/status.ts'
+export type { PostCheckoutParams, PostCheckoutCallback } from './commands/checkout.ts'
 export type { StashOp, StashChangeType } from './api/stash.ts'
-export type { ReadBlobResult } from './api/readBlob.ts'
+export type { ReadBlobResult } from './commands/readBlob.ts'

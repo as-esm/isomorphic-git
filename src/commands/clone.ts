@@ -1,4 +1,4 @@
-import { _addRemote } from './addRemote.ts'
+import { addRemote } from './addRemote.ts'
 import { _checkout } from './checkout.ts'
 import { _fetch } from './fetch.ts'
 import { _init } from './init.ts'
@@ -15,7 +15,7 @@ import type {
   AuthSuccessCallback,
 } from "../managers/GitRemoteHTTP.ts"
 import type { MessageCallback } from '../api/push.ts'
-import type { PostCheckoutCallback } from '../api/checkout.ts'
+import type { PostCheckoutCallback } from './checkout.ts'
 
 /**
  * Clones a repository from a remote URL
@@ -106,7 +106,7 @@ export async function _clone({
       await _init({ fs, dir, gitdir, bare: false })
       
       // Add remote
-      await _addRemote({ fs, gitdir, remote, url, force: false })
+      await addRemote({ fs, gitdir, remote, url, force: false })
       
       // Copy objects directory
       const sourceObjectsDir = join(sourceGitDir, 'objects')
@@ -295,11 +295,11 @@ export async function _clone({
     
     // Add remote (allow overwriting if URL matches)
     try {
-      await _addRemote({ fs, gitdir, remote, url, force: false })
+      await addRemote({ fs, gitdir, remote, url, force: false })
     } catch (err) {
       // If remote already exists with different URL, use force to overwrite
       if ((err as { code?: string }).code === 'AlreadyExistsError') {
-        await _addRemote({ fs, gitdir, remote, url, force: true })
+        await addRemote({ fs, gitdir, remote, url, force: true })
       } else {
         throw err
       }

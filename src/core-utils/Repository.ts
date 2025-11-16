@@ -1,5 +1,5 @@
 import { NotFoundError } from '../errors/NotFoundError.ts'
-import { _findRoot } from "../commands/findRoot.ts"
+import { findRoot } from "../commands/findRoot.ts"
 import { join } from './GitPath.ts'
 import { UnifiedConfigService } from './UnifiedConfigService.ts'
 import { StateManager } from './StateManager.ts'
@@ -199,7 +199,7 @@ export class Repository {
           workingDir = null
         } else {
           // Find .git directory by walking up
-          const root = await _findRoot({ fs, filepath: dir })
+          const root = await findRoot({ fs, filepath: dir })
           finalGitdir = normalize(join(root, '.git'))
           workingDir = root
         }
@@ -267,7 +267,7 @@ export class Repository {
     }
     if (this._dir) {
       // Find .git directory
-      const root = await _findRoot({ fs: this.fs, filepath: this._dir })
+      const root = await findRoot({ fs: this.fs, filepath: this._dir })
       this._gitdir = join(root, '.git')
       return this._gitdir
     }

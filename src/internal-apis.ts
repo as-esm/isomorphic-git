@@ -6,11 +6,18 @@ export * from './commands/listObjects.ts'
 export * from './commands/pack.ts'
 export * from './commands/uploadPack.ts'
 
+// @deprecated Manager classes - use src/git/ functions instead
+// GitConfigManager - use src/git/config.ts functions
 export * from './managers/GitConfigManager.ts'
+// GitIgnoreManager - use src/git/info/isIgnored.ts function
 export * from './managers/GitIgnoreManager.ts'
 export * from './managers/GitRemoteHTTP.ts'
+// GitRemoteManager - use src/git/remote/getRemoteHelper.ts function
 export * from './managers/GitRemoteManager.ts'
+// GitShallowManager - use src/git/shallow.ts functions
 export * from './managers/GitShallowManager.ts'
+// GitStashManager - use src/git/refs/stash.ts functions
+// Note: GitStashManager is exported via managers/index.ts, not here
 
 export * from './models/FileSystem.ts'
 export * from './models/GitAnnotatedTag.ts'
@@ -25,10 +32,12 @@ export * from './models/GitRefSpecSet.ts'
 export * from './models/GitSideBand.ts'
 export * from './models/GitTree.ts'
 
-// Legacy storage exports - these now delegate to src/git/objects/
+// @deprecated Legacy storage exports - these now delegate to src/git/objects/
+// Use src/git/objects/readObject.ts instead
 export * from './storage/readObject.ts'
+// Use src/git/objects/writeObject.ts instead
 export * from './storage/writeObject.ts'
-// readObjectPacked is deprecated - use src/git/objects/pack.ts instead
+// @deprecated Use src/git/objects/pack.ts instead
 export * from './storage/readObjectPacked.ts'
 
 export * from './utils/calculateBasicAuthHeader.ts'
