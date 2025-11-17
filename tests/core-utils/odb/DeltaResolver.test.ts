@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
-import { applyDelta } from '../../../src/core-utils/odb/DeltaResolver.ts'
+import { applyDelta } from '../../../src/utils/applyDelta.ts'
 
 // Helper to encode varint (little-endian)
 function encodeVarInt(n: number): number[] {
@@ -81,7 +81,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello, World!')
     assert.strictEqual(result.length, 13)
   })
@@ -96,7 +96,7 @@ test('DeltaResolver', async (t) => {
       ...Buffer.from('Hello'), // inserted data
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello')
     assert.strictEqual(result.length, 5)
   })
@@ -113,7 +113,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     const expected = base.slice(7, 7 + 6).toString('utf8')
     assert.strictEqual(result.toString('utf8'), expected)
     assert.strictEqual(result.length, 6)
@@ -133,7 +133,7 @@ test('DeltaResolver', async (t) => {
       ...insertData, // inserted data
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello World!')
     assert.strictEqual(result.length, 12)
   })
@@ -153,13 +153,13 @@ test('DeltaResolver', async (t) => {
       ...copyOp2.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello, World!')
     assert.strictEqual(result.length, 13)
   })
 
   await t.test('applyDelta - handles Uint8Array input', () => {
-    const base = new Uint8Array([72, 101, 108, 108, 111]) // "Hello"
+    const base = Buffer.from([72, 101, 108, 108, 111]) // "Hello" (convert Uint8Array to Buffer)
     const copyOp = createCopyOp(0, 5)
     const delta = Buffer.from([
       ...encodeVarInt(5), // source size
@@ -169,7 +169,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello')
     assert.strictEqual(result.length, 5)
   })
@@ -186,7 +186,7 @@ test('DeltaResolver', async (t) => {
     ])
     
     assert.throws(() => {
-      applyDelta({ base, delta })
+      applyDelta(delta, base)
     }, /expected source buffer to be 10 bytes but the provided buffer was 5 bytes/)
   })
 
@@ -202,7 +202,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp.sizeBytes, // size 0 will trigger 0x10000 optimization
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.length, 0x10000)
     assert.strictEqual(result[0], 0x41) // 'A'
     assert.strictEqual(result[0xFFFF], 0x41) // 'A'
@@ -226,7 +226,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp2.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello Beautiful, World!')
     assert.strictEqual(result.length, 23)
   })
@@ -240,7 +240,7 @@ test('DeltaResolver', async (t) => {
       ...Buffer.from('Hello World'), // inserted data
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello World')
     assert.strictEqual(result.length, 11)
   })
@@ -256,7 +256,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.length, 5)
     assert.strictEqual(result.toString('utf8'), 'AAAAA')
   })
@@ -272,7 +272,7 @@ test('DeltaResolver', async (t) => {
       ...copyOp.sizeBytes,
     ])
     
-    const result = applyDelta({ base, delta })
+    const result = applyDelta(delta, base)
     assert.strictEqual(result.toString('utf8'), 'Hello, World!')
     // This should use the optimization path (firstOp.byteLength === targetSize)
   })
@@ -291,7 +291,7 @@ test('DeltaResolver', async (t) => {
     ])
     
     assert.throws(() => {
-      applyDelta({ base, delta: badDelta })
+      applyDelta(badDelta, base)
     }, /expected target buffer to be 10 bytes but the resulting buffer was 3 bytes/)
   })
 })

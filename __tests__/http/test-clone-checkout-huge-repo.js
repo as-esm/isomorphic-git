@@ -1,14 +1,16 @@
-/* eslint-env node, browser, jasmine */
+/* eslint-env node */
+import { test } from 'node:test'
+import assert from 'node:assert'
 import { clone } from 'isomorphic-git'
-import http from 'isomorphic-git/http'
+import http from '../../src/http/node/index.ts'
 
 import { makeFixture } from '../__helpers__/FixtureFS.js'
 
 const localhost =
   typeof window === 'undefined' ? 'localhost' : window.location.hostname
 
-describe('huge repo clone and checkout', () => {
-  it('clone from git-http-mock-server with non-blocking optimization for repo with 1k files', async () => {
+test('huge repo clone and checkout', async (t) => {
+  await t.test('clone from git-http-mock-server with non-blocking optimization for repo with 1k files', async () => {
     const { fs, dir, gitdir } = await makeFixture(
       `test-clone-karma-non-blocking`
     )
@@ -27,18 +29,9 @@ describe('huge repo clone and checkout', () => {
       nonBlocking: true,
     })
 
-    expect(await fs.exists(`${dir}`)).toBe(true, `'dir' exists`)
-    expect(await fs.exists(`${gitdir}/objects`)).toBe(
-      true,
-      `'gitdir/objects' exists`
-    )
-    expect(await fs.exists(`${gitdir}/refs/heads/${branchName}`)).toBe(
-      true,
-      `'gitdir/refs/heads/${branchName}' exists`
-    )
-    expect(await fs.exists(`${dir}/package.json`)).toBe(
-      true,
-      `'package.json' exists`
-    )
+    assert.strictEqual(await fs.exists(`${dir}`), true, `'dir' exists`)
+    assert.strictEqual(await fs.exists(`${gitdir}/objects`), true, `'gitdir/objects' exists`)
+    assert.strictEqual(await fs.exists(`${gitdir}/refs/heads/${branchName}`), true, `'gitdir/refs/heads/${branchName}' exists`)
+    assert.strictEqual(await fs.exists(`${dir}/package.json`), true, `'package.json' exists`)
   })
 })

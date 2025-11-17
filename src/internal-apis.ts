@@ -33,13 +33,16 @@ export * from './models/GitRefSpecSet.ts'
 export * from './models/GitSideBand.ts'
 export * from './models/GitTree.ts'
 
-// @deprecated Legacy storage exports - these now delegate to src/git/objects/
-// Use src/git/objects/readObject.ts instead
-export * from './storage/readObject.ts'
-// Use src/git/objects/writeObject.ts instead
-export * from './storage/writeObject.ts'
-// @deprecated Use src/git/objects/pack.ts instead
-export * from './storage/readObjectPacked.ts'
+// @deprecated Legacy storage exports - REMOVED in Phase 9.4
+// All storage functions have been migrated to src/git/objects/:
+// - readObject → use src/git/objects/readObject.ts
+// - writeObject → use src/git/objects/writeObject.ts
+// - readObjectPacked → use src/git/objects/pack.ts (read function)
+// These exports are maintained for backward compatibility via re-exports from src/git/objects/
+export { readObject } from './git/objects/readObject.ts'
+export { writeObject } from './git/objects/writeObject.ts'
+// Note: readObjectPacked functionality is available via pack.ts read function
+// Legacy readObjectPacked export removed - use src/git/objects/pack.ts read function instead
 
 export * from './utils/calculateBasicAuthHeader.ts'
 export * from './utils/collect.ts'

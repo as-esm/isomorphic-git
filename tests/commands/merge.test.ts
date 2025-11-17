@@ -816,9 +816,8 @@ describe('merge', () => {
         console.log(nativeFiles)
         
         // Show files in isomorphic-git tree
-        const ObjectReader = await import('../../src/core-utils/odb/ObjectReader.ts')
+        const { readObject } = await import('../../src/git/objects/readObject.ts')
         const TreeParser = await import('../../src/core-utils/parsers/Tree.ts')
-        const readObject = ObjectReader.read
         const parseTree = TreeParser.parse
         const isoTreeResult = await readObject({ fs: repo.fs, cache: {}, gitdir: repo.gitdir, oid: report.tree, format: 'content' })
         const isoTree = parseTree(isoTreeResult.object as Buffer)

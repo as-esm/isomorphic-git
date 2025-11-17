@@ -355,7 +355,7 @@ export async function _merge({
     
     // Validate that all tree objects exist before attempting merge
     // This provides better error messages if objects are missing
-    const { hasObject } = await import('../storage/hasObject.ts')
+    const { hasObject } = await import('../git/objects/hasObject.ts')
     const treesToCheck = [
       { name: 'ours', oid: ourTreeOid, commit: ourOid },
       { name: 'theirs', oid: theirTreeOid, commit: theirOid },

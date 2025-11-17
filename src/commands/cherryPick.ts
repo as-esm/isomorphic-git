@@ -81,7 +81,7 @@ export async function cherryPick({
 
     // Get tree OIDs
     const ourTreeOid = headCommit.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904' // empty tree
-    const theirTreeOid = commitObj.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+    const theirTreeOid = commitObj.tree || '4b825dc642cb6eb9a060e54bf8d69288fbee4904' // empty tree
     
     // Get base tree from the commit's parent
     let baseTreeOid = '4b825dc642cb6eb9a060e54bf8d69288fbee4904' // empty tree

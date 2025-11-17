@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
-import { mergeBlobs } from '../../../src/core-utils/algorithms/MergeManager.ts'
+import { mergeBlobs, mergeTrees } from '../../../src/core-utils/algorithms/MergeManager.ts'
+import { makeFixture } from '../../helpers/fixture.ts'
+import { init, add, commit, readCommit, remove, checkout } from 'isomorphic-git'
+import { Repository } from '../../../src/core-utils/Repository.ts'
 
 test('MergeManager', async (t) => {
   await t.test('mergeBlobs - clean merge (no conflicts)', async () => {
@@ -266,5 +269,485 @@ test('MergeManager', async (t) => {
     // Just verify it doesn't crash
     assert.ok(result.mergedContent instanceof Buffer)
   })
-})
 
+  // ============================================================================
+  // mergeTrees TESTS
+  // ============================================================================
+
+  await t.test('mergeTrees - clean merge (no conflicts)', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit with file1.txt
+    await normalizedFs.write(`${dir}/file1.txt`, 'content1\n')
+    await add({ fs, dir, filepath: 'file1.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Create ours commit - add file2.txt
+    await normalizedFs.write(`${dir}/file2.txt`, 'content2\n')
+    await add({ fs, dir, filepath: 'file2.txt', cache: repo.cache })
+    const ourCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Ours', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const ourCommitObj = await readCommit({ fs, dir, oid: ourCommit, cache: repo.cache })
+    const ourTreeOid = ourCommitObj.commit.tree
+    
+    // Create theirs commit - add file3.txt (different file, no conflict)
+    // Reset to base first
+    await normalizedFs.rm(`${dir}/file2.txt`).catch(() => {})
+    await normalizedFs.write(`${dir}/file3.txt`, 'content3\n')
+    await add({ fs, dir, filepath: 'file3.txt', cache: repo.cache })
+    const theirCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Theirs', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const theirCommitObj = await readCommit({ fs, dir, oid: theirCommit, cache: repo.cache })
+    const theirTreeOid = theirCommitObj.commit.tree
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.strictEqual(result.conflicts.length, 0, 'Should have no conflicts')
+    assert.ok(result.mergedTreeOid, 'Should return merged tree OID')
+    assert.ok(result.mergedTree.length > 0, 'Should have merged tree entries')
+  })
+
+  await t.test('mergeTrees - conflict when both modify same file', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'base content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Create ours commit - modify file.txt
+    await normalizedFs.write(`${dir}/file.txt`, 'our content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const ourCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Ours', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const ourCommitObj = await readCommit({ fs, dir, oid: ourCommit, cache: repo.cache })
+    const ourTreeOid = ourCommitObj.commit.tree
+    
+    // Create theirs commit - modify file.txt differently
+    // Reset to base first
+    await normalizedFs.write(`${dir}/file.txt`, 'their content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const theirCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Theirs', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const theirCommitObj = await readCommit({ fs, dir, oid: theirCommit, cache: repo.cache })
+    const theirTreeOid = theirCommitObj.commit.tree
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.ok(result.conflicts.length > 0, 'Should have conflicts')
+    assert.ok(result.conflicts.includes('file.txt'), 'Should report conflict for file.txt')
+    assert.ok(result.mergedTreeOid, 'Should return merged tree OID even with conflicts')
+  })
+
+  await t.test('mergeTrees - only ours changed', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'base content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Create ours commit - modify file.txt
+    await normalizedFs.write(`${dir}/file.txt`, 'our content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const ourCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Ours', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const ourCommitObj = await readCommit({ fs, dir, oid: ourCommit, cache: repo.cache })
+    const ourTreeOid = ourCommitObj.commit.tree
+    
+    // Theirs is same as base (no change) - use base tree OID directly
+    const theirTreeOid = baseTreeOid
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.strictEqual(result.conflicts.length, 0, 'Should have no conflicts')
+    assert.ok(result.mergedTreeOid, 'Should return merged tree OID')
+  })
+
+  await t.test('mergeTrees - only theirs changed', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'base content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Ours is same as base (no change) - use base tree OID directly
+    const ourTreeOid = baseTreeOid
+    
+    // Reset to base and create theirs commit - modify file.txt
+    await checkout({ fs, dir, ref: baseCommit, force: true, cache: repo.cache })
+    await normalizedFs.write(`${dir}/file.txt`, 'their content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const theirCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Theirs', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const theirCommitObj = await readCommit({ fs, dir, oid: theirCommit, cache: repo.cache })
+    const theirTreeOid = theirCommitObj.commit.tree
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.strictEqual(result.conflicts.length, 0, 'Should have no conflicts')
+    assert.ok(result.mergedTreeOid, 'Should return merged tree OID')
+  })
+
+  await t.test('mergeTrees - deleted by us, modified by them (conflict)', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'base content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Create ours commit - delete file.txt
+    await normalizedFs.rm(`${dir}/file.txt`)
+    await remove({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const ourCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Ours - delete', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const ourCommitObj = await readCommit({ fs, dir, oid: ourCommit, cache: repo.cache })
+    const ourTreeOid = ourCommitObj.commit.tree
+    
+    // Create theirs commit - modify file.txt
+    // Reset to base first
+    await checkout({ fs, dir, ref: baseCommit, force: true, cache: repo.cache })
+    await normalizedFs.write(`${dir}/file.txt`, 'their content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const theirCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Theirs - modify', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const theirCommitObj = await readCommit({ fs, dir, oid: theirCommit, cache: repo.cache })
+    const theirTreeOid = theirCommitObj.commit.tree
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.ok(result.conflicts.length > 0, 'Should have conflicts')
+    assert.ok(result.conflicts.includes('file.txt'), 'Should report conflict for file.txt')
+  })
+
+  await t.test('mergeTrees - modified by us, deleted by them (conflict)', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'base content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Create ours commit - modify file.txt
+    await normalizedFs.write(`${dir}/file.txt`, 'our content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const ourCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Ours - modify', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const ourCommitObj = await readCommit({ fs, dir, oid: ourCommit, cache: repo.cache })
+    const ourTreeOid = ourCommitObj.commit.tree
+    
+    // Create theirs commit - delete file.txt
+    // Reset to base first
+    await checkout({ fs, dir, ref: baseCommit, force: true, cache: repo.cache })
+    await normalizedFs.rm(`${dir}/file.txt`)
+    await remove({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const theirCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Theirs - delete', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const theirCommitObj = await readCommit({ fs, dir, oid: theirCommit, cache: repo.cache })
+    const theirTreeOid = theirCommitObj.commit.tree
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.ok(result.conflicts.length > 0, 'Should have conflicts')
+    assert.ok(result.conflicts.includes('file.txt'), 'Should report conflict for file.txt')
+  })
+
+  await t.test('mergeTrees - deleted by both (no conflict)', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'base content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Create ours commit - delete file.txt
+    await normalizedFs.rm(`${dir}/file.txt`)
+    await remove({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const ourCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Ours - delete', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const ourCommitObj = await readCommit({ fs, dir, oid: ourCommit, cache: repo.cache })
+    const ourTreeOid = ourCommitObj.commit.tree
+    
+    // Create theirs commit - delete file.txt
+    // Reset to base first
+    await checkout({ fs, dir, ref: baseCommit, force: true, cache: repo.cache })
+    await normalizedFs.rm(`${dir}/file.txt`)
+    await remove({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const theirCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Theirs - delete', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const theirCommitObj = await readCommit({ fs, dir, oid: theirCommit, cache: repo.cache })
+    const theirTreeOid = theirCommitObj.commit.tree
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.strictEqual(result.conflicts.length, 0, 'Should have no conflicts when both delete')
+    assert.ok(result.mergedTreeOid, 'Should return merged tree OID')
+    // File should not be in merged tree
+    const hasFile = result.mergedTree.some(entry => entry.path === 'file.txt')
+    assert.strictEqual(hasFile, false, 'File should not be in merged tree when deleted by both')
+  })
+
+  await t.test('mergeTrees - both unchanged (no merge needed)', async () => {
+    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    await init({ fs, dir, defaultBranch: 'main' })
+    
+    const cache: Record<string, unknown> = {}
+    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
+    const normalizedFs = normalizeFs(fs)
+    
+    // Create base commit
+    await normalizedFs.write(`${dir}/file.txt`, 'content\n')
+    await add({ fs, dir, filepath: 'file.txt', cache: repo.cache })
+    const baseCommit = await commit({ 
+      fs, 
+      dir, 
+      message: 'Base', 
+      author: { name: 'Test', email: 'test@example.com' },
+      cache: repo.cache 
+    })
+    const baseCommitObj = await readCommit({ fs, dir, oid: baseCommit, cache: repo.cache })
+    const baseTreeOid = baseCommitObj.commit.tree
+    
+    // Ours and theirs are same as base (no changes) - use base tree OID directly
+    const ourTreeOid = baseTreeOid
+    const theirTreeOid = baseTreeOid
+    
+    // Test mergeTrees
+    const result = await mergeTrees({
+      fs,
+      cache: repo.cache,
+      gitdir,
+      base: baseTreeOid,
+      ours: ourTreeOid,
+      theirs: theirTreeOid,
+    })
+    
+    // Assert
+    assert.strictEqual(result.conflicts.length, 0, 'Should have no conflicts')
+    assert.ok(result.mergedTreeOid, 'Should return merged tree OID')
+  })
+})

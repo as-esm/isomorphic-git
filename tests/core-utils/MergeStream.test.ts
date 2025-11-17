@@ -17,11 +17,11 @@ async function getTreeOidsFromCommits(
   theirCommitOid: string,
   baseCommitOid: string
 ): Promise<{ ourTreeOid: string; theirTreeOid: string; baseTreeOid: string } | null> {
-  const readObjectModule = await import('../../src/core-utils/odb/ObjectReader.ts')
+  const readObjectModule = await import('../../src/git/objects/readObject.ts')
   const parseCommitModule = await import('../../src/core-utils/parsers/Commit.ts')
-  const hasObjectModule = await import('../../src/storage/hasObject.ts')
+  const hasObjectModule = await import('../../src/git/objects/hasObject.ts')
   
-  const readObject = readObjectModule.read
+  const readObject = readObjectModule.readObject
   const parseCommit = parseCommitModule.parse
   const hasObject = hasObjectModule.hasObject
   

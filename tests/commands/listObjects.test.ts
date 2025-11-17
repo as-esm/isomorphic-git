@@ -55,5 +55,28 @@ test('listObjects', async (t) => {
     assert.ok(objects instanceof Set, 'Should return a Set')
     assert.strictEqual(objects.size, 0, 'Should return empty Set for empty Set')
   })
+
+  await t.test('listObjects with comprehensive fixture', async () => {
+    const { fs, gitdir } = await makeFixture('test-listObjects')
+    const objects = await listObjects({
+      fs,
+      cache: {},
+      gitdir,
+      oids: [
+        'c60bbbe99e96578105c57c4b3f2b6ebdf863edbc',
+        'e05547ea87ea55eff079de295ff56f483e5b4439',
+        'ebdedf722a3ec938da3fd53eb74fdea55c48a19d',
+        '0518502faba1c63489562641c36a989e0f574d95',
+      ],
+    })
+    
+    assert.ok(objects instanceof Set, 'Should return a Set')
+    assert.ok(objects.size > 0, 'Should return non-empty Set')
+    // Verify specific OIDs are included
+    assert.ok(objects.has('c60bbbe99e96578105c57c4b3f2b6ebdf863edbc'), 'Should include first OID')
+    assert.ok(objects.has('e05547ea87ea55eff079de295ff56f483e5b4439'), 'Should include second OID')
+    assert.ok(objects.has('ebdedf722a3ec938da3fd53eb74fdea55c48a19d'), 'Should include third OID')
+    assert.ok(objects.has('0518502faba1c63489562641c36a989e0f574d95'), 'Should include fourth OID')
+  })
 })
 

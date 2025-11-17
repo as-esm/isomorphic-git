@@ -39,7 +39,7 @@ export async function resetIndexToTree({
   let treeOid: string
   try {
     const commitOid = await resolveRef({ fs, gitdir: effectiveGitdir, ref })
-    const { readObject } = await import('../../src/core-utils/odb/ObjectReader.ts')
+    const { readObject } = await import('../../src/git/objects/readObject.ts')
     const { parseCommit } = await import('../../src/core-utils/parsers/Commit.ts')
     const commitResult = await readObject({ fs, cache, gitdir: effectiveGitdir, oid: commitOid, format: 'content' })
     if (commitResult.type === 'commit') {

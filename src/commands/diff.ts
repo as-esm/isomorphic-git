@@ -2,6 +2,7 @@ import { RefManager } from "../core-utils/refs/RefManager.ts"
 import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseBlob } from "../core-utils/parsers/Blob.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
+import { parse as parseTree } from "../core-utils/parsers/Tree.ts"
 import { GitIndex } from "../git/index/GitIndex.ts"
 import { resolveTree } from "../utils/resolveTree.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
@@ -86,14 +87,25 @@ export async function diff({
       }
     } else if (staged) {
       // Compare index with HEAD
-      oidA = await RefManager.resolve({ fs, gitdir: resolvedGitdir, ref: 'HEAD' })
-      const commitResult = await readObject({ fs, cache, gitdir: resolvedGitdir, oid: oidA, format: 'content' })
-      if (commitResult.type === 'commit') {
-        const commit = parseCommit(commitResult.object)
-        if (commit.tree) {
-          const treeResult = await resolveTree({ fs, cache, gitdir: resolvedGitdir, oid: commit.tree })
-          // resolveTree returns GitTree model, convert to TreeEntry[]
-          treeA = treeResult.tree.entries()
+      try {
+        oidA = await RefManager.resolve({ fs, gitdir: resolvedGitdir, ref: 'HEAD' })
+        const commitResult = await readObject({ fs, cache, gitdir: resolvedGitdir, oid: oidA, format: 'content' })
+        if (commitResult.type === 'commit') {
+          const commit = parseCommit(commitResult.object)
+          if (commit.tree) {
+            const treeResult = await resolveTree({ fs, cache, gitdir: resolvedGitdir, oid: commit.tree })
+            // resolveTree returns GitTree model, convert to TreeEntry[]
+            treeA = treeResult.tree.entries()
+          }
+        }
+      } catch (err: any) {
+        // HEAD doesn't exist - treat as empty tree
+        if (err?.code === 'NotFoundError' && err?.data?.what === 'HEAD') {
+          treeA = []
+          // Still set oidA to 'HEAD' string for staged comparison
+          oidA = 'HEAD'
+        } else {
+          throw err
         }
       }
       // Read index for treeB
@@ -114,14 +126,25 @@ export async function diff({
       }
     } else {
       // Compare working directory with HEAD
-      oidA = await RefManager.resolve({ fs, gitdir: resolvedGitdir, ref: 'HEAD' })
-      const commitResult = await readObject({ fs, cache, gitdir: resolvedGitdir, oid: oidA, format: 'content' })
-      if (commitResult.type === 'commit') {
-        const commit = parseCommit(commitResult.object)
-        if (commit.tree) {
-          const treeResult = await resolveTree({ fs, cache, gitdir: resolvedGitdir, oid: commit.tree })
-          // resolveTree returns GitTree model, convert to TreeEntry[]
-          treeA = treeResult.tree.entries()
+      try {
+        oidA = await RefManager.resolve({ fs, gitdir: resolvedGitdir, ref: 'HEAD' })
+        const commitResult = await readObject({ fs, cache, gitdir: resolvedGitdir, oid: oidA, format: 'content' })
+        if (commitResult.type === 'commit') {
+          const commit = parseCommit(commitResult.object)
+          if (commit.tree) {
+            const treeResult = await resolveTree({ fs, cache, gitdir: resolvedGitdir, oid: commit.tree })
+            // resolveTree returns GitTree model, convert to TreeEntry[]
+            treeA = treeResult.tree.entries()
+          }
+        }
+      } catch (err: any) {
+        // HEAD doesn't exist - treat as empty tree
+        if (err?.code === 'NotFoundError' && err?.data?.what === 'HEAD') {
+          treeA = []
+          // Still set oidA to undefined to indicate HEAD doesn't exist
+          oidA = undefined
+        } else {
+          throw err
         }
       }
       // Read working directory for treeB
@@ -149,19 +172,101 @@ export async function diff({
       return { entries: [], refA: oidA, refB: oidB }
     }
 
-    // Build maps for efficient lookup
+    // Helper function to recursively expand tree entries with full paths
+    async function expandTreeEntries(
+      treeOid: string,
+      prefix: string = '',
+      fs: FsClient,
+      cache: Record<string, unknown>,
+      gitdir: string
+    ): Promise<TreeEntry[]> {
+      const entries: TreeEntry[] = []
+      try {
+        const { object: treeObject } = await readObject({ fs, cache, gitdir, oid: treeOid, format: 'content' })
+        const treeEntries = parseTree(treeObject as Buffer)
+        
+        for (const entry of treeEntries) {
+          const fullPath = prefix ? `${prefix}/${entry.path}` : entry.path
+          
+          if (entry.type === 'tree') {
+            // Recursively expand subdirectory
+            const subEntries = await expandTreeEntries(entry.oid, fullPath, fs, cache, gitdir)
+            entries.push(...subEntries)
+          } else {
+            // Add file entry with full path
+            entries.push({
+              ...entry,
+              path: fullPath,
+            })
+          }
+        }
+      } catch (err) {
+        // Tree doesn't exist or can't be read - return empty
+      }
+      return entries
+    }
+
+    // Build maps for efficient lookup - recursively expand trees if needed
     const mapA = new Map<string, TreeEntry>()
     const mapB = new Map<string, TreeEntry>()
 
     if (treeA) {
-      for (const entry of treeA) {
-        mapA.set(entry.path, entry)
+      // Check if we need to expand (if any entry is a tree type)
+      const needsExpansion = treeA.some(e => e.type === 'tree')
+      if (needsExpansion && oidA) {
+        // Get the tree OID from the commit
+        try {
+          const commitResult = await readObject({ fs, cache, gitdir: resolvedGitdir, oid: oidA, format: 'content' })
+          if (commitResult.type === 'commit') {
+            const commit = parseCommit(commitResult.object)
+            if (commit.tree) {
+              const expanded = await expandTreeEntries(commit.tree, '', fs, cache, resolvedGitdir)
+              for (const entry of expanded) {
+                mapA.set(entry.path, entry)
+              }
+            }
+          }
+        } catch {
+          // Can't expand - use entries as-is
+          for (const entry of treeA) {
+            mapA.set(entry.path, entry)
+          }
+        }
+      } else {
+        // No nested trees, use entries as-is
+        for (const entry of treeA) {
+          mapA.set(entry.path, entry)
+        }
       }
     }
 
     if (treeB) {
-      for (const entry of treeB) {
-        mapB.set(entry.path, entry)
+      // Check if we need to expand (if any entry is a tree type)
+      const needsExpansion = treeB.some(e => e.type === 'tree')
+      if (needsExpansion && oidB) {
+        // Get the tree OID from the commit
+        try {
+          const commitResult = await readObject({ fs, cache, gitdir: resolvedGitdir, oid: oidB, format: 'content' })
+          if (commitResult.type === 'commit') {
+            const commit = parseCommit(commitResult.object)
+            if (commit.tree) {
+              const expanded = await expandTreeEntries(commit.tree, '', fs, cache, resolvedGitdir)
+              for (const entry of expanded) {
+                mapB.set(entry.path, entry)
+              }
+            }
+          }
+        } catch {
+          // Can't expand - use entries as-is
+          for (const entry of treeB) {
+            mapB.set(entry.path, entry)
+          }
+        }
+      } else {
+        // No nested trees, use entries as-is
+        for (const entry of treeB) {
+          mapB.set(entry.path, entry)
+        }
       }
     }
 
@@ -222,7 +327,7 @@ export async function diff({
 
     return {
       entries,
-      refA: oidA,
+      refA: oidA || (staged ? 'HEAD' : undefined),
       refB: oidB,
     }
   } catch (err) {

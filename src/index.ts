@@ -17,6 +17,7 @@ import { deleteBranch } from './commands/deleteBranch.ts'
 import { deleteRef } from './commands/deleteRef.ts'
 import { deleteRemote } from './commands/deleteRemote.ts'
 import { deleteTag } from './commands/deleteTag.ts'
+import { diff } from './commands/diff.ts'
 import { expandOid } from './commands/expandOid.ts'
 import { expandRef } from './commands/expandRef.ts'
 import { fastForward } from './commands/fastForward.ts'
@@ -99,6 +100,7 @@ export {
   deleteRef,
   deleteRemote,
   deleteTag,
+  diff,
   expandOid,
   expandRef,
   fastForward,
