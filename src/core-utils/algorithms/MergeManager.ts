@@ -134,6 +134,26 @@ export const mergeTrees = async ({
     const ourOid = ourEntry?.oid
     const theirOid = theirEntry?.oid
 
+    // Handle deletions first (before checking for changes)
+    if (!ourEntry && !theirEntry && baseEntry) {
+      // Deleted by both - skip (no conflict)
+      continue
+    }
+
+    if (!ourEntry && theirEntry && baseEntry) {
+      // Deleted by us, modified by them - conflict
+      conflicts.push(path)
+      mergedEntries.push(theirEntry)
+      continue
+    }
+
+    if (ourEntry && !theirEntry && baseEntry) {
+      // Modified by us, deleted by them - conflict
+      conflicts.push(path)
+      mergedEntries.push(ourEntry)
+      continue
+    }
+
     // Both unchanged
     if (ourOid === baseOid && theirOid === baseOid) {
       if (ourEntry) mergedEntries.push(ourEntry)
@@ -212,24 +232,6 @@ export const mergeTrees = async ({
         // For now, take ours
         if (ourEntry) mergedEntries.push(ourEntry)
       }
-    }
-
-    // Handle deletions
-    if (!ourEntry && !theirEntry && baseEntry) {
-      // Deleted by both - skip
-      continue
-    }
-
-    if (!ourEntry && theirEntry && baseEntry) {
-      // Deleted by us, modified by them - conflict
-      conflicts.push(path)
-      mergedEntries.push(theirEntry)
-    }
-
-    if (ourEntry && !theirEntry && baseEntry) {
-      // Modified by us, deleted by them - conflict
-      conflicts.push(path)
-      mergedEntries.push(ourEntry)
     }
   }
 

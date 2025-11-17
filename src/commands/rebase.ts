@@ -14,7 +14,7 @@ import {
   completeRebase,
   abortRebase,
 } from "../core-utils/algorithms/SequencerManager.ts"
-import { StateManager } from "../core-utils/StateManager.ts"
+import { writeOrigHead } from "../git/state/index.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -144,8 +144,7 @@ export async function rebase({
     })
 
     // Save ORIG_HEAD
-    const stateManager = new StateManager(fs, effectiveGitdir)
-    await stateManager.setOrigHead(currentHead)
+    await writeOrigHead({ fs, gitdir: effectiveGitdir, oid: currentHead })
 
     // Reset branch to upstream
     await repo.writeRef(currentBranch, upstreamOid)

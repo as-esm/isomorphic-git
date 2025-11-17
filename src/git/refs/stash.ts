@@ -273,11 +273,16 @@ export async function writeStashReflogEntry({
   const normalizedFs = normalizeFs(fs)
 
   await acquireLock({ filepath, entry }, async () => {
-    const appendTo = (await normalizedFs.exists(filepath))
+    const existingContent = (await normalizedFs.exists(filepath))
       ? await normalizedFs.read(filepath, { encoding: 'utf8' })
       : ''
-    if (typeof appendTo === 'string') {
-      await normalizedFs.write(filepath, appendTo + entry, 'utf8')
+    if (typeof existingContent === 'string') {
+      // Git reflogs store entries with newest first
+      // Prepend the new entry to maintain this order
+      // entry already ends with \n
+      // Simply prepend: new entry + existing content
+      const content = existingContent ? entry + existingContent : entry
+      await normalizedFs.write(filepath, content, 'utf8')
     }
   })
 }

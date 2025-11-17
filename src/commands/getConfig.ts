@@ -38,7 +38,8 @@ export async function getConfig({
     // This ensures that setConfig() and getConfig() use the same UnifiedConfigService instance
     const repo = await Repository.open({ fs, dir, gitdir, cache, autoDetectConfig: true })
     const config = await repo.getConfig()
-    return await config.get(path)
+    const value = await config.get(path)
+    return value
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.getConfig'
     throw err

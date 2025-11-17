@@ -2,7 +2,7 @@ import { NotFoundError } from '../errors/NotFoundError.ts'
 import { findRoot } from "../commands/findRoot.ts"
 import { join } from './GitPath.ts'
 import { UnifiedConfigService } from './UnifiedConfigService.ts'
-import { StateManager } from './StateManager.ts'
+// StateManager removed - use src/git/state/ functions directly
 // RefManager import removed - using src/git/refs/ functions directly
 // StagingArea removed - use readIndexDirect/writeIndexDirect directly
 import { Worktree } from './Worktree.ts'
@@ -48,7 +48,7 @@ export class Repository {
   private readonly _globalConfigPath?: string
 
   private _config: UnifiedConfigService | null = null
-  private _stateManager: StateManager | null = null
+  // StateManager removed - use src/git/state/ functions directly
   private _objectReader: ObjectReaderWrapper | null = null
   private _objectWriter: ObjectWriterWrapper | null = null
   private _isBare: boolean | null = null
@@ -188,6 +188,8 @@ export class Repository {
           workingDir = null
         }
       }
+      // If both dir and gitdir are provided, use dir as working directory
+      // (workingDir is already set to dir at line 173)
     } else if (dir) {
       // Find .git directory by walking up from dir
       try {
@@ -223,8 +225,17 @@ export class Repository {
     const fsCache = Repository._instanceCache.get(fs)!
 
     // 3. Check the fs-specific cache for the instance
+    // CRITICAL: If dir is provided and cached instance has dir=null, don't use cached instance
+    // This ensures that non-bare repositories created via clone() work correctly
     if (fsCache.has(finalGitdir)) {
-      return fsCache.get(finalGitdir)!
+      const cachedRepo = fsCache.get(finalGitdir)!
+      // If we're opening with a dir but cached instance has no dir, create a new instance
+      // This handles the case where a bare repo was cached, but we're now opening it as non-bare
+      if (dir && !cachedRepo._dir) {
+        // Don't use cached instance - will create new one below
+      } else {
+        return cachedRepo
+      }
     }
 
     // 4. Auto-detect config paths if not provided and auto-detection is enabled
@@ -238,6 +249,12 @@ export class Repository {
     }
 
     // 5. Create new Repository instance and cache it in fs-specific cache
+    // CRITICAL: When both dir and gitdir are provided, workingDir should be dir (not null)
+    // This ensures non-bare repositories created via clone() work correctly
+    // IMPORTANT: If dir was provided, always use it as workingDir (don't let it be null)
+    if (dir && !workingDir) {
+      workingDir = dir
+    }
     const repo = new Repository(fs, workingDir, finalGitdir, cache, finalSystemPath, finalGlobalPath)
     fsCache.set(finalGitdir, repo)
     
@@ -321,6 +338,11 @@ export class Repository {
         this._globalConfigPath
       )
       await this._config.load()
+    } else {
+      // Reload config to ensure we have the latest values from disk
+      // This is important because ConfigAccess.setConfigValue() writes to disk
+      // but doesn't invalidate the Repository's cached config instance
+      await this._config.reload()
     }
     return this._config
   }
@@ -333,15 +355,10 @@ export class Repository {
   }
 
   /**
-   * Gets the state manager
+   * @deprecated StateManager removed - use src/git/state/ functions directly
+   * Example: import { readMergeHead, writeMergeHead } from '../git/state/index.ts'
    */
-  async getStateManager(): Promise<StateManager> {
-    if (!this._stateManager) {
-      const gitdir = await this.getGitdir()
-      this._stateManager = new StateManager(this.fs, gitdir)
-    }
-    return this._stateManager
-  }
+  // getStateManager() method removed - use src/git/state/ functions directly
 
   /**
    * Gets the ref manager
@@ -742,10 +759,10 @@ export class Repository {
    * Writes a symbolic ref directly using src/git/refs/writeSymbolicRef
    * This bypasses RefManager for direct file operations
    */
-  async writeSymbolicRefDirect(ref: string, value: string): Promise<void> {
+  async writeSymbolicRefDirect(ref: string, value: string, oldOid?: string): Promise<void> {
     const gitdir = await this.getGitdir()
     const { writeSymbolicRef } = await import('../git/refs/writeRef.ts')
-    return writeSymbolicRef({ fs: this.fs, gitdir, ref, value })
+    return writeSymbolicRef({ fs: this.fs, gitdir, ref, value, oldOid })
   }
 
   /**
@@ -974,6 +991,7 @@ export class Repository {
       dir: this._dir || undefined,
       gitdir,
       cache: this.cache, // Use Repository's cache
+      index, // Pass the index object
       ...params,
     })
   }

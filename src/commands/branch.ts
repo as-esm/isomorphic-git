@@ -3,7 +3,7 @@ import cleanGitRef from 'clean-git-ref'
 import { AlreadyExistsError } from '../errors/AlreadyExistsError.ts'
 import { InvalidRefNameError } from '../errors/InvalidRefNameError.ts'
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
+import { logRefUpdate } from "../git/logs/logRefUpdate.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -113,22 +113,15 @@ export async function _branch({
     await RefManager.writeRef({ fs, gitdir, ref: fullref, value: oid })
     
     // Write reflog entry
-    const author = 'isomorphic-git <noreply@isomorphic-git.org>'
-    const timestamp = Math.floor(Date.now() / 1000)
-    const timezoneOffset = new Date().getTimezoneOffset()
-    const offsetStr = `${timezoneOffset > 0 ? '-' : '+'}${Math.abs(Math.floor(timezoneOffset / 60)).toString().padStart(2, '0')}${Math.abs(timezoneOffset % 60).toString().padStart(2, '0')}`
-    await appendReflog({
+    await logRefUpdate({
       fs,
       gitdir,
       ref: fullref,
-      entry: {
-        oldOid,
-        newOid: oid,
-        author,
-        timestamp,
-        timezoneOffset: offsetStr,
-        message: `branch: Created from ${object || 'HEAD'}`,
-      },
+      oldOid,
+      newOid: oid,
+      message: `branch: Created from ${object || 'HEAD'}`,
+    }).catch(() => {
+      // Reflog might not be enabled, ignore (handled by logRefUpdate)
     })
   }
 

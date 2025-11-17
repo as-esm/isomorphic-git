@@ -4,6 +4,7 @@ export * from './ConfigParser.ts'
 export * from './GitPath.ts'
 export * from './Signing.ts'
 export * from './UnifiedConfigService.ts'
+// StateManager migrated to src/git/state/ - keeping export for backward compatibility
 export * from './StateManager.ts'
 export * from './Repository.ts'
 // StagingArea removed - use Repository.readIndexDirect/writeIndexDirect directly

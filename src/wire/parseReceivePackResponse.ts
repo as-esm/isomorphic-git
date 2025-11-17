@@ -31,15 +31,18 @@ export async function parseReceivePackResponse(packfile: AsyncIterableIterator<U
   result.refs = {}
   for (const line of lines) {
     if (line.trim() === '') continue
+    // Lines should be in format: "ok ref\n" or "ok ref error message\n" or "ng ref error message\n"
+    if (line.length < 3) continue
     const status = line.slice(0, 2)
-    const refAndMessage = line.slice(3)
+    if (status !== 'ok' && status !== 'ng') continue
+    const refAndMessage = line.slice(3).trim() // Trim to remove trailing newline
     let space = refAndMessage.indexOf(' ')
     if (space === -1) space = refAndMessage.length
     const ref = refAndMessage.slice(0, space)
-    const error = refAndMessage.slice(space + 1)
+    const error = refAndMessage.slice(space + 1).trim() || undefined
     result.refs[ref] = {
       ok: status === 'ok',
-      error: error || undefined,
+      error: error,
     }
   }
   return result

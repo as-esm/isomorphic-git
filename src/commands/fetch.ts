@@ -417,6 +417,7 @@ export async function _fetch({
   })
   
   const response = await parseUploadPackResponse(raw.body)
+  console.log(`[DEBUG fetch] parseUploadPackResponse completed. ACKs: ${response.acks.length}, NAK: ${response.nak}`)
   if (raw.headers) {
     response.headers = raw.headers
   }
@@ -533,9 +534,13 @@ export async function _fetch({
     })
   }
   
+  console.log(`[DEBUG fetch] About to collect packfile from FIFO...`)
   const packfile = Buffer.from(await collect(response.packfile))
+  console.log(`[DEBUG fetch] Collected packfile: size=${packfile.length} bytes`)
   if (raw.body.error) throw raw.body.error
-  const packfileSha = packfile.slice(-20).toString('hex')
+  const packfileSha = packfile.length >= 20 ? packfile.slice(-20).toString('hex') : ''
+  const isEmpty = packfile.length > 0 ? emptyPackfile(packfile) : true
+  console.log(`[DEBUG fetch] Packfile info: sha=${packfileSha}, size=${packfile.length}, empty=${isEmpty}`)
   const res: FetchResult = {
     defaultBranch: response.HEAD || null,
     fetchHead: response.FETCH_HEAD.oid,
@@ -549,6 +554,7 @@ export async function _fetch({
   }
   
   if (packfileSha !== '' && !emptyPackfile(packfile)) {
+    console.log(`[DEBUG fetch] Packfile is valid, will write to disk`)
     res.packfile = `objects/pack/pack-${packfileSha}.pack`
     const fullpath = join(gitdir, res.packfile)
     // Ensure the pack directory exists
@@ -594,15 +600,18 @@ export async function _fetch({
     })
     
     // Write both packfile and index
+    console.log(`[DEBUG fetch] Writing packfile to: ${fullpath}`)
     await normalizedFs.write(fullpath, packfile)
     const indexPath = fullpath.replace(/\.pack$/, '.idx')
     const indexBuffer = await idx.toBuffer()
+    console.log(`[DEBUG fetch] Writing packfile index to: ${indexPath} (size: ${indexBuffer.length} bytes, objects: ${idx.offsets.size})`)
     await normalizedFs.write(indexPath, indexBuffer)
     
     // Verify the index file was written correctly
     if (!(await normalizedFs.exists(indexPath))) {
       throw new Error(`Failed to write packfile index: ${indexPath}`)
     }
+    console.log(`[DEBUG fetch] Packfile index verified to exist: ${indexPath}`)
     
     // Store the index in cache so it's immediately available for reading
     // This ensures objects can be found right after fetch completes

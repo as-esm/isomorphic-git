@@ -618,14 +618,17 @@ export async function _stashDrop({ fs, dir, gitdir, refIdx = 0, cache = {}, repo
   const stashReflogPath = getStashReflogsPath(gitdir)
   await acquireLock({ reflogEntries, stashReflogPath }, async () => {
     if (reflogEntries.length) {
+      // Reflog entries are stored newest-first, so no need to reverse
+      // Join entries with newlines and ensure file ends with newline
       await fs.write(
         stashReflogPath,
-        (reflogEntries as string[]).reverse().join('\n') + '\n',
+        (reflogEntries as string[]).join('\n') + '\n',
         'utf8'
       )
-      const lastStashCommit =
-        (reflogEntries as string[])[reflogEntries.length - 1].split(' ')[1]
-      await writeStashRef({ fs, gitdir, stashCommit: lastStashCommit })
+      // First entry (index 0) is the newest/most recent stash
+      const firstStashCommit =
+        (reflogEntries as string[])[0].split(' ')[1]
+      await writeStashRef({ fs, gitdir, stashCommit: firstStashCommit })
     } else {
       // remove the stash reflog file if no entry left
       await fs.rm(stashReflogPath)

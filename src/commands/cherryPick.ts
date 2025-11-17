@@ -3,7 +3,7 @@ import { readObject } from "../git/objects/readObject.ts"
 import { writeObject } from "../git/objects/writeObject.ts"
 import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
 import { mergeTrees } from "../core-utils/algorithms/MergeManager.ts"
-import { StateManager } from "../core-utils/StateManager.ts"
+import { writeCherryPickHead, deleteCherryPickHead } from "../git/state/index.ts"
 import { normalizeFs } from "../utils/normalizeFs.ts"
 import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
@@ -105,8 +105,7 @@ export async function cherryPick({
 
     if (mergeResult.conflicts.length > 0 && !noCommit) {
       // Set CHERRY_PICK_HEAD for conflict resolution
-      const stateManager = new StateManager(fs, effectiveGitdir)
-      await stateManager.setCherryPickHead(commitOid)
+      await writeCherryPickHead({ fs, gitdir: effectiveGitdir, oid: commitOid })
       throw new Error(`Cherry-pick conflict: ${mergeResult.conflicts.join(', ')}`)
     }
 
@@ -149,8 +148,7 @@ export async function cherryPick({
     await repo.writeRef('HEAD', newCommitOid)
 
     // Clear CHERRY_PICK_HEAD if it was set
-    const stateManager = new StateManager(fs, effectiveGitdir)
-    await stateManager.clearCherryPickHead()
+    await deleteCherryPickHead({ fs, gitdir: effectiveGitdir })
 
     return {
       oid: newCommitOid,

@@ -64,9 +64,24 @@ export class GitRefStash {
       return []
     }
     
-    // Reverse so most recent entries come first (stash@{0} is most recent)
-    const entries = validLines
-      .reverse()
+    // Reflog entries are stored newest-first in the file, so no need to reverse
+    // Map entries with index (stash@{0} is most recent, which is the first line)
+    // Filter out any duplicate entries (same commit OID) to ensure we only count unique stashes
+    const seenCommits = new Set<string>()
+    const uniqueLines = validLines.filter(line => {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length >= 2) {
+        const commitOid = parts[1] // newoid is the stash commit OID
+        if (seenCommits.has(commitOid)) {
+          return false // Duplicate commit, skip it
+        }
+        seenCommits.add(commitOid)
+        return true
+      }
+      return false
+    })
+    
+    const entries = uniqueLines
       .map((line, idx) => {
         if (parsed) {
           // Parse the reflog line format: "oldoid newoid name email timestamp timezone\tmessage"

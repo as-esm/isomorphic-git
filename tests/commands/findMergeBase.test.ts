@@ -4,7 +4,7 @@ import { findMergeBase } from 'isomorphic-git'
 import { makeFixture } from '../helpers/fixture.ts'
 
 // These have been checked with
-// GIT_DIR=__tests__/__fixtures__/test-findMergeBase.git git merge-base -a --octopus COMMITS
+// GIT_DIR=tests/__fixtures__/test-findMergeBase.git git merge-base -a --octopus COMMITS
 describe('findMergeBase', () => {
   it('silly edge cases', async () => {
     // Setup

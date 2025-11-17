@@ -47,7 +47,7 @@ export const analyzeCheckout = async ({
   const normalizedFs = repo.fs
   
   // Helper to recursively walk tree and build a map of all entries
-  const buildTreeMap = async (treeOid: string, prefix = '', map: Map<string, { oid: string; mode: string; type: 'blob' | 'tree' }> = new Map()): Promise<Map<string, { oid: string; mode: string; type: 'blob' | 'tree' }>> => {
+  const buildTreeMap = async (treeOid: string, prefix = '', map: Map<string, { oid: string; mode: string; type: 'blob' | 'tree' | 'commit' }> = new Map()): Promise<Map<string, { oid: string; mode: string; type: 'blob' | 'tree' | 'commit' }>> => {
     const { object: treeObject } = await readObject({ fs, cache, gitdir, oid: treeOid })
     const entries = parseTree(treeObject as Buffer)
 
@@ -65,6 +65,9 @@ export const analyzeCheckout = async ({
         await buildTreeMap(entry.oid, filepath, map)
       } else if (entry.type === 'blob') {
         map.set(filepath, { oid: entry.oid, mode: entry.mode, type: 'blob' })
+      } else if (entry.type === 'commit') {
+        // Submodules are stored as commit objects in the tree (mode 160000)
+        map.set(filepath, { oid: entry.oid, mode: entry.mode, type: 'commit' })
       }
     }
     
@@ -104,7 +107,18 @@ export const analyzeCheckout = async ({
   const filesToKeep = new Set<string>()
 
   // Get all paths from both the target tree AND the current index
-  const allPaths = new Set([...targetTreeEntries.keys(), ...gitIndex.entriesMap.keys()])
+  // If filepaths are specified, only include paths that match the filepaths
+  let allPaths = new Set([...targetTreeEntries.keys(), ...gitIndex.entriesMap.keys()])
+  if (filepaths && filepaths.length > 0) {
+    // Filter to only include paths that match the specified filepaths
+    const filteredPaths = new Set<string>()
+    for (const path of allPaths) {
+      if (filepaths.some(fp => path.startsWith(fp) || fp.startsWith(path))) {
+        filteredPaths.add(path)
+      }
+    }
+    allPaths = filteredPaths
+  }
 
   // Process each path to determine if it should exist in the final state
   for (const filepath of allPaths) {
@@ -117,7 +131,7 @@ export const analyzeCheckout = async ({
       : true
 
 
-    if (targetEntry && targetEntry.type === 'blob' && matchesSparse) {
+    if (targetEntry && (targetEntry.type === 'blob' || targetEntry.type === 'commit') && matchesSparse) {
       // File should exist in the final state - mark it to keep
       filesToKeep.add(filepath)
       
@@ -234,7 +248,8 @@ export const analyzeCheckout = async ({
 
   // Also check for files in index that are not in the target tree (deletions)
   // But only if force is true (otherwise we might conflict with workdir changes)
-  if (force) {
+  // AND only if filepaths are not specified (when filepaths are specified, we only update those files)
+  if (force && (!filepaths || filepaths.length === 0)) {
     for (const filepath of gitIndex.entriesMap.keys()) {
       // Skip if we already processed this file
       if (operations.some(op => op[1] === filepath)) {
@@ -302,40 +317,73 @@ export const executeCheckout = async ({
     if (op[0] === 'update' || op[0] === 'create') {
       const [, , oid, mode] = op
       const fullPath = join(dir, filepath)
-      
-      // Read the blob
-      const { object: blobObject } = await readObject({ fs, cache, gitdir, oid: oid as string })
-
-      // Ensure directory exists
-      const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'))
-      if (dirPath) {
-        await normalizedFs.mkdir(dirPath)
-      }
-
-      // Write the file using normalizedFs for consistency
       const modeNum = typeof mode === 'string' ? parseInt(mode, 8) : (mode as number)
-      if (modeNum === 0o100644) {
-        await normalizedFs.write(fullPath, blobObject as Buffer)
-      } else if (modeNum === 0o100755) {
-        await normalizedFs.write(fullPath, blobObject as Buffer, { mode: 0o777 })
-      } else if (modeNum === 0o120000) {
-        await (normalizedFs as { writelink?: (path: string, target: Buffer) => Promise<void> }).writelink?.(
-          fullPath,
-          blobObject as Buffer
-        )
-      }
+      
+      // Handle submodules (gitlinks) - mode 160000 (0o160000)
+      if (modeNum === 0o160000) {
+        // Submodules are stored in the index but don't have file content
+        // They're represented as directories in the workdir
+        // Ensure the submodule directory exists
+        await normalizedFs.mkdir(fullPath)
+        
+        // Add the gitlink entry to the index with mode 160000
+        // Gitlinks don't have file stats, so we create minimal stats
+        const stats = {
+          ctimeSeconds: 0,
+          ctimeNanoseconds: 0,
+          mtimeSeconds: 0,
+          mtimeNanoseconds: 0,
+          dev: 0,
+          ino: 0,
+          mode: 0o160000, // Gitlink mode
+          uid: 0,
+          gid: 0,
+          size: 0,
+        }
+        gitIndex.insert({
+          filepath: filepath as string,
+          oid: oid as string,
+          stats,
+          stage: 0,
+        })
+        
+        if (onProgress) {
+          await onProgress({ phase: 'Updating workdir', loaded: ++count, total })
+        }
+      } else {
+        // Regular file (blob) - read and write it
+        const { object: blobObject } = await readObject({ fs, cache, gitdir, oid: oid as string })
 
-      // Add the entry to our new, clean index
-      const stats = await normalizedFs.lstat(fullPath)
-      gitIndex.insert({
-        filepath: filepath as string,
-        oid: oid as string,
-        stats,
-        stage: 0,
-      })
+        // Ensure directory exists
+        const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'))
+        if (dirPath) {
+          await normalizedFs.mkdir(dirPath)
+        }
 
-      if (onProgress) {
-        await onProgress({ phase: 'Updating workdir', loaded: ++count, total })
+        // Write the file using normalizedFs for consistency
+        if (modeNum === 0o100644) {
+          await normalizedFs.write(fullPath, blobObject as Buffer)
+        } else if (modeNum === 0o100755) {
+          await normalizedFs.write(fullPath, blobObject as Buffer, { mode: 0o777 })
+        } else if (modeNum === 0o120000) {
+          await (normalizedFs as { writelink?: (path: string, target: Buffer) => Promise<void> }).writelink?.(
+            fullPath,
+            blobObject as Buffer
+          )
+        }
+
+        // Add the entry to our new, clean index
+        const stats = await normalizedFs.lstat(fullPath)
+        gitIndex.insert({
+          filepath: filepath as string,
+          oid: oid as string,
+          stats,
+          stage: 0,
+        })
+
+        if (onProgress) {
+          await onProgress({ phase: 'Updating workdir', loaded: ++count, total })
+        }
       }
     } else if (op[0] === 'keep') {
       // File is already correct - add it to our new index

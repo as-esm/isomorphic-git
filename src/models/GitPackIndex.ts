@@ -167,50 +167,62 @@ export class GitPackIndex {
       yield packBuf
     }
     console.log(`[Packfile Index] Starting listpack on packfile of size ${packBuf.byteLength} bytes`)
-    await listpack(packBufIterable(), async ({ data, type, reference, offset, num, end }) => {
-      if (totalObjectCount === null) totalObjectCount = num
-      const percent = Math.floor(
-        ((totalObjectCount - num) * 100) / totalObjectCount
-      )
-      if (percent !== lastPercent) {
-        if (onProgress) {
-          await onProgress({
-            phase: 'Receiving objects',
-            loaded: totalObjectCount - num,
-            total: totalObjectCount,
-          })
+    try {
+      await listpack(packBufIterable(), async ({ data, type, reference, offset, num, end }) => {
+        if (totalObjectCount === null) totalObjectCount = num
+        const percent = Math.floor(
+          ((totalObjectCount - num) * 100) / totalObjectCount
+        )
+        if (percent !== lastPercent) {
+          if (onProgress) {
+            await onProgress({
+              phase: 'Receiving objects',
+              loaded: totalObjectCount - num,
+              total: totalObjectCount,
+            })
+          }
         }
-      }
-      lastPercent = percent
-      // listpack already returns type as a string ('commit', 'tree', 'blob', 'tag', 'ofs-delta', 'ref-delta')
-      // No need to map it again
-      const typeStr = type
+        lastPercent = percent
+        // listpack already returns type as a string ('commit', 'tree', 'blob', 'tag', 'ofs-delta', 'ref-delta')
+        // No need to map it again
+        const typeStr = type
 
-      if (['commit', 'tree', 'blob', 'tag'].includes(typeStr)) {
-        offsetToObject[offset] = {
-          type: typeStr,
-          offset,
-          end, // Store the end offset from listpack
+        if (['commit', 'tree', 'blob', 'tag'].includes(typeStr)) {
+          offsetToObject[offset] = {
+            type: typeStr,
+            offset,
+            end, // Store the end offset from listpack
+          }
+        } else if (typeStr === 'ofs-delta') {
+          offsetToObject[offset] = {
+            type: typeStr,
+            offset,
+            end, // Store the end offset from listpack
+          }
+        } else if (typeStr === 'ref-delta') {
+          // Store the reference OID for ref-deltas so we can use it later
+          const referenceOid = reference ? reference.toString('hex') : undefined
+          offsetToObject[offset] = {
+            type: typeStr,
+            offset,
+            end, // Store the end offset from listpack
+            referenceOid,
+          }
+        } else {
+          console.warn(`[Packfile Index] Unknown object type: ${typeStr} at offset ${offset}`)
         }
-      } else if (typeStr === 'ofs-delta') {
-        offsetToObject[offset] = {
-          type: typeStr,
-          offset,
-          end, // Store the end offset from listpack
-        }
-      } else if (typeStr === 'ref-delta') {
-        // Store the reference OID for ref-deltas so we can use it later
-        const referenceOid = reference ? reference.toString('hex') : undefined
-        offsetToObject[offset] = {
-          type: typeStr,
-          offset,
-          end, // Store the end offset from listpack
-          referenceOid,
-        }
+      })
+    } catch (err: any) {
+      // Handle truncated or invalid packfiles gracefully
+      // If listpack fails (e.g., pack is truncated), return an index with no objects
+      if (err instanceof InternalError || err?.code === 'InternalError') {
+        console.warn(`[Packfile Index] listpack failed (likely truncated packfile): ${err.message}`)
+        // Continue with empty offsetToObject - will return index with 0 offsets
       } else {
-        console.warn(`[Packfile Index] Unknown object type: ${typeStr} at offset ${offset}`)
+        // Re-throw unexpected errors
+        throw err
       }
-    })
+    }
     console.log(`[Packfile Index] listpack completed. Found ${Object.keys(offsetToObject).length} objects in packfile. Total object count: ${totalObjectCount}`)
 
     // We need to know the lengths of the slices to compute the CRCs.

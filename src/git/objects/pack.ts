@@ -156,8 +156,15 @@ export async function read({
   try {
     list = (await fs.readdir(join(gitdir, 'objects/pack'))) as string[]
     list = list.filter(x => x.endsWith('.idx'))
-  } catch {
+    // DEBUG: Log packfile index files found
+    if (list.length > 0) {
+      console.log(`[DEBUG readPacked] Found ${list.length} packfile index(es):`, list)
+    } else {
+      console.log(`[DEBUG readPacked] No packfile indexes found in ${join(gitdir, 'objects/pack')}`)
+    }
+  } catch (err) {
     // Pack directory doesn't exist, no packed objects
+    console.log(`[DEBUG readPacked] Error reading pack directory:`, err)
     return null
   }
 
@@ -183,7 +190,10 @@ export async function read({
       const result = await p.read({ oid, getExternalRefDelta })
       result.format = format === 'content' ? 'content' : 'wrapped'
       result.source = `objects/pack/${filename.replace(/idx$/, 'pack')}`
+      console.log(`[DEBUG readPacked] Found object ${oid} in packfile ${filename}`)
       return result
+    } else {
+      console.log(`[DEBUG readPacked] Object ${oid} not found in packfile ${filename} (index has ${p.offsets.size} objects)`)
     }
   }
 

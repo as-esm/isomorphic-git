@@ -75,6 +75,33 @@ export async function deleteRef({
   gitdir: string
   ref: string
 }): Promise<void> {
-  return deleteRefs({ fs, gitdir, refs: [ref] })
+  // Read old OID before deleting (for reflog)
+  let oldOid = '0000000000000000000000000000000000000000'
+  try {
+    const { readRef } = await import('./readRef.ts')
+    const oldValue = await readRef({ fs, gitdir, ref })
+    if (oldValue) {
+      oldOid = oldValue
+    }
+  } catch {
+    // Ref doesn't exist, use zero OID
+  }
+  
+  await deleteRefs({ fs, gitdir, refs: [ref] })
+  
+  // Log ref deletion to reflog (if enabled)
+  if (oldOid !== '0000000000000000000000000000000000000000') {
+    const { logRefUpdate } = await import('../logs/logRefUpdate.ts')
+    await logRefUpdate({
+      fs,
+      gitdir,
+      ref,
+      oldOid,
+      newOid: '0000000000000000000000000000000000000000', // Zero OID for deletion
+      message: 'delete by deleteRef',
+    }).catch(() => {
+      // Silently ignore reflog errors (Git's behavior)
+    })
+  }
 }
 

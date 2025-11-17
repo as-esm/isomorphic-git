@@ -11,6 +11,7 @@ import {
   add,
 } from 'isomorphic-git'
 import { makeFixture } from '../helpers/fixture.ts'
+import { readLog } from '../../src/git/logs/readLog.ts'
 
 describe('commit', () => {
   // CRITICAL: Use a shared cache object for ALL git commands in these tests
@@ -74,6 +75,14 @@ describe('commit', () => {
     assert.strictEqual(currentCommit.message, 'Initial commit\n')
     assert.notStrictEqual(currentOid, originalOid)
     assert.strictEqual(currentOid, sha)
+    
+    // Verify reflog entry was created
+    const reflogEntries = await readLog({ fs, gitdir, ref: 'refs/heads/master', parsed: true })
+    assert.ok(reflogEntries.length > 0, 'Reflog should have at least one entry')
+    const lastEntry = reflogEntries[reflogEntries.length - 1] as { oldOid: string; newOid: string; message: string }
+    assert.strictEqual(lastEntry.oldOid, originalOid)
+    assert.strictEqual(lastEntry.newOid, sha)
+    assert.ok(lastEntry.message.includes('Initial commit'), 'Reflog message should contain commit message')
   })
 
   it('Initial commit', async () => {

@@ -1,5 +1,5 @@
 import { RefManager } from "../core-utils/refs/RefManager.ts"
-import { readReflog } from "../core-utils/refs/ReflogManager.ts"
+import { readLog, type ReflogEntry } from "../git/logs/readLog.ts"
 import { readObject } from "../git/objects/readObject.ts"
 import { parse as parseCommit } from "../core-utils/parsers/Commit.ts"
 import { NotFoundError } from '../errors/NotFoundError.ts'
@@ -66,7 +66,7 @@ export class RevisionParser {
     const baseOid = await RefManager.resolve({ fs: this.fs, gitdir: this.gitdir, ref })
 
     // Get reflog entries
-    const entries = (await readReflog({ fs: this.fs, gitdir: this.gitdir, ref, parsed: true })) as ReflogEntry[]
+    const entries = (await readLog({ fs: this.fs, gitdir: this.gitdir, ref, parsed: true })) as ReflogEntry[]
 
     if (entries.length === 0) {
       // No reflog, return base ref

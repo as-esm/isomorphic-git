@@ -107,10 +107,23 @@ test('push', async (t) => {
   await t.test('throws MissingParameterError when remote and url are both missing', async () => {
     const { fs, gitdir } = await makeFixture('test-push')
     const { MissingParameterError } = await import('../../src/errors/MissingParameterError.ts')
-    const { setConfig } = await import('isomorphic-git')
+    const { setConfig, writeRef } = await import('isomorphic-git')
+    const { ConfigAccess } = await import('../../src/utils/configAccess.ts')
+    
+    // Create the ref first so it exists
+    await writeRef({ fs, gitdir, ref: 'refs/heads/main', value: '1234567890123456789012345678901234567890' })
     
     // Set up branch.merge so remoteRef doesn't fail first
     await setConfig({ fs, gitdir, path: 'branch.main.merge', value: 'refs/heads/main' })
+    
+    // Ensure no remote is configured (delete if it exists)
+    const configAccess = new ConfigAccess(fs, gitdir)
+    try {
+      await configAccess.deleteConfigValue('remote.origin.url')
+      await configAccess.deleteConfigValue('remote.origin.pushurl')
+    } catch {
+      // Ignore if it doesn't exist
+    }
     
     try {
       await push({
@@ -121,10 +134,10 @@ test('push', async (t) => {
         // No remote or url configured
       })
       assert.fail('Should have thrown MissingParameterError')
-    } catch (error) {
-      assert.ok(error instanceof MissingParameterError)
+    } catch (error: any) {
+      assert.ok(error instanceof MissingParameterError, `Expected MissingParameterError, got ${error?.constructor?.name}: ${error?.message}`)
       // The error could be 'remote OR url' or 'remoteRef' depending on config
-      const param = (error as any).data?.parameter
+      const param = error.data?.parameter
       assert.ok(param === 'remote OR url' || param === 'remoteRef', `Expected 'remote OR url' or 'remoteRef', got '${param}'`)
     }
   })

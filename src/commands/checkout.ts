@@ -248,14 +248,13 @@ export async function _checkout({
   // Get worktree's gitdir (may differ from provided gitdir for linked worktrees)
   const worktreeGitdir = await worktree.getGitdir()
   
-  // oldOid is defined only if onPostCheckout hook is attached
+  // Read old HEAD OID for reflog (always, not just for onPostCheckout hook)
   let oldOid: string | undefined
-  if (onPostCheckout) {
-    try {
-      oldOid = await repo.resolveRef('HEAD')
-    } catch (err) {
-      oldOid = '0000000000000000000000000000000000000000'
-    }
+  try {
+    oldOid = await repo.resolveRef('HEAD')
+  } catch (err) {
+    // HEAD doesn't exist yet, use undefined (will default to zero OID in writeSymbolicRef)
+    oldOid = undefined
   }
   
   // Resolve ref to get oid for post-checkout hook
@@ -281,7 +280,8 @@ export async function _checkout({
       try {
         oid = await repo.resolveRef(`refs/heads/${defaultBranch}`)
         // Set HEAD to point to the default branch
-        await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${defaultBranch}`)
+        // Pass oldOid if available for reflog
+        await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${defaultBranch}`, oldOid)
       } catch {
         // Default branch doesn't exist - try to list branches and use the first one
         try {
@@ -292,7 +292,8 @@ export async function _checkout({
             const firstBranch = branches[0].replace('refs/heads/', '')
             oid = await repo.resolveRef(`refs/heads/${firstBranch}`)
             // Set HEAD to point to the first branch
-            await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${firstBranch}`)
+            // Pass oldOid if available for reflog
+            await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${firstBranch}`, oldOid)
           } else {
             // No branches exist, can't checkout HEAD
             throw err
@@ -324,6 +325,7 @@ export async function _checkout({
 
   // Use worktree.checkout() which handles ref resolution, HEAD update, and workdir checkout
   // This ensures all operations use the worktree's gitdir and staging area
+  // Pass oldOid if available for reflog
   try {
     await worktree.checkout(ref, {
       filepaths,
@@ -334,6 +336,7 @@ export async function _checkout({
       remote,
       track,
       onProgress,
+      oldOid, // Pass oldOid from checkout command for reflog
     })
   } catch (err) {
     if (err instanceof NotFoundError && (err as any).data && (err as any).data.what === oid) {

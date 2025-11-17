@@ -5,7 +5,7 @@ import { assertParameter } from "../utils/assertParameter.ts"
 import { join } from "../utils/join.ts"
 import { readObject } from "../git/objects/readObject.ts"
 import { hashObject } from '../core-utils/ShaHasher.ts'
-import { StateManager } from '../core-utils/StateManager.ts'
+import { deleteMergeHead } from '../git/state/index.ts'
 import type { FsClient } from "../models/FileSystem.ts"
 import type { TreeEntry } from '../models/GitTree.ts'
 
@@ -251,8 +251,7 @@ export async function abortMerge({
     await repo.writeIndexDirect(finalIndex)
 
     // 8. Clean up merge state files
-    const stateManager = new StateManager(fs, effectiveGitdir)
-    await stateManager.clearMergeHead()
+    await deleteMergeHead({ fs, gitdir: effectiveGitdir })
 
   } catch (err) {
     ;(err as { caller?: string }).caller = 'git.abortMerge'

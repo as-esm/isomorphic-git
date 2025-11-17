@@ -275,11 +275,11 @@ test('MergeManager', async (t) => {
   // ============================================================================
 
   await t.test('mergeTrees - clean merge (no conflicts)', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -325,6 +325,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = theirCommitObj.commit.tree
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -341,11 +342,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - conflict when both modify same file', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -390,6 +391,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = theirCommitObj.commit.tree
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -406,11 +408,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - only ours changed', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -444,6 +446,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = baseTreeOid
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -459,11 +462,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - only theirs changed', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -498,6 +501,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = theirCommitObj.commit.tree
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -513,11 +517,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - deleted by us, modified by them (conflict)', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -563,6 +567,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = theirCommitObj.commit.tree
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -578,11 +583,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - modified by us, deleted by them (conflict)', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -628,6 +633,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = theirCommitObj.commit.tree
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -643,11 +649,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - deleted by both (no conflict)', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -693,6 +699,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = theirCommitObj.commit.tree
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,
@@ -711,11 +718,11 @@ test('MergeManager', async (t) => {
   })
 
   await t.test('mergeTrees - both unchanged (no merge needed)', async () => {
-    const { fs, dir, gitdir } = await makeFixture('test-empty')
+    const { fs, dir } = await makeFixture('test-empty')
     await init({ fs, dir, defaultBranch: 'main' })
     
     const cache: Record<string, unknown> = {}
-    const repo = await Repository.open({ fs, dir, gitdir, cache })
+    const repo = await Repository.open({ fs, dir, cache })
     const { normalizeFs } = await import('../../../src/utils/normalizeFs.ts')
     const normalizedFs = normalizeFs(fs)
     
@@ -737,6 +744,7 @@ test('MergeManager', async (t) => {
     const theirTreeOid = baseTreeOid
     
     // Test mergeTrees
+    const gitdir = await repo.getGitdir()
     const result = await mergeTrees({
       fs,
       cache: repo.cache,

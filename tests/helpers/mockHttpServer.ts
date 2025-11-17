@@ -1,9 +1,20 @@
 import type { GitHttpRequest, GitHttpResponse, HttpClient } from '../../src/git/remote/GitRemoteHTTP.ts'
 import { uploadPack } from '../../src/commands/uploadPack.ts'
 import { listRefs } from '../../src/git/refs/listRefs.ts'
-import { resolveRef } from '../../src/git/refs/readRef.ts'
+import { resolveRef, readSymbolicRef } from '../../src/git/refs/readRef.ts'
+import { normalizeFs } from '../../src/utils/normalizeFs.ts'
 import { writeRefsAdResponse } from '../../src/wire/writeRefsAdResponse.ts'
+import { parseUploadPackRequest } from '../../src/wire/parseUploadPackRequest.ts'
+import { parseReceivePackResponse } from '../../src/wire/parseReceivePackResponse.ts'
+import { writeReceivePackRequest } from '../../src/wire/writeReceivePackRequest.ts'
+import { _pack } from '../../src/commands/pack.ts'
+import { listObjects } from '../../src/commands/listObjects.ts'
+import { listCommitsAndTags } from '../../src/commands/listCommitsAndTags.ts'
+import { hasObject } from '../../src/git/objects/hasObject.ts'
+import { readObject } from '../../src/git/objects/readObject.ts'
+import { parse as parseTag } from '../../src/core-utils/parsers/Tag.ts'
 import { GitPktLine } from '../../src/models/GitPktLine.ts'
+import { GitSideBand } from '../../src/models/GitSideBand.ts'
 import { collect } from '../../src/utils/collect.ts'
 import { fromValue } from '../../src/utils/fromValue.ts'
 import { makeFixture } from './fixture.ts'
@@ -81,8 +92,8 @@ export class MockHttpServer {
       const headOid = await resolveRef({ fs, gitdir, ref: 'HEAD' })
       refs.HEAD = headOid
       try {
-        const headTarget = await resolveRef({ fs, gitdir, ref: 'HEAD', depth: 2 })
-        if (headTarget !== headOid && headTarget.startsWith('refs/')) {
+        const headTarget = await readSymbolicRef({ fs, gitdir, ref: 'HEAD' })
+        if (headTarget && headTarget.startsWith('refs/')) {
           symrefs.HEAD = headTarget
         }
       } catch {
@@ -108,13 +119,42 @@ export class MockHttpServer {
           refs[fullRef] = oid
           
           // Check if it's a symref (for protocol v2)
+          // Try readSymbolicRef first, but also try reading the file directly as fallback
           try {
-            const symrefTarget = await resolveRef({ fs, gitdir, ref: fullRef, depth: 2 })
-            if (symrefTarget !== oid && symrefTarget.startsWith('refs/')) {
+            let symrefTarget = await readSymbolicRef({ fs, gitdir, ref: fullRef })
+            if (!symrefTarget) {
+              // Fallback: read the file directly
+              try {
+                const normalizedFs = normalizeFs(fs)
+                const refPath = join(gitdir, fullRef)
+                const content = await normalizedFs.read(refPath, 'utf8')
+                if (content && typeof content === 'string' && content.trim().startsWith('ref: ')) {
+                  symrefTarget = content.trim().slice('ref: '.length).trim()
+                }
+              } catch {
+                // File doesn't exist or can't be read
+              }
+            }
+            if (symrefTarget && symrefTarget.startsWith('refs/')) {
               symrefs[fullRef] = symrefTarget
             }
           } catch {
             // Not a symref
+          }
+          
+          // If it's a tag, add peeled ref (^{} suffix) for tag peeling
+          if (fullRef.startsWith('refs/tags/')) {
+            try {
+              const cache: Record<string, unknown> = {}
+              const { type, object } = await readObject({ fs, cache, gitdir, oid, format: 'content' })
+              if (type === 'tag') {
+                const tag = parseTag(object as Buffer)
+                // Add peeled tag ref with ^{} suffix
+                refs[`${fullRef}^{}`] = tag.object
+              }
+            } catch {
+              // Not a tag object or can't read it, skip peeling
+            }
           }
         } catch {
           // Skip refs that can't be resolved
@@ -142,18 +182,27 @@ export class MockHttpServer {
       const capabilities = ['ls-refs', 'fetch']
       const response: Buffer[] = []
       
-      // First line: version 2
-      response.push(GitPktLine.encode('version 2\n'))
+      // First line: version 2 (without trailing newline, GitPktLine.encode handles it)
+      response.push(GitPktLine.encode('version 2'))
       
-      // Capability lines
+      // Capability lines (without trailing newline, GitPktLine.encode handles it)
       for (const cap of capabilities) {
-        response.push(GitPktLine.encode(`${cap}\n`))
+        response.push(GitPktLine.encode(cap))
       }
       
-      // Empty line to end capabilities
-      response.push(GitPktLine.encode('\n'))
+      // Flush packet to end capabilities list
+      response.push(GitPktLine.flush())
       
-      const body = fromValue(response)
+      // Create async iterable from array of buffers
+      // Arrays are iterable, so getIterator should handle them automatically
+      // But we need an async iterable, so use async generator
+      // Protocol v1 collects into single buffer, but pkt-line format requires separate packets
+      // So we yield each buffer individually
+      const body = (async function* () {
+        for (const buf of response) {
+          yield buf
+        }
+      })()
       
       return {
         url: '',
@@ -170,6 +219,12 @@ export class MockHttpServer {
     // Protocol v1 - use writeRefsAdResponse to generate refs advertisement
     const { refs, symrefs } = await this.getAllRefs(repo)
     
+    // Protocol v1 only reports HEAD symref, not others
+    const protocolV1Symrefs: Record<string, string> = {}
+    if (symrefs.HEAD) {
+      protocolV1Symrefs.HEAD = symrefs.HEAD
+    }
+    
     const capabilities = [
       'thin-pack',
       'side-band',
@@ -182,13 +237,24 @@ export class MockHttpServer {
     ]
     
     const response = await writeRefsAdResponse({
-      service,
       capabilities,
       refs,
-      symrefs,
+      symrefs: protocolV1Symrefs,
     })
     
-    const body = fromValue([Buffer.from(await collect(response))])
+    // Protocol v1 requires "# service=git-upload-pack\n" as first line, then flush
+    // writeRefsAdResponse doesn't include this, so we prepend it
+    const fullResponse: Buffer[] = []
+    fullResponse.push(GitPktLine.encode(`# service=${service}\n`))
+    fullResponse.push(GitPktLine.flush())
+    fullResponse.push(...response)
+    
+    // Create async iterable from array of buffers
+    const body = (async function* () {
+      for (const buf of fullResponse) {
+        yield buf
+      }
+    })()
     
     return {
       url: '',
@@ -212,92 +278,331 @@ export class MockHttpServer {
   ): Promise<GitHttpResponse> {
     const { fs, gitdir } = repo
     
-    if (service === 'git-upload-pack' && requestBody) {
+    if (service === 'git-upload-pack') {
       // Check if this is a protocol v2 ls-refs request
-      try {
-        const bodyBuffer = Buffer.from(await collect(requestBody))
-        
-        // Parse pkt-line format
-        const read = GitPktLine.streamReader(fromValue([bodyBuffer]))
-        const lines: string[] = []
-        let line: Buffer | null | true
-        while (true) {
-          line = await read()
-          if (line === true) break
-          if (line === null) continue
-          lines.push(line.toString('utf8').replace(/\n$/, ''))
-        }
-        
-        // Check for protocol v2 ls-refs command
-        if (lines.some(l => l.includes('command=ls-refs'))) {
-          // Parse the request to extract prefix, symrefs, peelTags
-          let prefix: string | undefined
-          let symrefs = false
-          let peelTags = false
+      if (requestBody) {
+        try {
+          const bodyBuffer = Buffer.from(await collect(requestBody))
           
-          for (const line of lines) {
-            if (line.startsWith('ref-prefix ')) {
-              prefix = line.substring('ref-prefix '.length).trim()
-            } else if (line === 'symrefs') {
-              symrefs = true
-            } else if (line === 'peel') {
-              peelTags = true
+          // Parse pkt-line format
+          const read = GitPktLine.streamReader(fromValue([bodyBuffer]))
+          const lines: string[] = []
+          let line: Buffer | null | true
+          while (true) {
+            line = await read()
+            if (line === true) break
+            if (line === null) continue
+            lines.push(line.toString('utf8').replace(/\n$/, ''))
+          }
+          
+          // Check for protocol v2 ls-refs command
+          if (lines.some(l => l.includes('command=ls-refs'))) {
+            // Parse the request to extract prefix, symrefs, peelTags
+            let prefix: string | undefined
+            let symrefs = false
+            let peelTags = false
+            
+            for (const line of lines) {
+              if (line.startsWith('ref-prefix ')) {
+                prefix = line.substring('ref-prefix '.length).trim()
+              } else if (line === 'symrefs') {
+                symrefs = true
+              } else if (line === 'peel') {
+                peelTags = true
+              }
+            }
+            
+            // Get refs based on prefix
+            const { refs, symrefs: symrefsMap } = await this.getAllRefs(repo)
+            
+            // Filter by prefix if specified
+            let filteredRefs = Object.entries(refs)
+            if (prefix) {
+              filteredRefs = filteredRefs.filter(([ref]) => ref.startsWith(prefix))
+            }
+            
+            // Build protocol v2 ls-refs response
+            // Always include at least the flush packet, even if no refs match
+            const response: Buffer[] = []
+            for (const [ref, oid] of filteredRefs) {
+              // Skip peeled tag refs (^{} suffix) - they're handled separately
+              if (ref.endsWith('^{}')) {
+                continue
+              }
+              
+              const attrs: string[] = []
+              if (symrefs && symrefsMap[ref]) {
+                attrs.push(`symref-target:${symrefsMap[ref]}`)
+              }
+              
+              // Handle peelTags for annotated tags
+              if (peelTags && ref.startsWith('refs/tags/') && refs[`${ref}^{}`]) {
+                attrs.push(`peeled:${refs[`${ref}^{}`]}`)
+              }
+              
+              const line = `${oid} ${ref}${attrs.length > 0 ? ' ' + attrs.join(' ') : ''}\n`
+              response.push(GitPktLine.encode(line))
+            }
+            // Always add flush packet, even if no refs (empty response is valid)
+            response.push(GitPktLine.flush())
+            
+            // Create async iterable from array of buffers
+            // fromValue only handles single values, so we need to create an async generator
+            const body = (async function* () {
+              for (const buf of response) {
+                yield buf
+              }
+            })()
+            
+            return {
+              url: '',
+              method: 'POST',
+              statusCode: 200,
+              statusMessage: 'OK',
+              headers: {
+                // Protocol v2 ls-refs responses use -result, not -advertisement
+                'content-type': `application/x-${service}-result`,
+              },
+              body,
             }
           }
-          
-          // Get refs based on prefix
-          const { refs, symrefs: symrefsMap } = await this.getAllRefs(repo)
-          
-          // Filter by prefix if specified
-          let filteredRefs = Object.entries(refs)
-          if (prefix) {
-            filteredRefs = filteredRefs.filter(([ref]) => ref.startsWith(prefix))
-          }
-          
-          // Build protocol v2 ls-refs response
-          const response: Buffer[] = []
-          for (const [ref, oid] of filteredRefs) {
-            const attrs: string[] = []
-            if (symrefs && symrefsMap[ref]) {
-              attrs.push(`symref-target:${symrefsMap[ref]}`)
-            }
-            // TODO: Handle peelTags for annotated tags
-            const line = `${oid} ${ref}${attrs.length > 0 ? ' ' + attrs.join(' ') : ''}\n`
-            response.push(GitPktLine.encode(line))
-          }
-          response.push(GitPktLine.flush())
-          
-          const body = fromValue(response)
-          
-          return {
-            url: '',
-            method: 'POST',
-            statusCode: 200,
-            statusMessage: 'OK',
-            headers: {
-              'content-type': `application/x-${service}-result`,
-            },
-            body,
-          }
+        } catch {
+          // If parsing fails, fall through to default handling
         }
-      } catch {
-        // If parsing fails, fall through to default handling
       }
       
-      // Default upload-pack response (protocol v1 or packfile request)
-      const body = fromValue([
-        Buffer.from('0008NAK\n'),
-      ])
+      // Handle upload-pack request (fetch) - generate packfile
+      if (!requestBody) {
+        const body = fromValue([GitPktLine.encode('NAK\n')])
+        return {
+          url: '',
+          method: 'POST',
+          statusCode: 200,
+          statusMessage: 'OK',
+          headers: {
+            'content-type': `application/x-${service}-result`,
+          },
+          body,
+        }
+      }
       
-      return {
-        url: '',
-        method: 'POST',
-        statusCode: 200,
-        statusMessage: 'OK',
-        headers: {
-          'content-type': `application/x-${service}-result`,
-        },
-        body,
+      try {
+        const request = await parseUploadPackRequest(requestBody)
+        const cache: Record<string, unknown> = {}
+        
+        // Determine which objects to send
+        const objectsToSend = new Set<string>()
+        
+        // Add all wanted objects and their dependencies
+        for (const want of request.wants) {
+          const objects = await listObjects({ fs, cache, gitdir, oids: [want] })
+          for (const oid of objects) {
+            objectsToSend.add(oid)
+          }
+        }
+        
+        // Remove objects that client already has
+        for (const have of request.haves) {
+          if (await hasObject({ fs, cache, gitdir, oid: have })) {
+            // Client has this commit, remove it and its ancestors from objectsToSend
+            const haveObjects = await listObjects({ fs, cache, gitdir, oids: [have] })
+            for (const oid of haveObjects) {
+              objectsToSend.delete(oid)
+            }
+          }
+        }
+        
+        // Generate packfile
+        console.log(`[DEBUG mockHttpServer] Objects to send: ${objectsToSend.size} objects`)
+        if (objectsToSend.size > 0) {
+          console.log(`[DEBUG mockHttpServer] First few objects:`, Array.from(objectsToSend).slice(0, 5))
+        }
+        const packfileChunks = await _pack({
+          fs,
+          cache,
+          gitdir,
+          oids: Array.from(objectsToSend),
+        })
+        
+        // Build response with ACK and packfile
+        const response: Buffer[] = []
+        
+        // Send ACK for first want
+        if (request.wants.length > 0) {
+          response.push(GitPktLine.encode(`ACK ${request.wants[0]}\n`))
+        } else {
+          response.push(GitPktLine.encode('NAK\n'))
+        }
+        
+        // Send packfile using side-band-64k encoding
+        // Combine packfile chunks into single buffer
+        const packfileBuffer = Buffer.concat(packfileChunks)
+        
+        // Split packfile into chunks and encode with side-band
+        const CHUNK_SIZE = 65519 // side-band-64k max data per packet
+        for (let i = 0; i < packfileBuffer.length; i += CHUNK_SIZE) {
+          const chunk = packfileBuffer.slice(i, i + CHUNK_SIZE)
+          // Side-band byte 1 = packfile data
+          const sidebandChunk = Buffer.concat([Buffer.from([1]), chunk])
+          response.push(GitPktLine.encode(sidebandChunk))
+        }
+        
+        // Add flush packet at the end
+        response.push(GitPktLine.flush())
+        
+        // Create async iterable from array of buffers (fromValue only handles single values)
+        const body = (async function* () {
+          for (const buf of response) {
+            yield buf
+          }
+        })()
+        
+        return {
+          url: '',
+          method: 'POST',
+          statusCode: 200,
+          statusMessage: 'OK',
+          headers: {
+            'content-type': `application/x-${service}-result`,
+          },
+          body,
+        }
+      } catch (err) {
+        // Error generating packfile - return NAK
+        const body = fromValue([GitPktLine.encode('NAK\n')])
+        return {
+          url: '',
+          method: 'POST',
+          statusCode: 200,
+          statusMessage: 'OK',
+          headers: {
+            'content-type': `application/x-${service}-result`,
+          },
+          body,
+        }
+      }
+    }
+    
+    if (service === 'git-receive-pack') {
+      // Handle receive-pack request (push)
+      if (!requestBody) {
+        // Create async iterable from single buffer
+        const body = (async function* () {
+          yield GitPktLine.encode('unpack ok\n')
+          yield GitPktLine.flush()
+        })()
+        return {
+          url: '',
+          method: 'POST',
+          statusCode: 200,
+          statusMessage: 'OK',
+          headers: {
+            'content-type': `application/x-${service}-result`,
+          },
+          body,
+        }
+      }
+      
+      try {
+        // Parse the request to get ref updates
+        // The request format is: pkt-line ref updates, flush packet, then raw packfile
+        const bodyBuffer = Buffer.from(await collect(requestBody))
+        
+        // Use GitPktLine.streamReader to properly parse pkt-lines
+        // This will correctly handle the flush packet (0000) and stop there
+        const bodyStream = (async function* () {
+          yield bodyBuffer
+        })()
+        
+        const read = GitPktLine.streamReader(bodyStream)
+        const triplets: Array<{ oldoid: string; oid: string; ref: string }> = []
+        let line: Buffer | null | true
+        
+        // Read ref updates until we hit the flush packet
+        while (true) {
+          line = await read()
+          if (line === true) break // End of stream
+          if (line === null) break // Flush packet (0000) - end of ref updates section
+          
+          const lineStr = line.toString('utf8').trim()
+          if (lineStr === '') continue
+          
+          // Parse ref update line: oldoid oid ref\x00 capabilities
+          // The format is: "oldoid oid ref\x00 capabilities" or "oldoid oid ref"
+          const nullIndex = lineStr.indexOf('\x00')
+          const refLine = nullIndex >= 0 ? lineStr.substring(0, nullIndex) : lineStr
+          
+          const refParts = refLine.split(' ')
+          if (refParts.length >= 3) {
+            // Everything after the second space is the ref name
+            const ref = refParts.slice(2).join(' ').trim()
+            triplets.push({
+              oldoid: refParts[0].trim(),
+              oid: refParts[1].trim(),
+              ref: ref,
+            })
+          }
+        }
+        
+        // Update refs in repository
+        const result: Buffer[] = []
+        result.push(GitPktLine.encode('unpack ok\n'))
+        
+        for (const triplet of triplets) {
+          try {
+            // Update the ref
+            const refPath = join(gitdir, triplet.ref)
+            // Ensure parent directory exists
+            const refDir = refPath.substring(0, refPath.lastIndexOf('/'))
+            try {
+              await fs.mkdir(refDir, { recursive: true })
+            } catch {
+              // Directory might already exist
+            }
+            await fs.write(refPath, `${triplet.oid}\n`)
+            result.push(GitPktLine.encode(`ok ${triplet.ref}`))
+          } catch (err) {
+            result.push(GitPktLine.encode(`ng ${triplet.ref} ${String(err)}`))
+          }
+        }
+        
+        result.push(GitPktLine.flush())
+        
+        // Create async iterable from array of buffers
+        // fromValue only handles single values, so we need to create an async generator
+        const body = (async function* () {
+          for (const buf of result) {
+            yield buf
+          }
+        })()
+        
+        return {
+          url: '',
+          method: 'POST',
+          statusCode: 200,
+          statusMessage: 'OK',
+          headers: {
+            'content-type': `application/x-${service}-result`,
+          },
+          body,
+        }
+      } catch (err) {
+        // Error processing push
+        // Create async iterable from single buffer
+        const body = (async function* () {
+          yield GitPktLine.encode(`unpack error: ${String(err)}`)
+          yield GitPktLine.flush()
+        })()
+        return {
+          url: '',
+          method: 'POST',
+          statusCode: 200,
+          statusMessage: 'OK',
+          headers: {
+            'content-type': `application/x-${service}-result`,
+          },
+          body,
+        }
       }
     }
     

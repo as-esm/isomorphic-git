@@ -122,6 +122,7 @@ export class Worktree {
       onProgress?: ProgressCallback
       remote?: string
       track?: boolean
+      oldOid?: string // Optional old HEAD OID for reflog (from checkout command)
     } = {}
   ): Promise<void> {
     const gitdir = await this.getGitdir()
@@ -135,18 +136,69 @@ export class Worktree {
       onProgress,
       remote = 'origin',
       track = true,
+      oldOid: providedOldOid,
     } = options
 
     // Resolve ref to commit OID using Repository methods
     let oid: string
+    let createdFromRemote = false
     try {
-      oid = await this.repo.resolveRef(ref)
+      // First check if it exists as a local branch (refs/heads/...)
+      let localBranchExists = false
+      try {
+        oid = await this.repo.resolveRef(`refs/heads/${ref}`)
+        localBranchExists = true
+      } catch {
+        // Local branch doesn't exist, try to resolve as-is (might be a tag, remote branch, etc.)
+        oid = await this.repo.resolveRef(ref)
+        // Check if it resolved to a remote tracking branch
+        try {
+          const remoteRef = `refs/remotes/${remote}/${ref}`
+          const remoteOid = await this.repo.resolveRef(remoteRef)
+          if (remoteOid === oid) {
+            // The ref resolved to a remote tracking branch, create local branch and set up tracking
+            createdFromRemote = true
+            if (track) {
+              // Set up remote tracking branch
+              const { ConfigAccess } = await import('../utils/configAccess.ts')
+              const configAccess = new ConfigAccess(this.repo.fs, gitdir)
+              await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
+              await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')
+            }
+            // Create a new branch that points at that same commit
+            await this.repo.writeRef(`refs/heads/${ref}`, oid)
+          }
+        } catch {
+          // Not a remote tracking branch, continue with normal resolution
+        }
+      }
+      
+      // If local branch exists, check if we should set up tracking config
+      if (localBranchExists && track) {
+        try {
+          const remoteRef = `refs/remotes/${remote}/${ref}`
+          const remoteOid = await this.repo.resolveRef(remoteRef)
+          // Check if tracking config is already set
+          const { ConfigAccess } = await import('../utils/configAccess.ts')
+          const configAccess = new ConfigAccess(this.repo.fs, gitdir)
+          const existingRemote = await configAccess.getConfigValue(`branch.${ref}.remote`)
+          const existingMerge = await configAccess.getConfigValue(`branch.${ref}.merge`)
+          if (!existingRemote || !existingMerge) {
+            // Tracking config not set, set it up
+            await configAccess.setConfigValue(`branch.${ref}.remote`, remote, 'local')
+            await configAccess.setConfigValue(`branch.${ref}.merge`, `refs/heads/${ref}`, 'local')
+          }
+        } catch {
+          // Remote tracking branch doesn't exist, that's okay
+        }
+      }
     } catch (err) {
       if (ref === 'HEAD') throw err
       // If `ref` doesn't exist, try to create a new remote tracking branch
       const remoteRef = `${remote}/${ref}`
       try {
         oid = await this.repo.resolveRef(remoteRef)
+        createdFromRemote = true
         if (track) {
           // Set up remote tracking branch
           const { ConfigAccess } = await import('../utils/configAccess.ts')
@@ -156,7 +208,7 @@ export class Worktree {
         }
         // Create a new branch that points at that same commit
         await this.repo.writeRef(`refs/heads/${ref}`, oid)
-      } catch {
+      } catch (remoteErr) {
         throw err
       }
     }
@@ -200,14 +252,54 @@ export class Worktree {
           await this.repo.writeRef('HEAD', oid)
         }
       } else {
-        // If ref is a branch name (not a full ref path and not a tag), set HEAD as symbolic ref
-        // Otherwise, set HEAD as detached (direct OID)
-        const isBranchRef = ref && !ref.startsWith('refs/') && !ref.match(/^[0-9a-f]{40}$/)
-        if (isBranchRef) {
-          // Set HEAD as symbolic ref pointing to the branch
-          await this.repo.writeSymbolicRefDirect('HEAD', `refs/heads/${ref}`)
+        // Check if ref is a tag, branch, or OID
+        let isTag = false
+        let isBranch = false
+        
+        if (ref.startsWith('refs/tags/')) {
+          isTag = true
+        } else if (ref.startsWith('refs/heads/') || ref.startsWith('refs/remotes/')) {
+          isBranch = true
+        } else if (ref.match(/^[0-9a-f]{40}$/)) {
+          // It's an OID, set as detached HEAD
+          isTag = false
+          isBranch = false
         } else {
-          // For tags, full refs, or OIDs, set HEAD as detached (direct OID)
+          // Try to determine if it's a tag or branch by checking what exists
+          try {
+            // Check if it's a tag
+            await this.repo.resolveRef(`refs/tags/${ref}`)
+            isTag = true
+          } catch {
+            // Not a tag, check if it's a branch
+            try {
+              await this.repo.resolveRef(`refs/heads/${ref}`)
+              isBranch = true
+            } catch {
+              // Neither tag nor branch exists, but we already resolved it above
+              // If we got here, it might be a remote tracking branch or something else
+              // Default to treating as branch if it looks like a branch name
+              if (!ref.startsWith('refs/')) {
+                isBranch = true
+              }
+            }
+          }
+        }
+        
+        if (isTag) {
+          // For tags, set HEAD as detached (direct OID)
+          await this.repo.writeRef('HEAD', oid)
+        } else if (isBranch) {
+          // Set HEAD as symbolic ref pointing to the branch
+          // Use provided oldOid if available (from checkout command), otherwise read it
+          // CRITICAL: We must read oldOid BEFORE any HEAD modifications, so use providedOldOid if available
+          // IMPORTANT: If providedOldOid is passed, use it directly - don't try to read HEAD again
+          // The checkout command already read oldOid before any modifications
+          const oldOidToUse = providedOldOid
+          // Pass oldOid to writeSymbolicRefDirect (even if undefined, it will handle it)
+          await this.repo.writeSymbolicRefDirect('HEAD', `refs/heads/${ref}`, oldOidToUse)
+        } else {
+          // For full refs or OIDs, set HEAD as detached (direct OID)
           await this.repo.writeRef('HEAD', oid)
         }
       }
@@ -215,6 +307,9 @@ export class Worktree {
 
     // Update working directory and index
     if (!noCheckout) {
+      // Read the index once to pass to analyzeCheckout
+      const gitIndex = await this.repo.readIndexDirect(false, true, gitdir)
+      
       if (dryRun) {
         // Just analyze, don't execute
         const operations = await WorkdirManager.analyzeCheckout({
@@ -226,6 +321,7 @@ export class Worktree {
           force,
           sparsePatterns: finalSparsePatterns,
           cache: this.repo.cache,
+          index: gitIndex,
         })
         const conflicts = operations.filter(op => op[0] === 'conflict').map(op => op[1] as string)
         if (conflicts.length > 0) {

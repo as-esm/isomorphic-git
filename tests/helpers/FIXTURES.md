@@ -34,7 +34,7 @@ test('my test', async () => {
 1. **Location**: `tests/helpers/fixture.ts` wraps `makeNodeFixture` from `tests/helpers/makeNodeFixture.ts`
 
 2. **Fixture Resolution**: 
-   - Uses `findUp` to search for `__fixtures__/test-name` starting from `tests/` directory (with fallback to `__tests__/`)
+   - Uses `findUp` to search for `__fixtures__/test-name` starting from `tests/` directory
    - Creates temporary copies of fixtures in the system temp directory
    - Returns `{ fs, dir, gitdir }` where:
      - `fs`: FileSystem instance for file operations

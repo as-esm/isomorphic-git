@@ -53,6 +53,7 @@ export class RefManager {
     depth?: number
   }): Promise<string> {
     // Delegate to new resolveRef function
+    // resolveRefDirect throws NotFoundError if ref doesn't exist, which is expected behavior
     return resolveRefDirect({ fs, gitdir, ref, depth })
   }
 

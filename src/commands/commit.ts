@@ -4,7 +4,7 @@ import { NoCommitError } from "../errors/NoCommitError.ts"
 import { UnmergedPathsError } from "../errors/UnmergedPathsError.ts"
 import { GitIndex } from "../git/index/GitIndex.ts"
 // RefManager import removed - using Repository.resolveRef/writeRef methods instead
-import { appendReflog } from "../core-utils/refs/ReflogManager.ts"
+import { logRefUpdate } from "../git/logs/logRefUpdate.ts"
 import { writeObject } from "../git/objects/writeObject.ts"
 import { parse as parseCommit, serialize as serializeCommit } from "../core-utils/parsers/Commit.ts"
 import { parse as parseTree, serialize as serializeTree } from "../core-utils/parsers/Tree.ts"
@@ -409,20 +409,50 @@ export async function _commit({
             // HEAD is detached or doesn't exist, update it
             const branchName = ref.replace('refs/heads/', '')
             if (repo) {
-              await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${branchName}`)
+              // Read old HEAD OID for reflog before updating
+              let oldOid: string | undefined
+              try {
+                oldOid = await repo.resolveRef('HEAD')
+              } catch {
+                oldOid = undefined
+              }
+              await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${branchName}`, oldOid)
             } else {
               const { writeSymbolicRef } = await import('../git/refs/writeRef.ts')
-              await writeSymbolicRef({ fs, gitdir, ref: 'HEAD', value: `refs/heads/${branchName}` })
+              // Read old HEAD OID for reflog before updating
+              let oldOid: string | undefined
+              try {
+                const { resolveRef } = await import('../git/refs/readRef.ts')
+                oldOid = await resolveRef({ fs, gitdir, ref: 'HEAD' })
+              } catch {
+                oldOid = undefined
+              }
+              await writeSymbolicRef({ fs, gitdir, ref: 'HEAD', value: `refs/heads/${branchName}`, oldOid })
             }
           }
         } catch {
           // HEAD doesn't exist, create it as a symbolic ref pointing to the branch
           const branchName = ref.replace('refs/heads/', '')
           if (repo) {
-            await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${branchName}`)
+            // Read old HEAD OID for reflog before updating
+            let oldOid: string | undefined
+            try {
+              oldOid = await repo.resolveRef('HEAD')
+            } catch {
+              oldOid = undefined
+            }
+            await repo.writeSymbolicRefDirect('HEAD', `refs/heads/${branchName}`, oldOid)
           } else {
             const { writeSymbolicRef } = await import('../git/refs/writeRef.ts')
-            await writeSymbolicRef({ fs, gitdir, ref: 'HEAD', value: `refs/heads/${branchName}` })
+            // Read old HEAD OID for reflog before updating
+            let oldOid: string | undefined
+            try {
+              const { resolveRef } = await import('../git/refs/readRef.ts')
+              oldOid = await resolveRef({ fs, gitdir, ref: 'HEAD' })
+            } catch {
+              oldOid = undefined
+            }
+            await writeSymbolicRef({ fs, gitdir, ref: 'HEAD', value: `refs/heads/${branchName}`, oldOid })
           }
         }
       } else {
@@ -440,24 +470,20 @@ export async function _commit({
         }
       }
 
-      // Write reflog entry
-      try {
-        await appendReflog({
-          fs,
-          gitdir,
-          ref,
-          entry: {
-            oldOid,
-            newOid: oid,
-            author: `${committer.name} <${committer.email}>`,
-            timestamp: committer.timestamp,
-            timezoneOffset: String(committer.timezoneOffset).padStart(5, '0'),
-            message: amend ? `commit (amend): ${commitMessage.split('\n')[0]}` : `commit: ${commitMessage.split('\n')[0]}`,
-          },
-        })
-      } catch {
-        // Reflog might not be enabled, ignore
-      }
+      // Write reflog entry with detailed commit information
+      await logRefUpdate({
+        fs,
+        gitdir,
+        ref,
+        oldOid,
+        newOid: oid,
+        message: amend ? `commit (amend): ${commitMessage.split('\n')[0]}` : `commit: ${commitMessage.split('\n')[0]}`,
+        author: `${committer.name} <${committer.email}>`,
+        timestamp: committer.timestamp,
+        timezoneOffset: String(committer.timezoneOffset).padStart(5, '0'),
+      }).catch(() => {
+        // Reflog might not be enabled, ignore (handled by logRefUpdate)
+      })
     }
 
     return oid

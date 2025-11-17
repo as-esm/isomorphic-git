@@ -6,7 +6,7 @@ import findUp from 'find-up'
 import { FileSystem } from '../../src/models/FileSystem.ts'
 import onExit from 'signal-exit'
 
-const TEMP_PATH = join(os.tmpdir(), 'jest-fixture-')
+const TEMP_PATH = join(os.tmpdir(), 'isogit-test-fixture-')
 const TEMP_DIRS_CREATED = new Set<string>()
 
 export function cleanupTempDirs() {
@@ -24,19 +24,11 @@ const testsDir = resolve(import.meta.dirname, '..')
 const projectRoot = resolve(testsDir, '..')
 
 export async function useTempDir(fixture: string): Promise<string> {
-  // Check new location first: tests/__fixtures__/
-  let fixturePath = await findUp(join('__fixtures__', fixture), {
+  // Use the new location: tests/__fixtures__/
+  const fixturePath = await findUp(join('__fixtures__', fixture), {
     cwd: join(projectRoot, 'tests'),
     type: 'directory',
   })
-  
-  // Fallback to old location: __tests__/__fixtures__/
-  if (!fixturePath) {
-    fixturePath = await findUp(join('__fixtures__', fixture), {
-      cwd: testsDir,
-      type: 'directory',
-    })
-  }
 
   const tempDir = await _fs.promises.mkdtemp(TEMP_PATH)
   TEMP_DIRS_CREATED.add(tempDir)

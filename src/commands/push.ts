@@ -6,6 +6,7 @@ import { _pack } from './pack.ts'
 import { GitPushError } from "../errors/GitPushError.ts"
 import { MissingParameterError } from "../errors/MissingParameterError.ts"
 import { NotFoundError } from "../errors/NotFoundError.ts"
+import { ParseError } from "../errors/ParseError.ts"
 import { PushRejectedError } from "../errors/PushRejectedError.ts"
 import { UserCanceledError } from "../errors/UserCanceledError.ts"
 import { ConfigAccess } from "../utils/configAccess.ts"
@@ -14,7 +15,9 @@ import { findMergeBase } from "../core-utils/algorithms/CommitGraphWalker.ts"
 import { getRemoteHelperFor } from "../git/remote/getRemoteHelper.ts"
 import { GitSideBand } from "../models/GitSideBand.ts"
 import { filterCapabilities } from "../utils/filterCapabilities.ts"
+import { collect } from "../utils/collect.ts"
 import { forAwait } from "../utils/forAwait.ts"
+import { fromValue } from "../utils/fromValue.ts"
 import { pkg } from "../utils/pkg.ts"
 import { splitLines } from "../utils/splitLines.ts"
 import { parseReceivePackResponse } from "../wire/parseReceivePackResponse.ts"
@@ -192,12 +195,21 @@ async function _push({
   // Use ConfigAccess for config access
   const configService = new ConfigAccess(fs, gitdir)
   
+  // Extract branch name from ref for config lookup (branch.master.merge, not branch.refs/heads/master.merge)
+  // If ref is already a branch name (no refs/heads/ prefix), use it as-is
+  // Otherwise, extract the branch name from refs/heads/branch-name
+  const branchName = ref.startsWith('refs/heads/') 
+    ? ref.replace('refs/heads/', '')
+    : ref.startsWith('refs/')
+    ? ref.replace(/^refs\/[^/]+\//, '') // Remove refs/heads/ or refs/remotes/origin/ etc.
+    : ref
+  
   // Figure out what remote to use
   remote =
     remote ||
-    ((await configService.getConfigValue(`branch.${ref}.pushRemote`)) as string) ||
+    ((await configService.getConfigValue(`branch.${branchName}.pushRemote`)) as string) ||
     ((await configService.getConfigValue('remote.pushDefault')) as string) ||
-    ((await configService.getConfigValue(`branch.${ref}.remote`)) as string) ||
+    ((await configService.getConfigValue(`branch.${branchName}.remote`)) as string) ||
     'origin'
   
   // Lookup the URL for the given remote
@@ -210,7 +222,7 @@ async function _push({
   }
   
   // Figure out what remote ref to use
-  const remoteRef = _remoteRef || ((await configService.getConfigValue(`branch.${ref}.merge`)) as string)
+  const remoteRef = _remoteRef || ((await configService.getConfigValue(`branch.${branchName}.merge`)) as string)
   if (typeof remoteRef === 'undefined') {
     throw new MissingParameterError('remoteRef')
   }
@@ -390,16 +402,87 @@ async function _push({
     body: [...packstream1, ...packstream2],
   })
   
-  const { packfile, progress } = await GitSideBand.demux(res.body)
-  if (onMessage) {
-    const lines = splitLines(progress)
-    forAwait(lines, async line => {
-      await onMessage(line)
-    })
+  // Collect the response body into a buffer so we can use it multiple times
+  const bodyBuffer = Buffer.from(await collect(res.body))
+  
+  // Create an async iterable from the buffer that can be used multiple times
+  const createBodyStream = (): AsyncIterableIterator<Uint8Array> => {
+    let yielded = false
+    return {
+      async next(): Promise<IteratorResult<Uint8Array>> {
+        if (yielded) {
+          return { done: true, value: undefined }
+        }
+        yielded = true
+        return { done: false, value: bodyBuffer }
+      },
+      [Symbol.asyncIterator]() {
+        return this
+      },
+    }
   }
   
-  // Parse the response
-  const result = await parseReceivePackResponse(packfile)
+  // Check if server supports side-band-64k
+  const usesSideBand = httpRemote.capabilities.has('side-band-64k') || httpRemote.capabilities.has('side-band')
+  
+  let result: PushResult
+  if (usesSideBand) {
+    // Try to demux the response (in case server uses side-band)
+    const bodyStream = createBodyStream()
+    const { packetlines, packfile, progress } = await GitSideBand.demux(bodyStream)
+    if (onMessage) {
+      const lines = splitLines(progress)
+      forAwait(lines, async line => {
+        await onMessage(line)
+      })
+    }
+    
+    // Parse the response from packetlines (decoded lines)
+    result = {
+      ok: false,
+      refs: {},
+    }
+    let response = ''
+    await forAwait(packetlines as unknown as AsyncIterable<Buffer>, async (line: Buffer) => {
+      response += line.toString('utf8') + '\n'
+    })
+    
+    // If packetlines was empty, the server didn't use side-band encoding
+    // Fall back to parsing the raw response
+    if (response.trim() === '') {
+      const bodyStream2 = createBodyStream()
+      result = await parseReceivePackResponse(bodyStream2)
+    } else {
+      const lines = response.split('\n')
+      // We're expecting "unpack {unpack-result}"
+      const firstLine = lines.shift()
+      if (!firstLine || !firstLine.startsWith('unpack ')) {
+        throw new ParseError('unpack ok" or "unpack [error message]', firstLine || '')
+      }
+      result.ok = firstLine === 'unpack ok'
+      result.refs = {}
+      for (const line of lines) {
+        if (line.trim() === '') continue
+        // Lines should be in format: "ok ref\n" or "ok ref error message\n" or "ng ref error message\n"
+        if (line.length < 3) continue
+        const status = line.slice(0, 2)
+        if (status !== 'ok' && status !== 'ng') continue
+        const refAndMessage = line.slice(3).trim() // Trim to remove trailing newline
+        let space = refAndMessage.indexOf(' ')
+        if (space === -1) space = refAndMessage.length
+        const ref = refAndMessage.slice(0, space)
+        const error = refAndMessage.slice(space + 1).trim() || undefined
+        result.refs[ref] = {
+          ok: status === 'ok',
+          error: error,
+        }
+      }
+    }
+  } else {
+    // Server doesn't support side-band, parse response directly
+    const bodyStream = createBodyStream()
+    result = await parseReceivePackResponse(bodyStream)
+  }
   if (res.headers) {
     result.headers = res.headers
   }
@@ -408,6 +491,7 @@ async function _push({
   if (
     remote &&
     result.ok &&
+    result.refs[fullRemoteRef] &&
     result.refs[fullRemoteRef].ok &&
     !fullRef.startsWith('refs/tags')
   ) {
